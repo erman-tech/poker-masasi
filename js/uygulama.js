@@ -20,7 +20,12 @@ if ((rol === 'masa' && masaKaydiVar()) || (rol === 'novo' && novoKaydiVar()) || 
   b.hidden = false;
   b.textContent = rol === 'masa' ? "Texas masasına dön" : rol === 'novo' ? 'Novo masasına dön' : 'Kartlarıma dön';
   b.onclick = () => { ses.acil(); rol === 'masa' ? masaDevam() : rol === 'novo' ? novoDevam() : oyuncuDevam(); };
+  // Yeni sürüm için kendiliğinden yenilendiyse kaldığı masaya doğrudan döner.
+  let geriDon = false;
+  try { geriDon = sessionStorage.getItem('poker.surumYenileme') === '1'; sessionStorage.removeItem('poker.surumYenileme'); } catch (e) {}
+  if (geriDon) b.onclick();
 }
+const surumYenile = () => { try { sessionStorage.setItem('poker.surumYenileme', '1'); } catch (e) {} location.reload(); };
 
 // Offline: ilk açılışta her şey cihaza kaydedilir.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
@@ -35,9 +40,19 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     if (giris) { location.reload(); return; }
     const b = document.createElement('button');
     b.className = 'yeni-surum'; b.textContent = 'Yeni sürüm hazır · yenile';
-    b.onclick = () => location.reload();
+    b.onclick = surumYenile;
     document.body.appendChild(b);
+    // El bitince (dağıt düğmesi görünürken) kendiliğinden yenile; oyun durumu cihazda kayıtlı.
+    setInterval(() => {
+      const dagit = [...document.querySelectorAll('button')].find(x => x.offsetParent && /^(İlk eli|Sonraki eli)/.test(x.textContent.trim()) && !x.disabled);
+      if (document.querySelector('#e-giris.etkin')) location.reload();
+      else if (dagit) surumYenile();
+    }, 2000);
   });
+  // Açık kalan sekme de yeni sürümü görsün: dakikada bir ve ekrana dönüldüğünde sor.
+  const sor = () => navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+  setInterval(sor, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sor(); });
   // Sürümü giriş ekranına yaz
   fetch('sw.js').then(r => r.text()).then(t => { const m = t.match(/poker-v(\d+)/); if (m) $('g-surum').textContent = 'Sürüm ' + m[1]; }).catch(() => {});
   navigator.serviceWorker.register('sw.js').then(() => {

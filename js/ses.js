@@ -40,7 +40,7 @@ export function acil() {
 let ortamAcik = true;
 try { ortamAcik = localStorage.getItem('poker.ortam') !== '0'; } catch (e) {}
 let ortamKaynak = null, ortamKazanc = null, ortamIstendi = false;
-const ORTAM_SES = 0.12;
+const ORTAM_SES = 0.096; // 17 Kas: %20 kısıldı
 export function ortamAcikMi() { return ortamAcik; }
 export function ortamAyarla(v) {
   ortamAcik = !!v;
