@@ -1,0 +1,1 @@
+{ "name": "poker-masasi", "private": true, "type": "module", "scripts": { "test": "node --test test/" } }
