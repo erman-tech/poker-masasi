@@ -20,7 +20,7 @@
   <h1>♠ Poker Masası ♥</h1>
   <p>Texas Hold'em, internetsiz. iPad ortada masa olur, herkes kendi iki kartını kendi telefonunda görür.</p>
   <div class="secim">
-    <button id="g-masa">Masa kur<small>Ortadaki cihaz (iPad): ortak kartlar, fişler, pot, sıra</small></button>
+    <button id="g-masa">Masa kur<small>Ortadaki iPad: Texas Hold'em ya da Novo Poker</small></button>
     <button id="g-oyuncu">Oyuncuyum<small>Kendi telefonun: yalnız senin iki kartın</small></button>
     <button id="g-devam" class="btn-ikincil" hidden>Kaldığın yerden devam et</button>
   </div>
@@ -31,12 +31,19 @@
 <section id="e-kurulum" class="ekran">
   <div class="form">
     <h2>Masayı kur</h2>
+    <div class="tur-sec" id="k-tur" data-tur="texas">
+      <button data-tur="texas" class="secik">Texas Hold'em<small>Oyuncular birbirine karşı</small></button>
+      <button data-tur="novo">Novo Poker<small>Kasaya karşı · 1-4 oyuncu</small></button>
+    </div>
     <div class="oyuncu-listesi" id="k-oyuncular"></div>
     <button class="btn-ikincil" id="k-ekle">+ Oyuncu ekle</button>
     <label>Herkesin başlangıç parası ($)
       <input id="k-fis" type="number" inputmode="numeric" value="1000" min="100" step="100">
     </label>
-    <label>Körler (10/20 ile başlar) kaç elde bir yükselsin?
+    <label class="sadece-novo">Ante (express ve kart çekme de bu kadar, oyna 2 katı)
+      <select id="k-ante"><option>5</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select>
+    </label>
+    <label class="sadece-texas">Körler (10/20 ile başlar) kaç elde bir yükselsin?
       <select id="k-kor">
         <option value="0">Yükselmesin</option>
         <option value="8">8 elde bir</option>
@@ -45,7 +52,7 @@
         <option value="20">20 elde bir</option>
       </select>
     </label>
-    <label>Bu cihaz kimin? (Telefonu masa yapıyorsanız sahibi kendi kartlarına buradan bakar)
+    <label class="sadece-texas">Bu cihaz kimin? (Telefonu masa yapıyorsanız sahibi kendi kartlarına buradan bakar)
       <select id="k-sahip"></select>
     </label>
     <div class="hata" id="k-hata"></div>
@@ -78,6 +85,31 @@
     </div>
   </div>
   <div class="eylem-paneli" id="m-panel"></div>
+</section>
+
+<!-- Novo masası (iPad) -->
+<section id="e-novo" class="ekran novo-ekran">
+  <div class="ust-cubuk">
+    <span class="bilgi">Novo · El <b id="n-elno">–</b></span>
+    <span class="bilgi">Ante <b id="n-ante">–</b></span>
+    <span class="bilgi">Kasa <b id="n-kasa">$0</b> <span id="n-kasatop" style="color:var(--soluk)"></span></span>
+    <span class="bosluk"></span>
+    <button id="n-geri">↶ Geri al</button>
+    <button id="n-ses">🔊</button>
+    <button id="n-menu">☰</button>
+  </div>
+  <div class="masa-alan" id="n-alan">
+    <div class="kece novo-kece"></div>
+    <div class="n-yazi">KASAYA KARŞI · KRUPİYE AS-PAPAZ VE ÜSTÜYLE OYUNA GİRER</div>
+    <div class="n-tablo sol" id="n-tablo-bet"></div>
+    <div class="n-tablo sag" id="n-tablo-ex"></div>
+    <div class="n-krupiye-alan">
+      <div class="n-kasa-etiket">KASA</div>
+      <div class="ortak" id="n-krupiye"></div>
+      <div class="n-krupiye-ad" id="n-krupiye-ad"></div>
+    </div>
+  </div>
+  <div class="eylem-paneli" id="n-panel"></div>
 </section>
 
 <!-- Oyuncu kurulumu -->

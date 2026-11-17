@@ -4,6 +4,8 @@ import {
   yeniOyun, eliBaslat, hamleYap, yasalHamleler, potToplam, potlariHesapla, korlar, korSeviyesi, yenidenBaslat,
 } from './motor.js';
 import { yiginEl } from './fis.js';
+import { novoAc } from './novo_masa.js';
+import { NOVO_AZAMI_OYUNCU } from './novo.js';
 import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, sayi, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
 
@@ -34,17 +36,22 @@ function kodUret() {
 
 // ---------------- Kurulum ----------------
 let adlar = ['Erman', 'Fidan', 'Emrah'];
+let tur = 'texas';
+const SINIR = { texas: [2, AZAMI_KOLTUK], novo: [1, NOVO_AZAMI_OYUNCU] };
 
 function kurulumCiz() {
   $('k-oyuncular').innerHTML = adlar.map((a, i) => `
     <div class="satir">
       <span style="flex:0 0 34px;font-weight:800;color:var(--altin)">${i + 1}</span>
       <input data-i="${i}" value="${kacis(a)}" maxlength="14" placeholder="Ad">
-      <button class="btn-ikincil" data-sil="${i}" ${adlar.length <= 2 ? 'disabled' : ''}>✕</button>
+      <button class="btn-ikincil" data-sil="${i}" ${adlar.length <= SINIR[tur][0] ? 'disabled' : ''}>✕</button>
     </div>`).join('');
   $('k-oyuncular').querySelectorAll('input').forEach(inp => inp.oninput = () => { adlar[+inp.dataset.i] = inp.value; sahipCiz(); });
   $('k-oyuncular').querySelectorAll('[data-sil]').forEach(b => b.onclick = () => { adlar.splice(+b.dataset.sil, 1); kurulumCiz(); });
-  $('k-ekle').disabled = adlar.length >= AZAMI_KOLTUK;
+  $('k-ekle').disabled = adlar.length >= SINIR[tur][1];
+  const form = $('e-kurulum').querySelector('.form');
+  form.dataset.tur = tur;
+  $('k-tur').querySelectorAll('button').forEach(b => b.classList.toggle('secik', b.dataset.tur === tur));
   sahipCiz();
 }
 function sahipCiz() {
@@ -65,6 +72,13 @@ function masayiAc() {
   if (temiz.some(a => !a)) { $('k-hata').textContent = 'Her oyuncuya bir ad yaz.'; return; }
   const fis = Math.floor(Number($('k-fis').value));
   if (!(fis >= 100) || fis % 5) { $('k-hata').textContent = "Başlangıç parası en az 100 ve 5'in katı olmalı."; return; }
+  if (tur === 'novo') {
+    if (temiz.length > NOVO_AZAMI_OYUNCU) { $('k-hata').textContent = 'Novo en çok 4 oyuncuyla oynanır.'; return; }
+    try { localStorage.setItem('poker.rol', 'novo'); } catch (e) {}
+    novoAc({ adlar: temiz, baslangicFis: fis, ante: Number($('k-ante').value) });
+    return;
+  }
+  try { localStorage.setItem('poker.rol', 'masa'); } catch (e) {}
   M = {
     g: yeniOyun({ adlar: temiz, kod: kodUret(), baslangicFis: fis, korArtisEl: Number($('k-kor').value), birim: 5 }),
     gecmis: [],
@@ -459,7 +473,13 @@ async function dagit() {
 
 // ---------------- Bağlantılar ----------------
 export function masaBagla() {
-  $('k-ekle').onclick = () => { if (adlar.length < AZAMI_KOLTUK) { adlar.push(''); kurulumCiz(); } };
+  $('k-ekle').onclick = () => { if (adlar.length < SINIR[tur][1]) { adlar.push(''); kurulumCiz(); } };
+  $('k-tur').querySelectorAll('button').forEach(b => b.onclick = () => {
+    tur = b.dataset.tur;
+    if (adlar.length > SINIR[tur][1]) adlar = adlar.slice(0, SINIR[tur][1]);
+    $('k-hata').textContent = '';
+    kurulumCiz();
+  });
   $('k-geri').onclick = () => ekranGoster('e-giris');
   $('k-basla').onclick = () => { ses.acil(); masayiAc(); };
   $('m-kod').onclick = () => kodGoster(false);

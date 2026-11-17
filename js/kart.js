@@ -164,3 +164,21 @@ export function kartlariOku(metin) {
     return { d, r };
   });
 }
+
+// Tamamen rastgele deste: cihazın güvenli rastgele üreteci (crypto) + yansız Fisher-Yates.
+// Hiçbir koddan türetilmez; her çağrı bağımsız bir karıştırmadır.
+export function rastgeleDeste() {
+  const deste = yeniDeste();
+  const tampon = new Uint32Array(1);
+  const zar = n => { // 0..n-1, modülo sapması olmadan
+    const sinir = Math.floor(0x100000000 / n) * n;
+    let x;
+    do { globalThis.crypto.getRandomValues(tampon); x = tampon[0]; } while (x >= sinir);
+    return x % n;
+  };
+  for (let i = deste.length - 1; i > 0; i--) {
+    const j = zar(i + 1);
+    [deste[i], deste[j]] = [deste[j], deste[i]];
+  }
+  return deste;
+}

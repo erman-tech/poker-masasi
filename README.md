@@ -30,6 +30,16 @@ karıştırır. Bu yüzden kopacak bir bağlantı yok; sayfa kapanırsa kaldığ
 Bilinen sınır: masa kodunu bilen ve kod yazmayı bilen biri, bu dosyalarla başkalarının
 kartlarını hesaplayabilir. Arkadaş masası için yazıldı.
 
+## Novo Poker (kasaya karşı)
+
+*Masa kur* → **Novo Poker**. 1-4 oyuncu, telefon gerekmez; kartlar iPad'de açık.
+- Giriş: ante $25 + zorunlu express $25. Express ilk 5 karta göre hemen ödenir.
+- Sırayla: Pas · Oyna ($50) · Kart çek ($25, istediğin kartları seç) · 6. kart ($25).
+- Kasanın son kartı açık, 4'ü kapalı. Kasa As-Papaz ve üstüyle oyuna girer; girmezse
+  ante'yi al ya da $25 verip kasaya oyun satın al.
+- Üst çubukta kasanın bu oyundaki artı/eksisi. Parası biten tabletten para yükler.
+- Her el iPad'in güvenli rastgele üreteciyle sıfırdan karıştırılır.
+
 ## Geliştirme
 
     npm test        # el gücü, pot ve kural testleri (node 20+)

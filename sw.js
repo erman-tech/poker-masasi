@@ -1,9 +1,9 @@
 // Offline önbellek: ilk açılışta tüm dosyalar cihaza kaydedilir.
 // Dosya değişince SURUM artırılır.
-const SURUM = 'poker-v6';
+const SURUM = 'poker-v8';
 const DOSYALAR = [
   './', 'index.html', 'css/stil.css', 'manifest.webmanifest',
-  'js/uygulama.js', 'js/arayuz.js', 'js/masa.js', 'js/oyuncu.js', 'js/motor.js', 'js/kart.js', 'js/ses.js', 'js/fis.js',
+  'js/uygulama.js', 'js/arayuz.js', 'js/masa.js', 'js/oyuncu.js', 'js/motor.js', 'js/kart.js', 'js/ses.js', 'js/fis.js', 'js/novo.js', 'js/novo_masa.js',
   'ikon-180.png', 'ikon-192.png', 'ikon-512.png',
 ];
 self.addEventListener('install', e => {

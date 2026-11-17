@@ -1,23 +1,25 @@
 import { $ } from './arayuz.js';
 import { masaBagla, masaKurulumu, masaDevam, masaKaydiVar } from './masa.js';
+import { novoBagla, novoDevam, novoKaydiVar } from './novo_masa.js';
 import { oyuncuBagla, oyuncuKurulumu, oyuncuDevam, oyuncuKaydiVar } from './oyuncu.js';
 import * as ses from './ses.js';
 
 masaBagla();
+novoBagla();
 oyuncuBagla();
 
 const sonRol = () => { try { return localStorage.getItem('poker.rol'); } catch (e) { return null; } };
 const rolYaz = r => { try { localStorage.setItem('poker.rol', r); } catch (e) {} };
 
-$('g-masa').onclick = () => { ses.acil(); rolYaz('masa'); masaKaydiVar() ? masaDevam() : masaKurulumu(); };
+$('g-masa').onclick = () => { ses.acil(); masaKurulumu(); };
 $('g-oyuncu').onclick = () => { ses.acil(); rolYaz('oyuncu'); oyuncuKaydiVar() ? oyuncuDevam() : oyuncuKurulumu(); };
 
 const rol = sonRol();
-if ((rol === 'masa' && masaKaydiVar()) || (rol === 'oyuncu' && oyuncuKaydiVar())) {
+if ((rol === 'masa' && masaKaydiVar()) || (rol === 'novo' && novoKaydiVar()) || (rol === 'oyuncu' && oyuncuKaydiVar())) {
   const b = $('g-devam');
   b.hidden = false;
-  b.textContent = rol === 'masa' ? 'Masaya dön (kayıtlı oyun)' : 'Kartlarıma dön';
-  b.onclick = () => { ses.acil(); rol === 'masa' ? masaDevam() : oyuncuDevam(); };
+  b.textContent = rol === 'masa' ? "Texas masasına dön" : rol === 'novo' ? 'Novo masasına dön' : 'Kartlarıma dön';
+  b.onclick = () => { ses.acil(); rol === 'masa' ? masaDevam() : rol === 'novo' ? novoDevam() : oyuncuDevam(); };
 }
 
 // Offline: ilk açılışta her şey cihaza kaydedilir.

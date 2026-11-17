@@ -265,3 +265,53 @@ input, select {
 .bahis .yigin .adet, .pot-satir .yigin .adet { display: none; }
 .orta-alan { top: 44%; }
 .pot-satir { display: flex; align-items: center; gap: 10px; }
+
+/* Kurulum: oyun türü */
+.tur-sec { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tur-sec button { background: #ffffff14; text-align: left; border: 2px solid transparent; }
+.tur-sec button small { display: block; font-weight: 450; font-size: 13px; color: var(--soluk); margin-top: 3px; }
+.tur-sec button.secik { border-color: var(--altin); background: #e8c25a22; }
+.form[data-tur="texas"] .sadece-novo, .form[data-tur="novo"] .sadece-texas { display: none; }
+
+/* Novo masası: lacivert çuha, basılı yerleşim */
+.novo-ekran { background: radial-gradient(ellipse at 50% 40%, #152a4a, #050c18 70%); }
+.novo-kece {
+  background: radial-gradient(ellipse at center, #1f4f8f, #163b6e 60%, #0d2649);
+  border-radius: 50% 50% 46% 46% / 30% 30% 60% 60%;
+  top: 6%; bottom: 4%;
+}
+.n-yazi { position: absolute; left: 50%; top: 84%; transform: translateX(-50%); width: 38%; text-align: center; font-size: 11px; letter-spacing: 2px; line-height: 1.6; color: #ffffff66; font-weight: 700; }
+.n-krupiye-alan { position: absolute; left: 50%; top: 9%; transform: translateX(-50%); display: grid; justify-items: center; gap: 6px; }
+.n-krupiye-alan .ortak { --kart-gen: clamp(46px, 6vw, 70px); }
+.n-kasa-etiket { font-size: 13px; letter-spacing: 6px; color: #ffd76599; font-weight: 800; }
+.n-krupiye-ad { font-weight: 800; min-height: 20px; color: #fff; text-shadow: 0 1px 4px #000; }
+.n-tablo { position: absolute; top: 10%; font-size: 11px; color: #ffffffbb; background: #0003; border: 1px solid #ffffff2a; border-radius: 10px; padding: 6px 8px; min-width: 120px; }
+.n-tablo.sol { left: 9%; } .n-tablo.sag { right: 9%; }
+.n-tablo .bas { font-weight: 800; letter-spacing: 2px; color: var(--altin); margin-bottom: 3px; text-align: center; }
+.n-tablo div { display: flex; justify-content: space-between; gap: 10px; line-height: 1.35; }
+.n-tablo b { color: #fff; }
+.nspot { position: absolute; transform: translate(-50%, -50%); width: 230px; display: grid; justify-items: center; gap: 4px; }
+.nspot .nkartlar { display: flex; gap: 3px; --kart-gen: 38px; min-height: 54px; }
+.nspot .nel { font-size: 13px; font-weight: 700; min-height: 18px; text-align: center; text-shadow: 0 1px 3px #000; }
+.nspot .nel.express { color: #ffe27a; }
+.nspot .nel.kazanc { color: #8ff0a3; } .nspot .nel.kayip { color: #ffb0a8; }
+.ndaireler { display: flex; gap: 6px; align-items: center; }
+.ndaire { width: 58px; height: 58px; border-radius: 50%; border: 2px solid #ffffff55; display: grid; place-items: center; position: relative; }
+.ndaire span { position: absolute; top: 4px; font-size: 8px; letter-spacing: 1px; font-weight: 800; color: #ffffffaa; }
+.ndaire.express { border-color: #ffd765aa; } .ndaire.express span { color: #ffd765; }
+.ndaire.bet { border-color: #ffffff99; }
+.ndaire .yer { margin-top: 10px; }
+.ncekme { width: 40px; height: 40px; border-radius: 8px; border: 1.5px dashed #ffffff55; display: grid; place-items: center; position: relative; }
+.ncekme span { position: absolute; top: 2px; font-size: 7px; letter-spacing: .5px; color: #ffffff88; font-weight: 800; }
+.nlevha { background: #000a; border: 2px solid #ffffff22; border-radius: 12px; padding: 4px 10px; text-align: center; min-width: 130px; }
+.nlevha .ad { font-weight: 800; } .nlevha .fis-sayi { color: var(--altin); }
+.nlevha .yuk { font-size: 11px; color: var(--soluk); }
+.nspot.sira .nlevha { border-color: var(--vurgu); box-shadow: 0 0 20px #ffd76588; }
+.nspot.pas .nkartlar { opacity: .35; }
+.kart.secili { transform: translateY(-10px); }
+.kart.secili .yuz { box-shadow: 0 0 0 3px #ff6b6b, 0 4px 10px #0009; }
+.buyuk-kartlar { display: flex; gap: 10px; justify-content: center; --kart-gen: 74px; }
+.buyuk-kartlar > div { cursor: pointer; }
+.yigin.ucan { position: fixed; z-index: 60; pointer-events: none; }
+.oyunsuz { display: grid; gap: 8px; }
+.ust-cubuk .artı { color: #8ff0a3; } .ust-cubuk .eksi { color: #ffb0a8; }

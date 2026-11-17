@@ -1,0 +1,504 @@
+// Novo Poker masası (iPad). Kasaya karşı; oyuncu kartları açık, her şey bu ekranda.
+import {
+  yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle,
+  katilabilir, ODEME, BONUS, EL_ADI, sinif,
+} from './novo.js';
+import { yiginEl } from './fis.js';
+import { $, ekranGoster, kartEl, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
+import * as ses from './ses.js';
+
+const ANAHTAR = 'poker.novo.v1';
+let N = null;          // { g, gecmis }
+let mesgul = false;
+let secili = new Set(); // değiştirilecek kart konumları
+let secimModu = false;
+let oyunsuzSecim = {};  // oyuncu -> true (oyun satın al) / false (ante al)
+let hata = '';
+
+function kaydet() {
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(N)); }
+  catch (e) { N.gecmis = N.gecmis.slice(-5); try { localStorage.setItem(ANAHTAR, JSON.stringify(N)); } catch (e2) {} }
+}
+export function novoKaydiVar() {
+  try { return !!JSON.parse(localStorage.getItem(ANAHTAR) || 'null'); } catch (e) { return false; }
+}
+export function novoAc({ adlar, baslangicFis, ante }) {
+  N = { g: yeniNovo({ adlar, kod: 'N', baslangicFis, ante }), gecmis: [] };
+  kaydet();
+  ekran();
+}
+export function novoDevam() {
+  try { N = JSON.parse(localStorage.getItem(ANAHTAR) || 'null'); } catch (e) { N = null; }
+  if (!N || !N.g) return false;
+  ekran();
+  return true;
+}
+
+function ekran() {
+  ekranGoster('e-novo');
+  ekranAcikTut();
+  $('n-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇';
+  ciz();
+}
+
+function gecmiseAt() {
+  N.gecmis.push(JSON.stringify(N.g));
+  if (N.gecmis.length > 40) N.gecmis.shift();
+}
+
+// ---------------- Çizim ----------------
+function spotKonumu(i, n) {
+  const x = n === 1 ? [50] : n === 2 ? [32, 68] : n === 3 ? [20, 50, 80] : [14, 38, 62, 86];
+  const y = n <= 2 ? [60, 60] : n === 3 ? [57, 63, 57] : [55, 62, 62, 55];
+  return { x: x[i], y: y[i] };
+}
+
+function kasaYazi(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + para(Math.abs(v || 0)); }
+
+function ciz() {
+  const g = N.g, el = g.el;
+  $('n-elno').textContent = el ? el.no : '–';
+  $('n-ante').textContent = para(g.ante);
+  // Express dağıtımda sonuçlanır: el sürerken kasaya anında yansıt.
+  let canli = g.kasaNet || 0;
+  if (el && el.faz !== 'bitti') for (const p of el.oyuncular) if (p.katildi) canli += p.bonus - p.bonusOdeme;
+  const kn = $('n-kasa');
+  kn.textContent = kasaYazi(canli);
+  kn.className = canli >= 0 ? 'artı' : 'eksi';
+  $('n-kasatop').textContent = g.oyunNo > 1 ? `· masa açıldığından beri ${kasaYazi(g.kasaToplam)}` : '';
+  $('n-geri').disabled = !N.gecmis.length || mesgul;
+
+  // Krupiye
+  const kr = $('n-krupiye');
+  kr.innerHTML = '';
+  if (el) {
+    el.krupiye.forEach((k, j) => {
+      const acik = el.krupiyeAcik || j === 4;
+      kr.appendChild(kartEl(k, acik));
+    });
+  } else for (let j = 0; j < 5; j++) kr.appendChild(Object.assign(kartEl(null), { className: 'kart bos' }));
+  $('n-krupiye-ad').textContent = el && el.krupiyeAcik
+    ? (el.krupiyeOyunu ? el.krupiyeElAdi : 'Krupiyenin oyunu yok' + (el.krupiyeDegisim ? '' : ''))
+    : '';
+
+  // Oyuncu yerleri
+  const alan = $('n-alan');
+  alan.querySelectorAll('.nspot').forEach(e => e.remove());
+  const n = g.oyuncular.length;
+  g.oyuncular.forEach((o, i) => {
+    const p = el ? el.oyuncular[i] : null;
+    const { x, y } = spotKonumu(i, n);
+    const s = document.createElement('div');
+    s.className = 'nspot';
+    s.dataset.i = i;
+    if (el && el.faz === 'karar' && el.sira === i) s.classList.add('sira');
+    if (p && p.durum === 'pas') s.classList.add('pas');
+    s.style.left = x + '%'; s.style.top = y + '%';
+
+    const kartlar = document.createElement('div'); kartlar.className = 'nkartlar';
+    if (p && p.katildi) p.kartlar.forEach((k, j) => {
+      const ke = kartEl(k, true);
+      if (el.sira === i && secimModu && secili.has(j)) ke.classList.add('secili');
+      kartlar.appendChild(ke);
+    });
+    const etiket = document.createElement('div'); etiket.className = 'nel';
+    if (p && p.katildi) {
+      const s1 = sinif(p.kartlar);
+      let t = EL_ADI[s1.anahtar];
+      if (p.bonusOdeme) t = `EXPRESS ${EL_ADI[sinif(p.ilk).anahtar]} +${para(p.bonusOdeme - p.bonus)}`;
+      if (el.faz === 'bitti' && p.durum === 'oynadi') t = sonucYazi(p);
+      if (el.faz === 'bitti' && p.durum === 'pas') t = 'Pas';
+      etiket.textContent = t;
+      if (p.bonusOdeme && el.faz !== 'bitti') etiket.classList.add('express');
+      if (el.faz === 'bitti') etiket.classList.add(p.net > 0 ? 'kazanc' : p.net < 0 ? 'kayip' : 'notr');
+    } else if (el) etiket.textContent = katilabilir(g, i) ? '' : 'Bu elde oturuyor';
+
+    const daireler = document.createElement('div'); daireler.className = 'ndaireler';
+    for (const [k, ad] of [['ante', 'ANTE'], ['express', 'EXPRESS'], ['bet', 'BET']]) {
+      const d = document.createElement('div');
+      d.className = 'ndaire ' + k; d.dataset.k = k;
+      d.innerHTML = `<span>${ad}</span>`;
+      const yer = document.createElement('div'); yer.className = 'yer';
+      const tutar = daireTutari(p, k);
+      if (tutar > 0) yer.appendChild(yiginEl(tutar, { boyut: 24, enCok: 6 }));
+      d.appendChild(yer);
+      daireler.appendChild(d);
+    }
+    const cek = document.createElement('div'); cek.className = 'ncekme';
+    cek.innerHTML = '<span>ÇEKME</span>';
+    if (p && p.ucret > 0 && el.faz !== 'bitti') cek.appendChild(yiginEl(p.ucret, { boyut: 18, enCok: 4 }));
+    daireler.appendChild(cek);
+
+    const levha = document.createElement('div'); levha.className = 'nlevha';
+    levha.innerHTML = `<div class="ad">${kacis(o.ad)}</div><div class="fis-sayi">${para(o.fis)}</div>` +
+      (o.yuklenen ? `<div class="yuk">yüklenen ${para(o.yuklenen)}</div>` : '');
+    const yig = document.createElement('div'); yig.className = 'yigin-yeri';
+    if (o.fis > 0) yig.appendChild(yiginEl(o.fis, { cesitli: true, boyut: 20, enCok: 7 }));
+    levha.appendChild(yig);
+    s.append(kartlar, etiket, daireler, levha);
+    alan.appendChild(s);
+  });
+  panelCiz();
+}
+
+// Dairede o an duran fiş
+function daireTutari(p, k) {
+  if (!p || !p.katildi) return 0;
+  const bitti = N.g.el.faz === 'bitti';
+  // Express dağıtımda hemen sonuçlanır; sonrasında dairesi boştur.
+  if (k === 'express' || bitti) return 0;
+  if (k === 'ante') return p.durum === 'pas' ? 0 : p.ante;
+  if (k === 'bet') return p.bahis;
+  return 0;
+}
+
+function sonucYazi(p) {
+  const s = p.sonuc;
+  if (!s) return '';
+  const net = (p.net >= 0 ? '+' : '−') + para(Math.abs(p.net));
+  if (s.tip === 'oyunyok') return `Krupiyenin oyunu yok · ${net}`;
+  if (s.tip === 'berabere') return `Berabere · ${net}`;
+  if (s.tip === 'kazandi') return `${p.elAdi}${s.ikinciAK ? ' + As-Papaz' : ''} ${s.oran}:1 · ${net}`;
+  return `${p.elAdi} · kasa kazandı · ${net}`;
+}
+
+function panelCiz() {
+  const g = N.g, el = g.el, pn = $('n-panel');
+  if (mesgul) { pn.innerHTML = '<div class="bekleme"><div class="ne">…</div></div>'; return; }
+
+  if (!el || el.faz === 'bitti') {
+    const kimse = !g.oyuncular.some((_, i) => katilabilir(g, i));
+    let ozet = '';
+    if (el) {
+      const kn = el.kasaNet;
+      ozet = `<div class="sonuc-kutu"><div class="baslik">${el.no}. el bitti · kasa ${kasaYazi(kn)}</div>
+        ${el.oyuncular.map((p, i) => p.katildi ? `<div>${kacis(g.oyuncular[i].ad)}: ${p.net >= 0 ? '+' : '−'}${para(Math.abs(p.net))}</div>` : '').join('')}
+        <div style="color:var(--soluk)">Krupiye: ${kacis(el.krupiyeOyunu ? el.krupiyeElAdi : 'oyun yok')}</div></div>`;
+    }
+    pn.innerHTML = `<div class="bekleme">${ozet}
+      <div class="ne" style="color:var(--soluk)">Giriş: ante ${para(g.ante)} + express ${para(g.ante)} · kart çekme ${para(g.ante)} · oyna ${para(2 * g.ante)}</div>
+      <div class="satir" style="width:min(640px,100%)">
+        <button class="btn-ikincil" id="n-yukle">Para yükle</button>
+        <button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>
+      </div>
+      <div class="hata">${kacis(hata)}${kimse ? 'Kimsenin parası girişe yetmiyor: para yükleyin.' : ''}</div></div>`;
+    $('n-dagit').onclick = dagit;
+    $('n-yukle').onclick = yukleAc;
+    return;
+  }
+
+  if (el.faz === 'oyunsuz') {
+    const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi');
+    pn.innerHTML = `<div class="eylem-baslik"><span class="kim">Krupiyenin oyunu yok</span>
+      <span class="ne">Her oyuncu seçsin: ante'yi al ya da ${para(el.ante)} verip krupiyeye oyun satın al</span></div>
+      <div class="oyunsuz">${oynayan.map(i => `
+        <div class="satir"><b style="flex:0 0 120px">${kacis(g.oyuncular[i].ad)}</b>
+          <button class="${oyunsuzSecim[i] ? 'btn-ikincil' : 'b-kontrol'}" data-o="${i}" data-v="0">Ante al</button>
+          <button class="${oyunsuzSecim[i] ? 'b-yukselt' : 'btn-ikincil'}" data-o="${i}" data-v="1">Oyun satın al ${para(el.ante)}</button>
+        </div>`).join('')}</div>
+      <button class="btn-ana" id="n-oyunsuz-tamam">Devam</button>
+      <div class="hata">${kacis(hata)}</div>`;
+    pn.querySelectorAll('[data-o]').forEach(b => b.onclick = () => { oyunsuzSecim[b.dataset.o] = b.dataset.v === '1'; panelCiz(); });
+    $('n-oyunsuz-tamam').onclick = () => uygula(g2 => oyunSatinAl(g2, oyunsuzSecim));
+    return;
+  }
+
+  const y = novoYasal(g);
+  const i = y.oyuncu, p = el.oyuncular[i], o = g.oyuncular[i];
+  const A = el.ante;
+  let html = `<div class="eylem-baslik"><span class="kim">Sıra: ${kacis(o.ad)}</span>
+    <span class="ne">${EL_ADI[sinif(p.kartlar).anahtar]} · elinde ${para(o.fis)}</span></div>`;
+  if (secimModu) {
+    html += `<div class="buyuk-kartlar" id="n-secim">${p.kartlar.map((_, j) => `<div data-j="${j}"></div>`).join('')}</div>
+      <div class="ne" style="text-align:center;color:var(--soluk)">Değiştirmek istediğin kartlara dokun</div>
+      <div class="satir"><button class="btn-ikincil" id="n-vazgec">Vazgeç</button>
+      <button class="b-yukselt" id="n-degis" ${secili.size ? '' : 'disabled'}>${secili.size || ''} kartı değiştir · ${para(A)}</button></div>`;
+  } else {
+    html += `<div class="dugmeler">
+      <button class="b-pas" data-a="pas">Pas</button>
+      <button class="b-kontrol" data-a="oyna" ${y.oyna ? '' : 'disabled'}>Oyna ${para(2 * A)}</button>
+      <button class="b-yukselt" data-a="degistir" ${y.degistir ? '' : 'disabled'}>Kart çek ${para(A)}</button>
+      <button class="b-allin" data-a="alti" ${y.alti ? '' : 'disabled'}>6. kart ${para(A)}</button></div>`;
+  }
+  html += `<div class="hata">${kacis(hata)}</div>`;
+  pn.innerHTML = html;
+  if (secimModu) {
+    const kap = $('n-secim');
+    [...kap.children].forEach((d, j) => {
+      const ke = kartEl(p.kartlar[j], true);
+      if (secili.has(j)) ke.classList.add('secili');
+      d.appendChild(ke);
+      d.onclick = () => { ses.acil(); secili.has(j) ? secili.delete(j) : secili.add(j); ses.kartCevir(); panelCiz(); ciz(); };
+    });
+    $('n-vazgec').onclick = () => { secimModu = false; secili.clear(); ciz(); };
+    $('n-degis').onclick = () => degistir([...secili]);
+  } else {
+    pn.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+      ses.acil();
+      const a = b.dataset.a;
+      if (a === 'degistir') { secimModu = true; secili.clear(); hata = ''; ciz(); return; }
+      if (a === 'alti') return altinciKart();
+      uygula(g2 => novoHamle(g2, { tip: a }), a);
+    });
+  }
+}
+
+// ---------------- Hamleler ve animasyonlar ----------------
+function spotEl(i) { return $('n-alan').querySelector(`.nspot[data-i="${i}"]`); }
+function kasaRect() { return $('n-krupiye').getBoundingClientRect(); }
+
+async function fisUcur(kaynak, hedef, miktar, sure = 450) {
+  if (!(miktar > 0) || !kaynak || !hedef) return;
+  const a = kaynak.getBoundingClientRect ? kaynak.getBoundingClientRect() : kaynak;
+  const b = hedef.getBoundingClientRect ? hedef.getBoundingClientRect() : hedef;
+  const y = yiginEl(miktar, { boyut: 24, enCok: 5 });
+  y.classList.add('ucan');
+  y.style.left = (a.left + a.width / 2 - 20) + 'px';
+  y.style.top = (a.top + a.height / 2 - 12) + 'px';
+  y.style.transition = `transform ${sure}ms cubic-bezier(.3,.7,.3,1)`;
+  document.body.appendChild(y);
+  y.getBoundingClientRect();
+  y.style.transform = `translate(${(b.left + b.width / 2) - (a.left + a.width / 2)}px, ${(b.top + b.height / 2) - (a.top + a.height / 2)}px)`;
+  ses.fis(3);
+  await bekle(sure);
+  y.remove();
+}
+
+async function uygula(fn, tip) {
+  if (mesgul) return;
+  const once = N.g;
+  let yeni;
+  try { yeni = fn(once); } catch (e) { hata = e.message; panelCiz(); return; }
+  hata = '';
+  gecmiseAt();
+  N.g = yeni; kaydet();
+  if (tip === 'pas') ses.kartlariAt();
+  if (tip === 'oyna') {
+    const i = once.el.sira;
+    ciz();
+    await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ndaire.bet'), 2 * once.el.ante);
+  }
+  if (tip === 'pas') {
+    const i = once.el.sira;
+    await fisUcur(spotEl(i).querySelector('.ndaire.ante'), kasaRect(), once.el.ante);
+  }
+  oyunsuzSecim = {};
+  await sonAnimasyon(once, yeni);
+}
+
+async function degistir(konumlar) {
+  if (mesgul) return;
+  const once = N.g;
+  let yeni;
+  try { yeni = novoHamle(once, { tip: 'degistir', konumlar }); } catch (e) { hata = e.message; panelCiz(); return; }
+  gecmiseAt(); N.g = yeni; kaydet();
+  secimModu = false; secili.clear();
+  mesgul = true;
+  const i = once.el.sira;
+  const eski = N.g.el.oyuncular[i].kartlar;
+  ciz();
+  const kartlar = spotEl(i).querySelectorAll('.nkartlar .kart');
+  konumlar.forEach(j => { kartlar[j].style.visibility = 'hidden'; });
+  ses.kartlariAt();
+  await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ncekme'), once.el.ante, 350);
+  for (const j of konumlar) {
+    ses.kartAt();
+    await kartUcur(kasaRect(), kartlar[j], 300);
+    kartlar[j].style.visibility = '';
+    ses.kartCevir();
+    await bekle(120);
+  }
+  mesgul = false;
+  ciz();
+  void eski;
+}
+
+async function altinciKart() {
+  if (mesgul) return;
+  const once = N.g;
+  let yeni;
+  try { yeni = novoHamle(once, { tip: 'alti' }); } catch (e) { hata = e.message; panelCiz(); return; }
+  gecmiseAt(); N.g = yeni; kaydet();
+  mesgul = true;
+  const i = once.el.sira;
+  ciz();
+  const kartlar = spotEl(i).querySelectorAll('.nkartlar .kart');
+  const son = kartlar[kartlar.length - 1];
+  son.style.visibility = 'hidden';
+  await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ncekme'), once.el.ante, 350);
+  ses.kartAt();
+  await kartUcur(kasaRect(), son, 320);
+  son.style.visibility = '';
+  ses.kartCevir();
+  mesgul = false;
+  ciz();
+}
+
+// Krupiye açılınca: kartları çevir, kasa kaybedenleri toplasın, kazananlara ödesin.
+async function sonAnimasyon(once, yeni) {
+  const el = yeni.el;
+  const acildi = !once.el.krupiyeAcik && el.krupiyeAcik;
+  const degisti = el.krupiyeDegisim && once.el.faz === 'oyunsuz';
+  if (!acildi && !degisti && el.faz !== 'bitti') { ciz(); return; }
+  mesgul = true;
+  // önce kapalı haliyle çiz, sonra krupiye kartlarını tek tek çevir
+  const g = N.g;
+  const gercekFaz = el.faz;
+  el.faz = once.el.faz === 'oyunsuz' ? 'oyunsuz' : 'karar';
+  el.krupiyeAcik = once.el.krupiyeAcik;
+  const krupiyeSon = el.krupiye;
+  if (degisti) el.krupiye = once.el.krupiye;
+  ciz();
+  await bekle(300);
+  const kr = $('n-krupiye').children;
+  if (acildi) {
+    for (let j = 0; j < 4; j++) { kr[j].classList.add('acik'); ses.kartCevir(); await bekle(380); }
+    await bekle(300);
+  }
+  if (degisti) {
+    el.krupiye = krupiyeSon; el.krupiyeAcik = true;
+    ciz();
+    ses.kartAt(); await bekle(500);
+  }
+  el.faz = gercekFaz; el.krupiyeAcik = true;
+  if (gercekFaz !== 'bitti') { mesgul = false; ciz(); return; }
+  // Hesaplaşma: fişler daireler doluyken
+  ciz();
+  const spotlar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && p.durum === 'oynadi');
+  // daireleri bitiş öncesi tutarlarla doldur
+  for (const [p, i] of spotlar) {
+    const s = spotEl(i);
+    s.querySelector('.ndaire.ante .yer').appendChild(yiginEl(p.ante, { boyut: 24, enCok: 6 }));
+    s.querySelector('.ndaire.bet .yer').appendChild(yiginEl(p.bahis, { boyut: 24, enCok: 6 }));
+  }
+  await bekle(500);
+  for (const [p, i] of spotlar) {
+    const s = spotEl(i);
+    const ante = s.querySelector('.ndaire.ante'), bet = s.querySelector('.ndaire.bet'), levha = s.querySelector('.nlevha');
+    const t = p.sonuc.tip;
+    if (t === 'kaybetti') {
+      ante.querySelector('.yer').innerHTML = ''; bet.querySelector('.yer').innerHTML = '';
+      await fisUcur(bet, kasaRect(), p.ante + p.bahis);
+    } else {
+      const odeme = p.geri - p.ante - p.bahis; // ante kazancı + bahis ödemesi
+      if (odeme > 0) await fisUcur(kasaRect(), bet, odeme, 500);
+      ante.querySelector('.yer').innerHTML = ''; bet.querySelector('.yer').innerHTML = '';
+      await fisUcur(bet, levha, p.geri, 450);
+    }
+    if (p.ucret) await fisUcur(s.querySelector('.ncekme'), kasaRect(), p.ucret, 350);
+  }
+  mesgul = false;
+  void g;
+  ciz();
+}
+
+async function dagit() {
+  if (mesgul) return;
+  ses.acil();
+  let yeni;
+  try { yeni = novoDagit(N.g); } catch (e) { hata = e.message; panelCiz(); return; }
+  gecmiseAt(); hata = ''; N.g = yeni; kaydet();
+  mesgul = true;
+  const el = N.g.el;
+  ciz();
+  const spotlar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi);
+  const gizle = e => { e.style.visibility = 'hidden'; };
+  $('n-alan').querySelectorAll('.nkartlar .kart, .nel').forEach(gizle);
+  [...$('n-krupiye').children].forEach(gizle);
+  // Girişler daireye
+  for (const [p, i] of spotlar) {
+    const s = spotEl(i);
+    const levha = s.querySelector('.nlevha');
+    await fisUcur(levha, s.querySelector('.ndaire.ante'), p.ante, 300);
+    await fisUcur(levha, s.querySelector('.ndaire.express'), p.bonus, 300);
+  }
+  const sure = ses.karistir() || 0;
+  await bekle(Math.min(1500, sure * 700));
+  // 5 tur: önce oyuncular, sonra krupiye
+  for (let k = 0; k < 5; k++) {
+    for (const [, i] of spotlar) {
+      const c = spotEl(i).querySelectorAll('.nkartlar .kart')[k];
+      ses.kartAt(); await kartUcur(kasaRect(), c, 220); c.style.visibility = '';
+    }
+    const d = $('n-krupiye').children[k];
+    ses.kartAt(); await kartUcur(kasaRect(), d, 220); d.style.visibility = '';
+  }
+  ses.kartCevir();
+  await bekle(300);
+  // Express hemen: kazanan ödenir, kaybedenin express'i kasaya
+  for (const [p, i] of spotlar) {
+    const s = spotEl(i);
+    s.querySelector('.nel').style.visibility = '';
+    const ex = s.querySelector('.ndaire.express');
+    if (p.bonusOdeme) {
+      await fisUcur(kasaRect(), ex, p.bonusOdeme - p.bonus, 500);
+      await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme, 450);
+    } else {
+      await fisUcur(ex, kasaRect(), p.bonus, 350);
+    }
+  }
+  mesgul = false;
+  ciz();
+  if (N.g.el.faz !== 'karar') await sonAnimasyon({ el: { ...N.g.el, krupiyeAcik: false, faz: 'karar' } }, N.g);
+}
+
+function yukleAc() {
+  const g = N.g;
+  perdeAc(`<div style="font-size:20px;font-weight:800">Para yükle</div>
+    <label>Oyuncu<select id="y-kim">${g.oyuncular.map((o, i) => `<option value="${i}">${kacis(o.ad)} · ${para(o.fis)}</option>`).join('')}</select></label>
+    <label>Tutar<select id="y-tutar">${[100, 250, 500, 1000, 2000].map(t => `<option value="${t}" ${t === g.baslangicFis ? 'selected' : ''}>${para(t)}</option>`).join('')}</select></label>
+    <div class="hata" id="y-hata"></div>
+    <div class="satir"><button class="btn-ikincil" id="y-iptal">Vazgeç</button><button class="btn-ana" id="y-ok">Yükle</button></div>`,
+  k => {
+    k.querySelector('#y-iptal').onclick = perdeKapat;
+    k.querySelector('#y-ok').onclick = () => {
+      try {
+        const yeni = paraYukle(N.g, Number(k.querySelector('#y-kim').value), Number(k.querySelector('#y-tutar').value));
+        gecmiseAt(); N.g = yeni; kaydet(); perdeKapat(); ses.fis(5); ciz();
+      } catch (e) { k.querySelector('#y-hata').textContent = e.message; }
+    };
+  });
+}
+
+function odemeTablosu() {
+  const satir = (ad, v) => `<div><span>${ad}</span><b>${v}:1</b></div>`;
+  const ana = [['Royal flush', ODEME.RF], ['Renkli kent', ODEME.SF], ['Kare', ODEME[7]], ['Full', ODEME[6]], ['Renk', ODEME[5]],
+    ['Kent', ODEME[4]], ['Üçlü', ODEME[3]], ['İki çift', ODEME[2]], ['Çift', ODEME[1]], ['As-Papaz', ODEME.AK]];
+  const ex = [['Royal flush', BONUS.RF], ['Renkli kent', BONUS.SF], ['Kare', BONUS[7]], ['Full', BONUS[6]], ['Renk', BONUS[5]],
+    ['Kent', BONUS[4]], ['Üçlü', BONUS[3]]];
+  $('n-tablo-bet').innerHTML = '<div class="bas">BET</div>' + ana.map(([a, v]) => satir(a, v)).join('');
+  $('n-tablo-ex').innerHTML = '<div class="bas">EXPRESS</div>' + ex.map(([a, v]) => satir(a, v)).join('');
+}
+
+export function novoBagla() {
+  odemeTablosu();
+  $('n-ses').onclick = () => { ses.acil(); ses.sesAyarla(!ses.sesAcikMi()); $('n-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇'; };
+  $('n-geri').onclick = async () => {
+    if (!N.gecmis.length || mesgul) return;
+    if (!(await onayla('Son hamle geri alınsın mı?', 'Geri al'))) return;
+    N.g = JSON.parse(N.gecmis.pop()); secimModu = false; secili.clear(); hata = '';
+    kaydet(); ciz();
+  };
+  $('n-menu').onclick = () => {
+    perdeAc(`<div style="font-size:20px;font-weight:800">Novo masası</div>
+      <button class="btn-ikincil" id="nm-yukle">Para yükle</button>
+      <button class="btn-ikincil" id="nm-yeniden">Baştan başlat (herkese ${para(N.g.baslangicFis)})</button>
+      <button class="btn-tehlike" id="nm-kapat">Masayı kapat</button>
+      <button class="btn-ana" id="nm-tamam">Kapat</button>`, k => {
+      k.querySelector('#nm-tamam').onclick = perdeKapat;
+      k.querySelector('#nm-yukle').onclick = () => { perdeKapat(); if (!N.g.el || N.g.el.faz === 'bitti') yukleAc(); };
+      k.querySelector('#nm-yeniden').onclick = async () => {
+        perdeKapat();
+        if (!(await onayla(`Herkes yeniden ${para(N.g.baslangicFis)} ile başlasın mı? Kasanın bu oyun sayacı sıfırlanır.`, 'Başlat'))) return;
+        gecmiseAt(); N.g = novoYenidenBaslat(N.g); kaydet(); ciz();
+      };
+      k.querySelector('#nm-kapat').onclick = async () => {
+        perdeKapat();
+        if (!(await onayla('Novo masası silinsin mi?', 'Sil'))) return;
+        try { localStorage.removeItem(ANAHTAR); } catch (e) {}
+        N = null; ekranGoster('e-giris');
+      };
+    });
+  };
+  window.addEventListener('resize', () => { if (N && document.querySelector('#e-novo.etkin') && !mesgul) ciz(); });
+}
