@@ -570,3 +570,36 @@ test('kasa boşken her oyuncu ayrı seçer: biri kasaya kart çektirir, öteki a
   }
   assert.ok(bulundu > 0);
 });
+
+import { sayi, metin, ad as kAd, PARCALAR } from '../js/konus.js';
+test('seslendirme: sayılar ve cümleler parçalardan doğru kurulur', () => {
+  const m = n => metin(sayi(n));
+  assert.equal(m(1250), 'bin iki yüz elli');
+  assert.equal(m(175), 'yüz yetmiş beş');
+  assert.equal(m(2000), 'iki bin');
+  assert.equal(m(25), 'yirmi beş');
+  assert.equal(m(1000), 'bin');
+  assert.equal(m(12350), 'on iki bin üç yüz elli');
+  assert.equal(metin([kAd('Emrah'), 'sigortadan', sayi(175), 'dolar_kazanir']), 'Emrah sigortadan yüz yetmiş beş dolar kazanır.');
+  assert.equal(kAd('Fidan').anahtar, 'ad_fidan');
+  for (const n of [5, 25, 50, 75, 100, 125, 350, 1000, 2700, 13500]) for (const k of sayi(n)) assert.ok(PARCALAR[k], `${n}: ${k} listede`);
+});
+
+test('kart çekmede kasa herkes karar verdikten sonra toplu dağıtır', () => {
+  let g = yeniNovo({ adlar: ['A', 'B', 'C'], kod: 'X' });
+  g = novoDagit(g);
+  const ilkA = JSON.stringify(g.el.oyuncular[0].kartlar);
+  const cek0 = g.el.cek;
+  g = novoHamleGercek(g, { tip: 'degistir', konumlar: [0, 1] });
+  assert.equal(JSON.stringify(g.el.oyuncular[0].kartlar), ilkA, 'A karar verdi ama kartı henüz gelmedi');
+  assert.equal(g.el.cek, cek0); assert.equal(g.oyuncular[0].fis, 1000 - 75, 'çekme ücreti kararla alınır');
+  g = novoHamleGercek(g, { tip: 'alti' });
+  assert.equal(g.el.oyuncular[1].kartlar.length, 5);
+  g = novoHamleGercek(g, { tip: 'gec' });
+  assert.equal(g.el.faz, 'karar');
+  const a = g.el.oyuncular[0], b = g.el.oyuncular[1];
+  assert.notEqual(JSON.stringify(a.kartlar), ilkA);
+  assert.deepEqual(a.kartlar[0], g.el.deste[cek0]); assert.deepEqual(a.kartlar[1], g.el.deste[cek0 + 1]);
+  assert.equal(b.kartlar.length, 6); assert.deepEqual(b.kartlar[5], g.el.deste[cek0 + 2]);
+  assert.equal(g.el.cek, cek0 + 3);
+});

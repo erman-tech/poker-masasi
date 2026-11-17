@@ -203,7 +203,25 @@ function sonrakiCekme(g, i) {
   for (let j = i + 1; j < ol.length; j++) if (ol[j].katildi && ol[j].durum === 'bekliyor' && !ol[j].cekti) return j;
   return null;
 }
+// Herkes karar verdikten sonra kasa yeni kartları sırayla (koltuk sırasına göre) toplu dağıtır.
+function cekmeleriDagit(g) {
+  const el = g.el;
+  for (const p of el.oyuncular) {
+    if (!p.katildi || !p.cekKarar) continue;
+    if (p.cekKarar.tip === 'degistir') {
+      const konum = p.cekKarar.konumlar;
+      p.kartlar = p.kartlar.map((k, j) => (konum.includes(j) ? el.deste[el.cek++] : k));
+      p.degisenler = konum;
+    } else {
+      p.kartlar = [...p.kartlar, el.deste[el.cek++]];
+    }
+    p.cekKarar = null;
+  }
+}
+const bekleyenCekme = el => el.oyuncular.reduce((t, p) => t + (p.cekKarar ? (p.cekKarar.tip === 'alti' ? 1 : p.cekKarar.konumlar.length) : 0), 0);
+
 function kararaGec(g) {
+  cekmeleriDagit(g);
   g.el.faz = 'karar';
   g.el.sira = sonrakiKarar(g, -1);
   if (g.el.sira == null) krupiyeAc(g);
@@ -238,7 +256,7 @@ export function novoYasal(g) {
   const A = el.ante;
   if (el.faz === 'cekme') {
     const ek = o.fis >= A + 2 * A; // ücret + sonra oyna
-    return { asama: 'cekme', oyuncu: i, oyna: false, gec: true, pas: true, degistir: ek, alti: ek, kalanKart: 52 - el.cek - 7 };
+    return { asama: 'cekme', oyuncu: i, oyna: false, gec: true, pas: true, degistir: ek, alti: ek, kalanKart: 52 - el.cek - bekleyenCekme(el) - 7 };
   }
   if (p.sigortaSor) {
     return { oyuncu: i, sigorta: sigortaSiniri(p, o.fis, A), oyna: false, degistir: false, alti: false, kalanKart: 0 };
@@ -264,13 +282,12 @@ export function novoHamle(g0, hamle) {
       if (!konum.length) throw new Error('Değiştirilecek kartları seç');
       if (konum.length > y.kalanKart) throw new Error('Destede yeterli kart kalmadı');
       o.fis -= A; p.ucret += A; p.degisti = true;
-      p.kartlar = p.kartlar.map((k, j) => (konum.includes(j) ? el.deste[el.cek++] : k));
-      p.degisenler = konum;
+      p.cekKarar = { tip: 'degistir', konumlar: konum }; // kartlar herkes karar verince dağıtılır
     } else if (hamle.tip === 'alti') {
       if (!y.alti) throw new Error('6. kart için para yok');
       if (y.kalanKart < 1) throw new Error('Destede kart kalmadı');
       o.fis -= A; p.ucret += A; p.alti = true;
-      p.kartlar = [...p.kartlar, el.deste[el.cek++]];
+      p.cekKarar = { tip: 'alti' };
     } else throw new Error('Bilinmeyen hamle');
     p.cekti = true;
     el.sira = sonrakiCekme(g, i);

@@ -102,8 +102,12 @@ function ciz() {
     if (p && p.katildi) p.kartlar.forEach((k, j) => {
       const ke = kartEl(k, true);
       if (el.sira === i && secimModu && secili.has(j)) ke.classList.add('secili');
+      if (p.cekKarar && p.cekKarar.tip === 'degistir' && p.cekKarar.konumlar.includes(j)) ke.classList.add('atilacak');
       kartlar.appendChild(ke);
     });
+    if (p && p.cekKarar && p.cekKarar.tip === 'alti') {
+      const h = document.createElement('div'); h.className = 'kart hayalet'; h.textContent = '+1'; kartlar.appendChild(h);
+    }
     const etiket = document.createElement('div'); etiket.className = 'nel';
     if (p && p.katildi) {
       const s1 = sinif(p.kartlar);
@@ -336,54 +340,48 @@ async function uygula(fn, tip) {
     const i = once.el.sira;
     await fisUcur(spotEl(i).querySelector('.ndaire.ante'), kasaRect(), once.el.ante);
   }
+  if (tip === 'degistir' || tip === 'alti') {
+    const i = once.el.sira;
+    if (yeni.el.faz === 'cekme') ciz(); // karar işaretli görünsün (kart henüz gelmez)
+    await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ncekme'), once.el.ante, 350);
+  }
+  if (once.el.faz === 'cekme' && yeni.el.faz !== 'cekme') await topluDagit();
   oyunsuzSecim = {};
   await sonAnimasyon(once, yeni);
 }
 
-async function degistir(konumlar) {
-  if (mesgul) return;
-  const once = N.g;
-  let yeni;
-  try { yeni = novoHamle(once, { tip: 'degistir', konumlar }); } catch (e) { hata = e.message; panelCiz(); return; }
-  gecmiseAt(); N.g = yeni; kaydet();
+function degistir(konumlar) {
   secimModu = false; secili.clear();
-  mesgul = true;
-  const i = once.el.sira;
-  const eski = N.g.el.oyuncular[i].kartlar;
-  ciz();
-  const kartlar = spotEl(i).querySelectorAll('.nkartlar .kart');
-  konumlar.forEach(j => { kartlar[j].style.visibility = 'hidden'; });
-  ses.kartlariAt();
-  await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ncekme'), once.el.ante, 350);
-  for (const j of konumlar) {
-    ses.kartAt();
-    await kartUcur(kasaRect(), kartlar[j], 300);
-    kartlar[j].style.visibility = '';
-    ses.kartCevir();
-    await bekle(120);
-  }
-  mesgul = false;
-  ciz();
-  void eski;
+  return uygula(g2 => novoHamle(g2, { tip: 'degistir', konumlar }), 'degistir');
 }
 
-async function altinciKart() {
-  if (mesgul) return;
-  const once = N.g;
-  let yeni;
-  try { yeni = novoHamle(once, { tip: 'alti' }); } catch (e) { hata = e.message; panelCiz(); return; }
-  gecmiseAt(); N.g = yeni; kaydet();
+function altinciKart() {
+  return uygula(g2 => novoHamle(g2, { tip: 'alti' }), 'alti');
+}
+
+// Herkes karar verdi: kasa yeni kartları koltuk sırasıyla toplu dağıtır.
+async function topluDagit() {
+  const el = N.g.el;
+  const cekenler = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && (p.degisti || p.alti));
+  if (!cekenler.length) return;
   mesgul = true;
-  const i = once.el.sira;
   ciz();
-  const kartlar = spotEl(i).querySelectorAll('.nkartlar .kart');
-  const son = kartlar[kartlar.length - 1];
-  son.style.visibility = 'hidden';
-  await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ncekme'), once.el.ante, 350);
-  ses.kartAt();
-  await kartUcur(kasaRect(), son, 320);
-  son.style.visibility = '';
+  const yeniKartlar = [];
+  for (const [p, i] of cekenler) {
+    const ks = spotEl(i).querySelectorAll('.nkartlar .kart');
+    const konum = p.alti ? [ks.length - 1] : p.degisenler;
+    for (const j of konum) { ks[j].style.visibility = 'hidden'; yeniKartlar.push(ks[j]); }
+  }
+  ses.kartlariAt();
+  await bekle(350);
+  ruh('dagit');
+  for (const k of yeniKartlar) {
+    ses.kartAt();
+    await kartUcur(kasaRect(), k, 260);
+    k.style.visibility = '';
+  }
   ses.kartCevir();
+  ruh('normal');
   mesgul = false;
   ciz();
 }
@@ -410,11 +408,11 @@ async function sonAnimasyon(once, yeni) {
     await bekle(300);
     const sigortalilar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && p.sigorta > 0);
     if (el.ilkOyun) {
-      konus.konus(`Kasa ${konus.elSoyle(sinif(el.krupiye).anahtar)}.`);
-      for (const [, i] of sigortalilar) konus.konus(`${g.oyuncular[i].ad} sigortayı kaybetti.`);
+      konus.soyle(konus.kasaEl(sinif(el.krupiye).anahtar));
+      for (const [, i] of sigortalilar) konus.soyle(konus.ad(g.oyuncular[i].ad), 'sigortayi_kaybetti');
     } else {
-      konus.konus('Kasa boş, ante ödenir.');
-      for (const [p, i] of sigortalilar) konus.konus(`${g.oyuncular[i].ad}, sigortadan ${konus.dolar(p.sigorta)} kazanır.`);
+      konus.soyle('kasa_bos');
+      for (const [p, i] of sigortalilar) konus.soyle(konus.ad(g.oyuncular[i].ad), 'sigortadan', konus.sayi(p.sigorta), 'dolar_kazanir');
     }
     // Kasa boş açtı: sigorta yapanlar kazandı, bunu büyük söyle
     if (!el.ilkOyun) {
@@ -452,17 +450,17 @@ async function sonAnimasyon(once, yeni) {
     ex.querySelector('.yer').innerHTML = '';
     await fisUcur(ex, p.bonusOdeme ? s.querySelector('.nlevha') : kasaRect(), p.bonus, 300);
   }
-  if (degisti) konus.konus(el.krupiyeOyunu ? `Kasa kart çekti, ${konus.elSoyle(sinif(el.krupiye).anahtar)} oldu.` : 'Kasa kart çekti, yine boş.');
+  if (degisti) konus.soyle('kasa_kart_cekti', el.krupiyeOyunu ? [konus.el(sinif(el.krupiye).anahtar), 'oldu'] : 'yine_bos');
   for (const [p, i] of spotlar) {
     const ad = g.oyuncular[i].ad, t = p.sonuc.tip;
     if (t === 'kazandi') {
       const k = kombinasyonlar(p.kartlar);
-      const elAd = konus.elSoyle(k.ana) + (k.ikinci != null ? ' ve ' + konus.elSoyle(k.ikinci) : '');
       const odeme = p.bahis * p.sonuc.oran;
-      konus.konus(`${elAd}! ${ad}, ${konus.dolar(odeme)} ödeme.${odeme >= 10 * el.ante ? ` Tebrikler ${ad}!` : ''}`);
-    } else if (t === 'kaybetti') konus.konus(`${ad} kaybetti.`);
-    else if (t === 'berabere') konus.konus(`${ad}, berabere.`);
-    else if (t === 'oyunyok' && p.satinAldi) konus.konus(`${ad}, ante yandı.`);
+      konus.soyle(konus.el(k.ana), k.ikinci != null ? ['ve', konus.el(k.ikinci)] : [], konus.ad(ad), konus.sayi(odeme), 'dolar_odeme',
+        odeme >= 10 * el.ante ? ['tebrikler', konus.ad(ad)] : []);
+    } else if (t === 'kaybetti') konus.soyle(konus.ad(ad), 'kaybetti');
+    else if (t === 'berabere') konus.soyle(konus.ad(ad), 'berabere');
+    else if (t === 'oyunyok' && p.satinAldi) konus.soyle(konus.ad(ad), 'ante_yandi');
   }
   for (const [p, i] of spotlar) {
     const s = spotEl(i);
@@ -535,7 +533,7 @@ async function dagit() {
     const ex = s.querySelector('.ndaire.express');
     if (p.bonusOdeme) {
       ruh(p.bonusOran >= 30 ? 'saskin' : 'goz', 1600);
-      konus.konus(`${g0ad(i)}, express ${konus.elSoyle(bonusAnahtari(p.ilk))}, ${konus.dolar(p.bonusOdeme - p.bonus)}`);
+      konus.soyle(konus.ad(g0ad(i)), 'express', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
       await fisUcur(kasaRect(), ex, p.bonusOdeme - p.bonus, 500);
       await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme - p.bonus, 450);
     }
@@ -594,7 +592,7 @@ export function novoBagla() {
       <button class="btn-tehlike" id="nm-kapat">Masayı kapat</button>
       <button class="btn-ana" id="nm-tamam">Kapat</button>`, k => {
       k.querySelector('#nm-tamam').onclick = perdeKapat;
-      k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.konus('Seslendirme açık.'); } };
+      k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.soyle('seslendirme_acik'); } };
       k.querySelector('#nm-yukle').onclick = () => { perdeKapat(); if (!N.g.el || N.g.el.faz === 'bitti') yukleAc(); };
       k.querySelector('#nm-yeniden').onclick = async () => {
         perdeKapat();

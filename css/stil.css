@@ -420,3 +420,7 @@ input, select {
 .sig-kazanc { position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #ffd765; background: #0009; border-radius: 6px; padding: 0 5px; white-space: nowrap; }
 .ncekme { position: relative; }
 .sig-not { color: #ffd765; font-weight: 800; text-align: center; margin: 4px 0; }
+
+/* Çekme kararı: atılacak kartlar kalkık ve soluk, 6. kart için boş yer */
+.nkartlar .kart.atilacak { transform: translateY(-10px); opacity: .45; outline: 2px dashed #ffd765; outline-offset: 1px; }
+.nkartlar .kart.hayalet { display: grid; place-items: center; background: transparent; border: 2px dashed #ffd76599; color: #ffd765; font-weight: 900; box-shadow: none; }
