@@ -1,10 +1,10 @@
 // Offline önbellek: ilk açılışta tüm dosyalar cihaza kaydedilir.
 // Dosya değişince SURUM artırılır.
-const SURUM = 'poker-v44';
+const SURUM = 'poker-v45';
 const DOSYALAR = [
   './', 'index.html', 'css/stil.css', 'manifest.webmanifest',
   'js/uygulama.js', 'js/arayuz.js', 'js/masa.js', 'js/oyuncu.js', 'js/motor.js', 'js/kart.js', 'js/ses.js', 'js/fis.js', 'js/novo.js', 'js/novo_masa.js', 'js/krupiye.js', 'js/konus.js',
-  'sesler/fis/tek.mp3', 'sesler/fis/kucuk.mp3', 'sesler/fis/yigin.mp3', 'sesler/fis/itme.mp3', 'sesler/ortam.mp3', 'img/kurpiye/1.jpg', 'img/kurpiye/2.jpg', 'img/kurpiye/3.jpg', 'img/kurpiye/1.mp4', 'img/kurpiye/2.mp4', 'img/kurpiye/3.mp4',
+  'sesler/fis/tek.mp3', 'sesler/fis/kucuk.mp3', 'sesler/fis/yigin.mp3', 'sesler/fis/itme.mp3', 'sesler/ortam.mp3', 'img/kurpiye/1.jpg', 'img/kurpiye/2.jpg', 'img/kurpiye/3.jpg', 'img/kurpiye/1.mp4', 'img/kurpiye/2.mp4', 'img/kurpiye/3.mp4', 'img/kurpiye/1k.mp4', 'img/kurpiye/2k.mp4', 'img/kurpiye/3k.mp4',
   'ikon-180.png', 'ikon-192.png', 'ikon-512.png',
 ];
 self.addEventListener('install', e => {
