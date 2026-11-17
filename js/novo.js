@@ -16,10 +16,10 @@ export const ANTE_SECENEKLERI = [5, 10, 25, 50, 100];
 export const ODEME = { AK: 1, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 7, 7: 20, SF: 50, RF: 100 };
 // İlk 5 kart bonusu (kaça bir)
 // Erman'ın oranları: full 100, renk 60, kent 30, üçlü 8, iki çift yok. Kare ve üstü eski tabloda.
-export const BONUS = { AKQ: 5, 3: 8, 4: 30, 5: 60, 6: 100, 7: 200, SF: 500, RF: 1000 };
+export const BONUS = { SAHTE: 2, AKQ: 5, 3: 8, 4: 30, 5: 60, 6: 100, 7: 200, SF: 500, RF: 1000 };
 
 export const EL_ADI = {
-  0: 'Yüksek kart', AK: 'As-Papaz', AKQ: 'As-Papaz-Kız', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
+  0: 'Yüksek kart', AK: 'As-Papaz', AKQ: 'As-Papaz-Kız', SAHTE: 'Sahte renk', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
   5: 'Renk', 6: 'Full', 7: 'Kare', SF: 'Renkli kent', RF: 'Royal flush',
 };
 
@@ -59,6 +59,45 @@ export function ikinciAK(kartlar) {
   return disari.includes(14) && disari.includes(13);
 }
 
+// İki kombinasyon (6 kartla): 6 kartın içinden çıkan iki ayrı el birlikte ödenir.
+// Örnek: A-A-2-3-4-5 → kent (4) + bir çift As (1) = 5 kat; K-K-K-K-Q-Q → kare (20) + full (7) = 27 kat;
+// beş kupa + bir As daha → renk (5) + çift As (1) = 6 kat.
+// Kural: ikinci el ana elden farklı türde olmalı ve ana eli oluşturan kartların içinden çıkmamalı
+// (üçlü içindeki çift, fullün içindeki iki çift sayılmaz). Yüksek kart / As-Papaz kombinasyon değildir.
+function yapanKartlar(bes, anahtar) {
+  if (['RF', 'SF', 4, 5].includes(anahtar)) return bes;
+  const say = new Map();
+  for (const k of bes) say.set(k.d, (say.get(k.d) || 0) + 1);
+  return bes.filter(k => say.get(k.d) >= 2);
+}
+const ayni = (a, b) => a.d === b.d && a.r === b.r;
+export function kombinasyonlar(kartlar) {
+  const ana = sinif(kartlar);
+  const sonuc = { ana: ana.anahtar, ikinci: null };
+  if (kartlar.length < 6 || ana.anahtar === 0 || ana.anahtar === 'AK') return sonuc;
+  const anaYapan = yapanKartlar(ana.el.kartlar, ana.anahtar);
+  let enIyi = null;
+  for (let atla = 0; atla < kartlar.length; atla++) {
+    const bes = kartlar.filter((_, j) => j !== atla);
+    const s2 = sinif(bes).anahtar;
+    if (s2 === 0 || s2 === 'AK' || s2 === ana.anahtar) continue;
+    const yapan = yapanKartlar(bes, s2);
+    if (yapan.every(k => anaYapan.some(a => ayni(a, k)))) continue; // ana elin parçası
+    if (enIyi == null || (ODEME[s2] || 0) > (ODEME[enIyi] || 0)) enIyi = s2;
+  }
+  sonuc.ikinci = enIyi;
+  return sonuc;
+}
+
+// Bet oranı: ana el + (varsa) ikinci el; ikinci el yoksa As-Papaz / yalancı döper +1.
+export function betOrani(kartlar) {
+  const k = kombinasyonlar(kartlar);
+  const ana = ODEME[k.ana] || 0;
+  if (k.ikinci != null) return { oran: ana + (ODEME[k.ikinci] || 0), ana: k.ana, ikinci: k.ikinci, ek: 0 };
+  const ek = ikinciAK(kartlar) || doperTuru(kartlar) === 'yalanci' ? 1 : 0;
+  return { oran: ana + ek, ana: k.ana, ikinci: null, ek };
+}
+
 // Döper (Rus kuralı): bir çift + As + Papaz.
 //  'gercek' : çift başka bir değer, As ve Papaz ayrıca elde (ör. 4-4-A-K)
 //  'yalanci': çift As ve elde Papaz var, ya da çift Papaz ve elde As var (A-A-K, K-K-A)
@@ -78,10 +117,19 @@ export function doperTuru(kartlar) {
 
 // Express ilk 5 karta göre. As-Papaz-Kız (yüksek kart) 5'e 1 öder ama oyunda per sayılmaz
 // (oyunda yalnız As-Papaz olarak kalır).
+// Sahte renk (same colour): ilk 5 kartın hepsi kırmızı (kupa/karo) ya da hepsi siyah (maça/sinek),
+// ama tek renk (flush) değil → express 2'ye 1. Daha yüksek bir express bonusu varsa o ödenir.
+const KIRMIZI = new Set(['h', 'd']);
+export function sahteRenk(kartlar) {
+  if (kartlar.length !== 5) return false;
+  const kirmizi = kartlar.map(k => KIRMIZI.has(k.r));
+  return kirmizi.every(x => x) || kirmizi.every(x => !x);
+}
 export function bonusAnahtari(kartlar) {
   const a = sinif(kartlar).anahtar;
-  if (a === 'AK' && kartlar.some(k => k.d === 12)) return 'AKQ';
-  return a;
+  const k = a === 'AK' && kartlar.some(x => x.d === 12) ? 'AKQ' : a;
+  if (!BONUS[k] && sahteRenk(kartlar)) return 'SAHTE';
+  return k;
 }
 export function bonusOrani(kartlar) {
   return BONUS[bonusAnahtari(kartlar)] || 0;
@@ -176,7 +224,7 @@ export function sigortaSiniri(p, fis, ante) {
   const s = sinif(p.kartlar);
   const kat = s.anahtar === 'RF' ? 9 : s.anahtar === 'SF' ? 8 : s.anahtar;
   if (typeof kat !== 'number' || kat < SIGORTA_EN_AZ_KAT) return null;
-  const oran = ODEME[s.anahtar] || 0;
+  const oran = betOrani(p.kartlar).oran; // iki kombinasyon varsa toplam kat
   const tavan = Math.floor((oran * p.bahis) / 2 / 5) * 5;
   const enCok = Math.min(tavan, fis);
   if (enCok <= 0) return null;
@@ -335,16 +383,17 @@ function odemeDokumu(p, el) {
   if (p.durum === 'pas') k.push({ yazi: 'Ante (pas)', tutar: -p.ante });
   else if (p.sonuc) {
     const t = p.sonuc.tip;
-    if (t === 'oyunyok') k.push(anteKazanir ? { yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante } : { yazi: 'Ante geri (kasanın oyunu yok)', tutar: 0 });
+    if (t === 'oyunyok' && p.satinAldi) k.push({ yazi: 'Ante yandı (kasa çektiği kartla da oyun bulamadı), bet geri', tutar: -p.ante });
+    else if (t === 'oyunyok') k.push(anteKazanir ? { yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante } : { yazi: 'Ante geri (kasanın oyunu yok)', tutar: 0 });
     if (t === 'kazandi') {
       k.push(anteKazanir ? { yazi: 'Ante 1:1', tutar: p.ante } : { yazi: 'Ante geri', tutar: 0 });
-      const ek = p.sonuc.ikinciAK ? (p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
+      const ek = p.sonuc.ikinciEl != null ? ` + ${EL_ADI[p.sonuc.ikinciEl]} (${ODEME[p.sonuc.ana ?? sinif(p.kartlar).anahtar]}+${ODEME[p.sonuc.ikinciEl]})` : p.sonuc.ikinciAK ? (p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
       k.push({ yazi: `Bet ${p.elAdi}${ek} ${p.sonuc.oran}:1`, tutar: p.bahis * p.sonuc.oran });
     }
     if (t === 'berabere') k.push({ yazi: 'Berabere: ante ve bet geri', tutar: 0 });
     if (t === 'kaybetti') k.push({ yazi: `Kasa kazandı (${el.krupiyeElAdi || EL_ADI[sinif(el.krupiye).anahtar]})`, tutar: -(p.ante + p.bahis) });
   }
-  if (p.ucret) k.push({ yazi: p.satinAldi ? 'Kart çekme / oyun satın alma' : (p.alti ? '6. kart' : 'Kart çekme'), tutar: -p.ucret });
+  if (p.ucret) k.push({ yazi: p.satinAldi ? 'Kart çekme / kasaya kart çektirme' : (p.alti ? '6. kart' : 'Kart çekme'), tutar: -p.ucret });
   if (p.sigorta) k.push(p.sigortaGeri ? { yazi: 'Sigorta 1:1', tutar: p.sigorta } : { yazi: 'Sigorta yandı (kasa açtı)', tutar: -p.sigorta });
   return k;
 }
@@ -362,14 +411,16 @@ function bitir(g) {
     if (p.durum === 'oynadi' && p.sonuc) {
       const anteKazanir = p.ucret === 0; // kart değiştiren / satın alan ante kazanmaz, geri alır
       if (p.sonuc.tip === 'oyunyok') {
-        geri = p.ante + p.bahis + (anteKazanir ? p.ante : 0);
+        // Kasaya kart çektirdi ama kasa yine oyun bulamadı: ante yanar, bet geri gelir.
+        if (p.satinAldi) geri = p.bahis;
+        else geri = p.ante + p.bahis + (anteKazanir ? p.ante : 0);
       } else if (p.sonuc.tip === 'kazandi') {
-        const oran = ODEME[s.anahtar] || 0;
-        const ek = ikinciAK(p.kartlar) || doperTuru(p.kartlar) === 'yalanci' ? 1 : 0;
-        odeme = p.bahis * (oran + ek);
+        const b = betOrani(p.kartlar);
+        odeme = p.bahis * b.oran;
         geri = p.ante + p.bahis + odeme + (anteKazanir ? p.ante : 0);
-        p.sonuc.oran = oran + ek;
-        p.sonuc.ikinciAK = !!ek;
+        p.sonuc.oran = b.oran;
+        p.sonuc.ikinciAK = !!b.ek;
+        p.sonuc.ikinciEl = b.ikinci;
         p.sonuc.doper = doperTuru(p.kartlar);
       } else if (p.sonuc.tip === 'berabere') {
         geri = p.ante + p.bahis;

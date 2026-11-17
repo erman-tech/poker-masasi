@@ -1,7 +1,7 @@
 // Novo Poker masası (iPad). Kasaya karşı; oyuncu kartları açık, her şey bu ekranda.
 import {
   yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle,
-  katilabilir, ODEME, BONUS, EL_ADI, sinif, bonusAnahtari,
+  katilabilir, ODEME, BONUS, EL_ADI, sinif, bonusAnahtari, kombinasyonlar,
 } from './novo.js';
 import { yiginEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
@@ -106,7 +106,8 @@ function ciz() {
     const etiket = document.createElement('div'); etiket.className = 'nel';
     if (p && p.katildi) {
       const s1 = sinif(p.kartlar);
-      let t = EL_ADI[s1.anahtar];
+      const kb = kombinasyonlar(p.kartlar);
+      let t = EL_ADI[s1.anahtar] + (kb.ikinci != null ? ' + ' + EL_ADI[kb.ikinci] : '');
       if (p.bonusOdeme) t = `EXPRESS ${EL_ADI[bonusAnahtari(p.ilk)]} +${para(p.bonusOdeme - p.bonus)}`;
       if (el.faz === 'bitti' && p.durum === 'oynadi') t = sonucYazi(p);
       if (el.faz === 'bitti' && p.durum === 'pas') t = 'Pas';
@@ -167,7 +168,7 @@ function sonucYazi(p) {
   const net = (p.net >= 0 ? '+' : '−') + para(Math.abs(p.net)) + (p.sigorta ? (p.sigortaGeri ? ' · sigorta ödendi' : ' · sigorta kasanın') : '');
   if (s.tip === 'oyunyok') return `Kasanın oyunu yok · ${net}`;
   if (s.tip === 'berabere') return `Berabere · ${net}`;
-  if (s.tip === 'kazandi') return `${p.elAdi}${s.ikinciAK ? ' + As-Papaz' : ''} ${s.oran}:1 · ${net}`;
+  if (s.tip === 'kazandi') return `${p.elAdi}${s.ikinciEl != null ? ' + ' + EL_ADI[s.ikinciEl] : s.ikinciAK ? ' + As-Papaz' : ''} ${s.oran}:1 · ${net}`;
   return `${p.elAdi} · kasa kazandı · ${net}`;
 }
 
@@ -200,11 +201,11 @@ function panelCiz() {
   if (el.faz === 'oyunsuz') {
     const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi' && el.oyuncular[i].satinAldi === null);
     pn.innerHTML = `<div class="eylem-baslik"><span class="kim">Kasanın oyunu yok</span>
-      <span class="ne">İyi eli olan seçsin: ante'yi al ya da ${para(el.ante)} verip kasaya oyun satın al. Diğerlerinin ante'si otomatik ödenir.</span></div>
+      <span class="ne">İyi eli olan seçsin: ante'yi al ya da ${para(el.ante)} verip kasaya kart çektir (kasa oyun bulabilir). Diğerlerinin ante'si otomatik ödenir.</span></div>
       <div class="oyunsuz">${oynayan.map(i => `
         <div class="satir"><b style="flex:0 0 120px">${kacis(g.oyuncular[i].ad)}</b>
           <button class="${oyunsuzSecim[i] ? 'btn-ikincil' : 'b-kontrol'}" data-o="${i}" data-v="0">Ante al</button>
-          <button class="${oyunsuzSecim[i] ? 'b-yukselt' : 'btn-ikincil'}" data-o="${i}" data-v="1">Oyun satın al ${para(el.ante)}</button>
+          <button class="${oyunsuzSecim[i] ? 'b-yukselt' : 'btn-ikincil'}" data-o="${i}" data-v="1">Kasaya kart çektir ${para(el.ante)}</button>
         </div>`).join('')}</div>
       <button class="btn-ana" id="n-oyunsuz-tamam">Devam</button>
       <div class="hata">${kacis(hata)}</div>`;
@@ -217,10 +218,10 @@ function panelCiz() {
   const i = y.oyuncu, p = el.oyuncular[i], o = g.oyuncular[i];
   const A = el.ante;
   let html = `<div class="eylem-baslik"><span class="kim">${y.asama === 'cekme' ? 'Kart çekme' : 'Oyuna giriş'}: ${kacis(o.ad)}</span>
-    <span class="ne">${EL_ADI[sinif(p.kartlar).anahtar]} · elinde ${para(o.fis)}</span></div>`;
+    <span class="ne">${(k => EL_ADI[k.ana] + (k.ikinci != null ? ' + ' + EL_ADI[k.ikinci] : ''))(kombinasyonlar(p.kartlar))} · elinde ${para(o.fis)}</span></div>`;
   if ('sigorta' in y) {
     const s = y.sigorta;
-    html += `<div class="ne" style="text-align:center;font-size:17px">Sigorta yapıyor musun? Kasanın oyunu olmazsa 1'e 1 öder.</div>
+    html += `<div class="ne" style="text-align:center;font-size:17px">Sigorta yapıyor musun? Kasa açmazsa sigorta 1'e 1 öder. Yapmazsan kasa açmadığında yalnız ante'yi alırsın; kasaya kart çektirirsen ve yine açmazsa ante de yanar.</div>
       <div class="dugmeler" style="grid-template-columns:repeat(${s.enAz === s.enCok ? 2 : 3},1fr)">
         <button class="btn-ikincil" data-s="0">Sigorta yok</button>
         ${s.enAz === s.enCok ? '' : `<button class="b-kontrol" data-s="${s.enAz}">Min ${para(s.enAz)}</button>`}
@@ -517,7 +518,7 @@ function odemeTablosu() {
   const ana = [['Royal flush', ODEME.RF], ['Renkli kent', ODEME.SF], ['Kare', ODEME[7]], ['Full', ODEME[6]], ['Renk', ODEME[5]],
     ['Kent', ODEME[4]], ['Üçlü', ODEME[3]], ['İki çift', ODEME[2]], ['Çift', ODEME[1]], ['As-Papaz', ODEME.AK]];
   const ex = [['Royal flush', BONUS.RF], ['Renkli kent', BONUS.SF], ['Kare', BONUS[7]], ['Full', BONUS[6]], ['Renk', BONUS[5]],
-    ['Kent', BONUS[4]], ['Üçlü', BONUS[3]], ['As-Papaz-Kız', BONUS.AKQ]];
+    ['Kent', BONUS[4]], ['Üçlü', BONUS[3]], ['As-Papaz-Kız', BONUS.AKQ], ['Sahte renk', BONUS.SAHTE]];
   $('n-tablo-bet').innerHTML = '<div class="bas">BET</div>' + ana.map(([a, v]) => satir(a, v)).join('');
   $('n-tablo-ex').innerHTML = '<div class="bas">EXPRESS</div>' + ex.map(([a, v]) => satir(a, v)).join('');
 }

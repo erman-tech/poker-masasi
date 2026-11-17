@@ -423,3 +423,71 @@ test('Novo en çok 3 oyuncu, tek kişi olur', () => {
   g = novoHamleGercek(g, { tip: 'gec' });
   assert.equal(g.el.faz, 'karar');
 });
+
+import { kombinasyonlar, betOrani, sigortaSiniri } from '../js/novo.js';
+
+test('iki kombinasyon: kent + çift As = 5 kat', () => {
+  const b = betOrani(K('Ah Ad 2c 3s 4h 5d'));
+  assert.equal(b.ana, 4); assert.equal(b.ikinci, 1); assert.equal(b.oran, 5);
+});
+test('iki kombinasyon: kare + full = 27 kat', () => {
+  const b = betOrani(K('Kh Kd Kc Ks Qh Qd'));
+  assert.equal(b.ana, 7); assert.equal(b.ikinci, 6); assert.equal(b.oran, 27);
+});
+test('iki kombinasyon: renk + çift = 6 kat', () => {
+  const b = betOrani(K('Ah 9h 7h 4h 2h Ac'));
+  assert.equal(b.ana, 5); assert.equal(b.ikinci, 1); assert.equal(b.oran, 6);
+});
+test('ana elin içindeki küçük el ikinci kombinasyon sayılmaz', () => {
+  assert.equal(kombinasyonlar(K('Kh Kd Kc Qh Qd 2s')).ikinci, null, 'full içindeki iki çift / üçlü');
+  assert.equal(kombinasyonlar(K('Kh Kd Kc 9h 5d 2s')).ikinci, null, 'üçlü içindeki çift');
+  assert.equal(kombinasyonlar(K('Ah Ad 2c 3s 4h')).ikinci, null, '5 kartta tek el');
+  assert.equal(betOrani(K('Kh Kd Kc 9h 5d 2s')).oran, 3);
+});
+test('sigorta tavanı iki kombinasyonun toplam katından', () => {
+  const p = { kartlar: K('Kh Kd Kc Ks Qh Qd'), bahis: 50 };
+  assert.equal(sigortaSiniri(p, 5000, 25).enCok, Math.floor(27 * 50 / 2 / 5) * 5);
+});
+test('iki kombinasyonla kazanınca bet toplam kattan ödenir', () => {
+  let g = yeniNovo({ adlar: ['Tek'], kod: 'X' });
+  g = novoDagit(g, deste(['Ah Ad 2c 3s 4h'], '9c 9d 7h 6s 2d', '5d'));
+  g = novoHamleGercek(g, { tip: 'alti' });
+  g = novoHamleGercek(g, { tip: 'oyna' });
+  if ('sigorta' in (novoYasal(g) || {})) g = novoHamleGercek(g, { tip: 'sigorta', miktar: 0 });
+  const p = g.el.oyuncular[0];
+  assert.equal(p.sonuc.tip, 'kazandi'); assert.equal(p.sonuc.oran, 5); assert.equal(p.sonuc.ikinciEl, 1);
+  assert.ok(p.odemeler.some(k => k.yazi.includes('Kent + Bir çift') && k.tutar === 250));
+});
+
+test('kasaya kart çektirildi ve kasa yine açmadıysa ante yanar, bet geri gelir', () => {
+  let bulundu = 0;
+  for (let n = 0; n < 20000 && bulundu < 3; n++) {
+    let g = yeniNovo({ adlar: ['Tek'], kod: 'X', baslangicFis: 100000 });
+    g = novoDagit(g);
+    g = novoHamleGercek(g, { tip: 'gec' });
+    g = novoHamleGercek(g, { tip: 'oyna' });
+    if ('sigorta' in (novoYasal(g) || {})) g = novoHamleGercek(g, { tip: 'sigorta', miktar: 0 });
+    if (g.el.faz !== 'oyunsuz') continue;
+    const once = g.oyuncular[0].fis;
+    g = oyunSatinAl(g, [true]);
+    if (g.el.krupiyeOyunu) continue;
+    const p = g.el.oyuncular[0];
+    assert.equal(p.geri, p.bahis, 'yalnız bet geri');
+    assert.equal(g.oyuncular[0].fis, once - 25 + p.bahis);
+    assert.ok(p.odemeler.some(k => k.yazi.startsWith('Ante yandı') && k.tutar === -25));
+    bulundu++;
+  }
+  assert.ok(bulundu > 0);
+});
+
+import { bonusAnahtari } from '../js/novo.js';
+test('sahte renk: ilk 5 kart hepsi kırmızı ya da hepsi siyah → express 2:1', () => {
+  assert.equal(bonusAnahtari(K('Kh 9d 7h 4d 2h')), 'SAHTE');
+  assert.equal(bonusOrani(K('Kh 9d 7h 4d 2h')), 2);
+  assert.equal(bonusOrani(K('Ks 9c 7s 4c 2s')), 2);
+  assert.equal(bonusOrani(K('Kh 9d 7h 4d 2s')), 0, 'bir siyah kart bozar');
+  assert.equal(bonusOrani(K('Kh 9h 7h 4h 2h')), 60, 'hepsi kupa: renk bonusu');
+  assert.equal(bonusOrani(K('7h 7d 7h 4d 2h'.replace('7h 7d 7h', '7h 7d 7c'))), 8, 'siyah var: yalnız üçlü');
+  assert.equal(bonusOrani(K('7h 7d 4h 4d 2h')), 2, 'kırmızı iki çift: iki çifte bonus yok, sahte renk öder');
+  assert.equal(bonusOrani(K('Ah Kd Qh 4d 2h')), 5, 'As-Papaz-Kız sahte renkten yüksek');
+});
