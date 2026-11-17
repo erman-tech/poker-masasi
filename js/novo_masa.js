@@ -717,12 +717,24 @@ export function novoBagla() {
       <button class="btn-ikincil" id="nm-yukle">Para yükle</button>
       <button class="btn-ikincil" id="nm-konus">Seslendirme: ${konus.acikMi() ? 'Açık' : 'Kapalı'}</button>
       <button class="btn-ikincil" id="nm-ortam">Casino uğultusu: ${ses.ortamAcikMi() ? 'Açık' : 'Kapalı'}</button>
+      <button class="btn-ikincil" id="nm-kutlama">Büyük bonus kutlamasını göster</button>
       <button class="btn-ikincil" id="nm-yeniden">Baştan başlat (herkese ${para(N.g.baslangicFis)})</button>
       <button class="btn-tehlike" id="nm-kapat">Masayı kapat</button>
       <button class="btn-ana" id="nm-tamam">Kapat</button>`, k => {
       k.querySelector('#nm-tamam').onclick = perdeKapat;
       k.querySelector('#nm-ortam').onclick = e => { ses.acil(); ses.ortamAyarla(!ses.ortamAcikMi()); e.target.textContent = 'Casino uğultusu: ' + (ses.ortamAcikMi() ? 'Açık' : 'Kapalı'); };
       k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.soyle('seslendirme_acik'); } };
+      k.querySelector('#nm-kutlama').onclick = async () => {
+        perdeKapat();
+        if (mesgul) return;
+        ses.acil(); konus.kilidiAc();
+        // Önizleme: oyun durumu değişmez, yalnız 30 kat ve üstü express kutlaması oynar
+        ruh('saskin', 1600); gala(true); havaiFisek();
+        konus.soyle('tebrikler', 'bonus_odeme', konus.el('7'), konus.sayi(5000), 'dolar');
+        ses.fis(8);
+        await bekle(9000);
+        if (!mesgul) gala(false);
+      };
       k.querySelector('#nm-yukle').onclick = () => { perdeKapat(); if (!N.g.el || N.g.el.faz === 'bitti') yukleAc(); };
       k.querySelector('#nm-yeniden').onclick = async () => {
         perdeKapat();
