@@ -57,14 +57,24 @@ function spotKonumu(i, n) {
 
 function kasaYazi(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + para(Math.abs(v || 0)); }
 
+// Görünüm maskesi: motor eli sonuçlandırmış olsa da animasyon bitene kadar ekran eski hali gösterir.
+let maske = null; // { faz?, krupiyeAcik?, kasa }
+function gorunenEl(el) {
+  return el && maske && maske.faz ? { ...el, faz: maske.faz, krupiyeAcik: maske.krupiyeAcik } : el;
+}
+// Üst çubuktaki kasa artı/eksisi: express dağıtımda sonuçlanır, el sürerken anında yansır.
+function kasaCanli(g) {
+  let canli = g.kasaNet || 0;
+  if (g.el && g.el.faz !== 'bitti') for (const p of g.el.oyuncular) if (p.katildi) canli += p.bonus - p.bonusOdeme;
+  return canli;
+}
+
 function ciz() {
-  const g = N.g, el = g.el;
+  const g = N.g, el = gorunenEl(g.el);
   $('n-elno').textContent = el ? el.no : '–';
   $('n-ante').textContent = para(g.ante);
   $('n-yazi').innerHTML = `KASAYA KARŞI · KASA AS-PAPAZ VE ÜSTÜYLE OYUNA GİRER<br>ANTE ${para(g.ante)} · EXPRESS ${para(g.ante)} · KART ÇEKME ${para(g.ante)} · OYNA ${para(2 * g.ante)}`;
-  // Express dağıtımda sonuçlanır: el sürerken kasaya anında yansıt.
-  let canli = g.kasaNet || 0;
-  if (el && el.faz !== 'bitti') for (const p of el.oyuncular) if (p.katildi) canli += p.bonus - p.bonusOdeme;
+  const canli = maske ? maske.kasa : kasaCanli(g);
   const kn = $('n-kasa');
   kn.textContent = kasaYazi(canli);
   kn.className = canli >= 0 ? 'artı' : 'eksi';
@@ -176,7 +186,7 @@ function ciz() {
 // Dairede o an duran fiş
 function daireTutari(p, k) {
   if (!p || !p.katildi) return 0;
-  const bitti = N.g.el.faz === 'bitti';
+  const bitti = gorunenEl(N.g.el).faz === 'bitti';
   if (bitti) return 0;
   // Express yalnız ilk 5 karta bakar ve dağıtım biter bitmez kapanır: kazanan ödenir,
   // kaybedenin express'i kasaya gider. Dağıtım animasyonu sürerken dairesinde durur.
@@ -274,7 +284,7 @@ function panelCiz() {
   pn.innerHTML = html;
   if ('sigorta' in y) {
     pn.querySelectorAll('[data-s]').forEach(b => b.onclick = () => {
-      ses.acil();
+      ses.acil(); konus.kilidiAc();
       uygula(g2 => novoHamle(g2, { tip: 'sigorta', miktar: Number(b.dataset.s) }), 'sigorta');
     });
   } else if (secimModu) {
@@ -289,7 +299,7 @@ function panelCiz() {
     $('n-degis').onclick = () => degistir([...secili]);
   } else {
     pn.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
-      ses.acil();
+      ses.acil(); konus.kilidiAc();
       const a = b.dataset.a;
       if (a === 'degistir') { secimModu = true; secili.clear(); hata = ''; ciz(); return; }
       if (a === 'alti') return altinciKart();
@@ -339,6 +349,12 @@ async function uygula(fn, tip) {
   try { yeni = fn(once); } catch (e) { hata = e.message; panelCiz(); return; }
   hata = '';
   gecmiseAt();
+  // Bu hamleyle kasa açılıyorsa (el sonuçlandı), açılış animasyonu başlayana kadar ekran hamleden
+  // önceki gibi kalır: kasanın kartları kapalı, kasa toplamı ve sonuç etiketleri görünmez.
+  if (once.el && !once.el.krupiyeAcik && yeni.el && yeni.el.krupiyeAcik) {
+    maske = { faz: once.el.faz, krupiyeAcik: false, kasa: kasaCanli(once) };
+    mesgul = true;
+  }
   N.g = yeni; kaydet();
   if (tip === 'pas') ses.kartlariAt();
   if (tip === 'oyna') {
@@ -429,7 +445,7 @@ async function sonAnimasyon(once, yeni) {
   const el = yeni.el;
   const acildi = !once.el.krupiyeAcik && el.krupiyeAcik;
   const degisti = el.krupiyeDegisim && once.el.faz === 'oyunsuz';
-  if (!acildi && !degisti && el.faz !== 'bitti') { ciz(); return; }
+  if (!acildi && !degisti && el.faz !== 'bitti') { maske = null; ciz(); return; }
   mesgul = true;
   // önce kapalı haliyle çiz, sonra krupiye kartlarını tek tek çevir
   const g = N.g;
@@ -439,6 +455,7 @@ async function sonAnimasyon(once, yeni) {
   const krupiyeSon = el.krupiye;
   const kAtilan = el.krupiyeAtilan, kYakilan = el.krupiyeYakilan;
   if (degisti) { el.krupiye = once.el.krupiye; el.krupiyeAtilan = undefined; el.krupiyeYakilan = undefined; }
+  maske = { kasa: maske ? maske.kasa : kasaCanli(once) }; // kartlar animasyonla açılır, kasa toplamı sonra
   ciz();
   await bekle(300);
   const kr = $('n-krupiye').children;
@@ -489,7 +506,7 @@ async function sonAnimasyon(once, yeni) {
     ruh('normal');
     await bekle(500);
   }
-  el.faz = gercekFaz; el.krupiyeAcik = true;
+  el.faz = gercekFaz; el.krupiyeAcik = true; maske = null;
   if (gercekFaz !== 'bitti') { mesgul = false; ciz(); return; }
   // Hesaplaşma: fişler daireler doluyken
   ciz();
@@ -551,6 +568,7 @@ async function dagit() {
   try { yeni = novoDagit(N.g); } catch (e) { hata = e.message; panelCiz(); return; }
   gecmiseAt(); hata = ''; N.g = yeni; kaydet();
   mesgul = true; expressBekliyor = true;
+  if (yeni.el.krupiyeAcik) maske = { faz: 'karar', krupiyeAcik: false, kasa: kasaCanli({ ...N.g, kasaNet: (N.g.kasaNet || 0) - (yeni.el.kasaNet || 0) }) };
   const el = N.g.el;
   ciz();
   const spotlar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi);

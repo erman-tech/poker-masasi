@@ -1,6 +1,5 @@
 // Kasanın sesi: Elif. Cümleler kısa parçalardan kurulur (sesler/elif/<parça>.mp3).
-// Bir cümlenin parçalarından biri bile kayıtlı değilse o cümle cihazın Türkçe sesiyle söylenir
-// (iki sesi karıştırmamak için). Kayıtlar offline önbellekte durur; internet gerekmez.
+// Kayıtlar varsa yalnız Elif konuşur (kaydı olmayan parça atlanır); hiç kayıt yoksa cihazın Türkçe sesi. Kayıtlar offline önbellekte durur; internet gerekmez.
 const ANAHTAR = 'poker.konusma';
 const KLASOR = 'sesler/elif/';
 
@@ -117,18 +116,24 @@ export function soyle(...parcalar) {
   const liste = parcalar.flat(3);
   zincir = zincir.then(async () => {
     const k = await listeYukle();
-    const hepsi = ctx && liste.every(x => k.has(anahtarOf(x)));
-    if (!hepsi) { cihazla(metin(liste)); return; }
+    // Tek ses: Elif'in kayıtları varsa cihazın sesi hiç kullanılmaz. Kaydı olmayan parça
+    // (ör. listede olmayan bir oyuncu adı) atlanır; iki sesi aynı masada karıştırmayız.
+    if (!k.size) { cihazla(metin(liste)); return; }
+    if (!ctx) kilidiAc();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
+    const parcalar = liste.filter(x => k.has(anahtarOf(x)));
+    if (!parcalar.length) return;
     try {
       const bufs = [];
-      for (const x of liste) bufs.push(await tamponAl(anahtarOf(x)));
+      for (const x of parcalar) bufs.push(await tamponAl(anahtarOf(x)));
       let t = Math.max(ctx.currentTime + 0.05, siraSonu);
       for (const b of bufs) {
         const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(t);
         t += b.duration + 0.04;
       }
       siraSonu = t + 0.25;
-    } catch (e) { cihazla(metin(liste)); }
+    } catch (e) { /* kayıt çözülemedi: sessiz kal, cihaz sesine düşme */ }
   }).catch(() => {});
 }
 
