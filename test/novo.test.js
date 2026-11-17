@@ -722,3 +722,11 @@ test('mola: oyuncu çipleriyle beklerken dağıtıma girmez, dönünce sonraki d
   g = novoDagit(g);
   assert.equal(g.el.oyuncular[1].katildi, true);
 });
+
+test('As-Papaz-Kız yanında per olsa da express 5:1 öder (A K Q 9 9)', () => {
+  assert.equal(bonusAnahtari(K('As Kd Qh 9c 9d')), 'AKQ');
+  assert.equal(bonusOrani(K('As Kd Qh 9c 9d')), 5);
+  assert.equal(bonusOrani(K('As Kd Qh Qc 9d')), 5, 'kız per');
+  assert.equal(bonusOrani(K('As Kd Qh Jc Td')), 30, 'kent daha yüksek');
+  assert.equal(bonusOrani(K('As Kd Qh Qc Qd')), 8, 'üçlü daha yüksek');
+});

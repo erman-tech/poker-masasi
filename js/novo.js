@@ -164,7 +164,9 @@ export function besSurat(kartlar) {
 }
 export function bonusAnahtari(kartlar) {
   const a = sinif(kartlar).anahtar;
-  const k = a === 'AK' && kartlar.some(x => x.d === 12) ? 'AKQ' : a;
+  // As-Papaz-Kız: elde A, K ve Q varsa (yanında per olsa da) express öder; daha yüksek bonus varsa o geçer.
+  const akq = [14, 13, 12].every(d => kartlar.some(x => x.d === d));
+  const k = akq && (BONUS[a] || 0) < BONUS.AKQ ? 'AKQ' : a;
   if (besSurat(kartlar) && (BONUS[k] || 0) < BONUS.SURAT) return 'SURAT';
   if (!BONUS[k] && sahteRenk(kartlar)) return 'SAHTE';
   return k;
