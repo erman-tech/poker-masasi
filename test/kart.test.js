@@ -78,3 +78,32 @@ test('karıştırma kabaca düzgün dağılıyor', () => {
   assert.equal(say.size, 52);
   for (const v of say.values()) assert.ok(v > 50 && v < 160, 'aşırı sapma: ' + v);
 });
+
+test('10.000 elde her deste tam 52 farklı kart', () => {
+  for (let n = 1; n <= 10000; n++) {
+    const d = elDestesi('TAM52', n);
+    assert.equal(d.length, 52);
+    assert.equal(new Set(d.map(kartYazi)).size, 52);
+  }
+});
+
+test('her kart her konuma eşit olasılıkla düşer (ki-kare)', () => {
+  // 52 kart x 52 konum; 26.000 karıştırmada her hücre ~500 beklenir.
+  const N = 26000, say = Array.from({ length: 52 }, () => new Array(52).fill(0));
+  const sira = k => ['s', 'h', 'd', 'c'].indexOf(k.r) * 13 + (k.d - 2);
+  for (let n = 1; n <= N; n++) elDestesi('KIKARE7', n).forEach((k, pos) => say[sira(k)][pos]++);
+  const bek = N / 52;
+  let ki = 0;
+  for (const s of say) for (const v of s) ki += (v - bek) ** 2 / bek;
+  // serbestlik derecesi 51*51 = 2601; ortalama 2601, std ~72. 3 std dışı => bozuk karıştırma.
+  assert.ok(ki > 2601 - 220 && ki < 2601 + 220, 'ki-kare ' + ki.toFixed(0));
+});
+
+test('farklı masa kodları birbirinden bağımsız desteler verir', () => {
+  let ayniIlkKart = 0;
+  for (let i = 0; i < 2000; i++) {
+    if (kartYazi(elDestesi('KODA' + i, 1)[0]) === kartYazi(elDestesi('KODB' + i, 1)[0])) ayniIlkKart++;
+  }
+  // beklenen 2000/52 ≈ 38
+  assert.ok(ayniIlkKart > 15 && ayniIlkKart < 70, String(ayniIlkKart));
+});

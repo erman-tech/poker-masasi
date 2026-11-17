@@ -1,0 +1,24 @@
+// Offline önbellek: ilk açılışta tüm dosyalar cihaza kaydedilir.
+// Dosya değişince SURUM artırılır.
+const SURUM = 'poker-v2';
+const DOSYALAR = [
+  './', 'index.html', 'css/stil.css', 'manifest.webmanifest',
+  'js/uygulama.js', 'js/arayuz.js', 'js/masa.js', 'js/oyuncu.js', 'js/motor.js', 'js/kart.js', 'js/ses.js',
+  'ikon-180.png', 'ikon-192.png', 'ikon-512.png',
+];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(SURUM).then(c => c.addAll(DOSYALAR)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== SURUM).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+// Önce önbellek (offline'da anında açılır), arka planda internetten tazele.
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(caches.open(SURUM).then(async c => {
+    const kayitli = await c.match(e.request, { ignoreSearch: true });
+    const ag = fetch(e.request).then(r => { if (r && r.ok) c.put(e.request, r.clone()); return r; }).catch(() => null);
+    return kayitli || (await ag) || c.match('index.html');
+  }));
+});

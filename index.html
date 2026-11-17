@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poker Masası">
+<meta name="theme-color" content="#062316">
+<title>Poker Masası</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="ikon-180.png">
+<link rel="stylesheet" href="css/stil.css">
+</head>
+<body>
+
+<!-- Giriş -->
+<section id="e-giris" class="ekran giris etkin">
+  <h1>♠ Poker Masası ♥</h1>
+  <p>Texas Hold'em, internetsiz. iPad ortada masa olur, herkes kendi iki kartını kendi telefonunda görür.</p>
+  <div class="secim">
+    <button id="g-masa">Masa kur<small>Ortadaki cihaz (iPad): ortak kartlar, fişler, pot, sıra</small></button>
+    <button id="g-oyuncu">Oyuncuyum<small>Kendi telefonun: yalnız senin iki kartın</small></button>
+    <button id="g-devam" class="btn-ikincil" hidden>Kaldığın yerden devam et</button>
+  </div>
+  <div class="kucuk-not" id="g-not"></div>
+</section>
+
+<!-- Masa kurulumu -->
+<section id="e-kurulum" class="ekran">
+  <div class="form">
+    <h2>Masayı kur</h2>
+    <div class="oyuncu-listesi" id="k-oyuncular"></div>
+    <button class="btn-ikincil" id="k-ekle">+ Oyuncu ekle</button>
+    <label>Başlangıç fişi
+      <input id="k-fis" type="number" inputmode="numeric" value="1000" min="100" step="100">
+    </label>
+    <label>Körler (10/20 ile başlar) kaç elde bir yükselsin?
+      <select id="k-kor">
+        <option value="0">Yükselmesin</option>
+        <option value="8">8 elde bir</option>
+        <option value="10" selected>10 elde bir</option>
+        <option value="15">15 elde bir</option>
+        <option value="20">20 elde bir</option>
+      </select>
+    </label>
+    <label>Bu cihaz kimin? (Telefonu masa yapıyorsanız sahibi kendi kartlarına buradan bakar)
+      <select id="k-sahip"></select>
+    </label>
+    <div class="hata" id="k-hata"></div>
+    <div class="satir">
+      <button class="btn-ikincil" id="k-geri">Geri</button>
+      <button class="btn-ana" id="k-basla">Masayı aç</button>
+    </div>
+  </div>
+</section>
+
+<!-- Masa (iPad) -->
+<section id="e-masa" class="ekran masa-ekran">
+  <div class="ust-cubuk">
+    <span class="bilgi">El <b id="m-elno">–</b></span>
+    <span class="bilgi">Kontrol <b id="m-kontrol">–</b></span>
+    <span class="bilgi">Körler <b id="m-korlar">–</b></span>
+    <span class="bilgi" id="m-korbilgi"></span>
+    <span class="bosluk"></span>
+    <button id="m-kod">Masa kodu</button>
+    <button id="m-geri">↶ Geri al</button>
+    <button id="m-ses">🔊</button>
+    <button id="m-menu">☰</button>
+  </div>
+  <div class="masa-alan" id="m-alan">
+    <div class="kece"></div>
+    <div class="orta-alan">
+      <div class="ortak" id="m-ortak"></div>
+      <div class="pot" id="m-pot">Pot 0</div>
+    </div>
+  </div>
+  <div class="eylem-paneli" id="m-panel"></div>
+</section>
+
+<!-- Oyuncu kurulumu -->
+<section id="e-oyuncu-kur" class="ekran">
+  <div class="form">
+    <h2>Masaya otur</h2>
+    <label>Masa kodu (iPad'in üstünde yazıyor)
+      <input id="o-kod" autocomplete="off" autocapitalize="characters" maxlength="10" placeholder="ÖRN. K7Q2M9" style="font-size:26px;letter-spacing:4px;text-transform:uppercase">
+    </label>
+    <label>Koltuk numaran (iPad'de adının yanında)
+      <select id="o-koltuk"></select>
+    </label>
+    <label>Adın
+      <input id="o-ad" autocomplete="off" maxlength="16">
+    </label>
+    <div class="hata" id="o-hata"></div>
+    <div class="satir">
+      <button class="btn-ikincil" id="o-geri">Geri</button>
+      <button class="btn-ana" id="o-basla">Otur</button>
+    </div>
+  </div>
+</section>
+
+<!-- Oyuncu (telefon) -->
+<section id="e-oyuncu" class="ekran oyuncu-ekran">
+  <div class="oy-ust">
+    <span class="ad" id="oy-ad"></span>
+    <span class="bosluk"></span>
+    <button id="oy-ses">🔊</button>
+    <button id="oy-ayar">Ayar</button>
+  </div>
+  <div class="el-bilgi">
+    <div class="no">El <span id="oy-elno">–</span></div>
+    <div class="kontrol">Kontrol <b id="oy-kontrol">–</b> · iPad'dekiyle aynı olmalı</div>
+  </div>
+  <div class="kart-alani" id="oy-kartlar"></div>
+  <div class="ipucu" id="oy-ipucu"></div>
+  <div class="oy-alt">
+    <div class="satir">
+      <button class="btn-ikincil" id="oy-onceki">◀ Önceki el</button>
+      <button class="btn-tehlike" id="oy-at">Kartları at</button>
+    </div>
+    <button class="btn-ana" id="oy-sonraki">Sonraki el ▶</button>
+  </div>
+</section>
+
+<div class="perde" id="perde"><div class="kutu" id="perde-kutu"></div></div>
+
+<script type="module" src="js/uygulama.js"></script>
+</body>
+</html>
