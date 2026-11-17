@@ -367,8 +367,16 @@ async function fisUcur(kaynak, hedef, miktar, sure = 450) {
   y.remove();
 }
 
+// Hamleler sırayla işlenir: bir hamlenin animasyonu sürerken gelen ikinci dokunuş (ör. sıradaki
+// oyuncunun hızlı "Oyna"sı) yok sayılır. Yoksa önceki hamlenin animasyonu biterken ekranı yeni
+// durumla çizip kasanın kartlarını açılıştan önce bir an gösteriyordu.
+let islemde = false;
 async function uygula(fn, tip) {
-  if (mesgul) return;
+  if (mesgul || islemde) return;
+  islemde = true;
+  try { await uygula0(fn, tip); } finally { islemde = false; }
+}
+async function uygula0(fn, tip) {
   const once = N.g;
   let yeni;
   try { yeni = fn(once); } catch (e) { hata = e.message; panelCiz(); return; }
