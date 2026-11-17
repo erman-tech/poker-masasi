@@ -6,7 +6,7 @@ import {
 import { yiginEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
-import { krupiyeKur, ruh } from './krupiye.js';
+import { krupiyeKur, ruh, kurpiyeAyarla, kurpiyeDegistir, eldekiKurpiye, degisimEli } from './krupiye.js';
 import * as konus from './konus.js';
 
 const ANAHTAR = 'poker.novo.v1';
@@ -38,6 +38,7 @@ export function novoDevam() {
 
 function ekran() {
   ekranGoster('e-novo');
+  kurpiyeAyarla(eldekiKurpiye(N.g.elNo || 1));
   ekranAcikTut();
   $('n-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇';
   ciz();
@@ -337,7 +338,7 @@ async function fisUcur(kaynak, hedef, miktar, sure = 450) {
   y.style.transform = `translate(${(b.left + b.width / 2) - (a.left + a.width / 2)}px, ${(b.top + b.height / 2) - (a.top + a.height / 2)}px)`;
   // Kasa ödüyor ya da topluyorsa gerçek fiş sesi; oyuncu bahis koyarken kibar, kısık ses
   const kasaIle = !kaynak.getBoundingClientRect || !hedef.getBoundingClientRect;
-  if (kasaIle) ses.fis(miktar >= 10 * (N.g.ante || 25) ? 8 : 4); else ses.fisHafif();
+  if (kasaIle) { if (!sessizOdeme) ses.fis(miktar >= 10 * (N.g.ante || 25) ? 8 : 4); } else ses.fisHafif();
   await bekle(sure);
   y.remove();
 }
@@ -530,7 +531,12 @@ async function sonAnimasyon(once, yeni) {
     else if (t === 'berabere') konus.soyle(konus.ad(ad), 'berabere');
     else if (t === 'oyunyok' && p.satinAldi) konus.soyle(konus.ad(ad), 'ante_yandi');
   }
+  // Elif konuşurken ödeme yapılmaz; fişler konuşma bitince gider, çip sesi sonda bir kez çalar.
+  await konus.bitince();
+  sessizOdeme = true;
+  let fisOynadi = false;
   for (const [p, i] of spotlar) {
+    fisOynadi = true;
     const s = spotEl(i);
     const ante = s.querySelector('.ndaire.ante'), bet = s.querySelector('.ndaire.bet'), levha = s.querySelector('.nlevha');
     const t = p.sonuc.tip;
@@ -550,6 +556,8 @@ async function sonAnimasyon(once, yeni) {
       else await fisUcur(sg, kasaRect(), p.sigorta, 350);
     }
   }
+  sessizOdeme = false;
+  if (fisOynadi) ses.fis(8);
   mesgul = false;
   void g;
   const enBuyuk = Math.max(0, ...el.oyuncular.map(p => (p.katildi ? p.net : 0)));
@@ -558,6 +566,7 @@ async function sonAnimasyon(once, yeni) {
   ciz();
 }
 
+let sessizOdeme = false; // toplu ödeme sırasında her fiş uçuşu ayrı ses çıkarmasın
 let expressBekliyor = false; // dağıtım animasyonu bitene kadar express dairesinde durur
 
 async function dagit() {
@@ -576,6 +585,13 @@ async function dagit() {
   $('n-alan').querySelectorAll('.nkartlar .kart, .nel').forEach(gizle);
   [...$('n-krupiye').children].forEach(gizle);
   $('n-yakilan').querySelectorAll('.yk-kart').forEach(gizle);
+  // 10 elde bir kurpiye değişir: "Dealer change"
+  if (degisimEli(el.no)) {
+    duyuru('<div class="no" style="font-size:clamp(34px,6vw,64px)">DEALER CHANGE</div><div class="kk">Yeni kurpiye masaya geliyor</div>');
+    konus.soyle('dealer_change');
+    await kurpiyeDegistir(eldekiKurpiye(el.no));
+    await bekle(400);
+  } else kurpiyeAyarla(eldekiKurpiye(el.no));
   // Girişler daireye
   for (const [p, i] of spotlar) {
     const s = spotEl(i);
@@ -601,14 +617,21 @@ async function dagit() {
   ses.kartCevir();
   ruh('normal');
   await bekle(300);
-  // Express hemen: kazanan ödenir, kaybedenin express'i kasaya
+  // Express hemen: kazanan ödenir, kaybedenin express'i kasaya. Önce Elif bonusları söyler,
+  // fişler konuşma bitince gider, çip sesi sonda bir kez çalar.
   for (const [p, i] of spotlar) {
-    const s = spotEl(i);
-    s.querySelector('.nel').style.visibility = '';
-    const ex = s.querySelector('.ndaire.express');
+    spotEl(i).querySelector('.nel').style.visibility = '';
     if (p.bonusOdeme) {
       ruh(p.bonusOran >= 30 ? 'saskin' : 'goz', 1600);
       konus.soyle(konus.ad(g0ad(i)), 'bonus_odeme', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
+    }
+  }
+  await konus.bitince();
+  sessizOdeme = true;
+  for (const [p, i] of spotlar) {
+    const s = spotEl(i);
+    const ex = s.querySelector('.ndaire.express');
+    if (p.bonusOdeme) {
       await fisUcur(kasaRect(), ex, p.bonusOdeme - p.bonus, 500);
       ex.querySelector('.yer').innerHTML = '';
       await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme, 450);
@@ -618,6 +641,8 @@ async function dagit() {
       await fisUcur(ex, kasaRect(), p.bonus, 350);
     }
   }
+  sessizOdeme = false;
+  if (spotlar.length) ses.fis(spotlar.length > 1 ? 8 : 4);
   expressBekliyor = false;
   mesgul = false;
   ciz();
@@ -661,7 +686,7 @@ export function novoBagla() {
   $('n-geri').onclick = async () => {
     if (!N.gecmis.length || mesgul) return;
     if (!(await onayla('Son hamle geri alınsın mı?', 'Geri al'))) return;
-    N.g = JSON.parse(N.gecmis.pop()); secimModu = false; secili.clear(); hata = '';
+    N.g = JSON.parse(N.gecmis.pop()); secimModu = false; secili.clear(); hata = ''; kurpiyeAyarla(eldekiKurpiye(N.g.elNo || 1));
     kaydet(); ciz();
   };
   $('n-menu').onclick = () => {

@@ -692,3 +692,12 @@ test('express renkli kent 250, royal flush 500', () => {
   assert.equal(bonusOrani(K('9h Th Jh Qh Kh')), 250);
   assert.equal(bonusOrani(K('Ts Js Qs Ks As')), 500);
 });
+
+import { yalanciIkiPer } from '../js/novo.js';
+test('yalancı per iki per elde de geçer: A-A-8-8-K ve K-K-8-8-A 3 kat öder', () => {
+  assert.equal(betOrani(K('8h 8d As Ac Kh')).oran, 3, 'iki per As + Papaz');
+  assert.equal(betOrani(K('8h 8d Ks Kc Ah')).oran, 3, 'iki per Papaz + As');
+  assert.equal(betOrani(K('8h 8d Qs Qc Ah')).oran, 2, 'As var ama per As/Papaz değil: düz iki per');
+  assert.equal(betOrani(K('As Ad 8c 8h 2s')).oran, 2, 'As per ama Papaz yok');
+  assert.ok(yalanciIkiPer(K('8h 8d As Ac Kh')));
+});

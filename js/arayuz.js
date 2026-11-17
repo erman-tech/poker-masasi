@@ -24,7 +24,10 @@ export function kartYuzu(el, kart) {
   const d = DEGER_AD[kart.d] || String(kart.d);
   el.classList.toggle('kirmizi', kart.r === 'h' || kart.r === 'd');
   el.classList.toggle('siyah', kart.r === 's' || kart.r === 'c');
-  yuz.innerHTML = `<div class="kose">${d}<span>${r}</span></div><div class="orta">${r}</div><div class="kose alt">${d}<span>${r}</span></div>`;
+  // Resimli kartlarda (J/Q/K) ortada çerçeveli harf, As'ta tek büyük simge, diğerlerinde büyük simge
+  const orta = kart.d >= 11 && kart.d <= 13 ? `<div class="orta resim">${d}<small>${r}</small></div>`
+    : kart.d === 14 ? `<div class="orta as">${r}</div>` : `<div class="orta">${r}</div>`;
+  yuz.innerHTML = `<div class="kose">${d}<span>${r}</span></div>${orta}<div class="kose alt">${d}<span>${r}</span></div>`;
 }
 
 const bekle = ms => new Promise(r => setTimeout(r, ms));

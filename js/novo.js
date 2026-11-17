@@ -110,12 +110,23 @@ export function yalanciAK(kartlar) {
   return (uclu === 14 && d.has(13)) || (uclu === 13 && d.has(14));
 }
 
+// Yalancı perin iki per hali: perlerden biri As ve elde Papaz var (A-A-8-8-K), ya da biri Papaz ve elde As var → +1.
+export function yalanciIkiPer(kartlar) {
+  const s = sinif(kartlar);
+  if (s.anahtar !== 2) return false;
+  const say = new Map();
+  for (const k of kartlar) say.set(k.d, (say.get(k.d) || 0) + 1);
+  const perler = new Set([...say.entries()].filter(([, n]) => n >= 2).map(([d]) => d));
+  // Papaz/As perin dışında olmalı (A-A-K-K-7'de ikisi de per; ek ödeme yok, düz iki per)
+  return (perler.has(14) && say.get(13) === 1) || (perler.has(13) && say.get(14) === 1);
+}
+
 // Bet oranı: ana el + (varsa) ikinci el; ikinci el yoksa As-Papaz / yalancı döper +1.
 export function betOrani(kartlar) {
   const k = kombinasyonlar(kartlar);
   const ana = ODEME[k.ana] || 0;
   if (k.ikinci != null) return { oran: ana + (ODEME[k.ikinci] || 0), ana: k.ana, ikinci: k.ikinci, ek: 0 };
-  const ek = ikinciAK(kartlar) || doperTuru(kartlar) === 'yalanci' || yalanciAK(kartlar) ? 1 : 0;
+  const ek = ikinciAK(kartlar) || doperTuru(kartlar) === 'yalanci' || yalanciAK(kartlar) || yalanciIkiPer(kartlar) ? 1 : 0;
   return { oran: ana + ek, ana: k.ana, ikinci: null, ek };
 }
 
@@ -430,7 +441,7 @@ function odemeDokumu(p, el) {
     else if (t === 'oyunyok') k.push(anteKazanir ? { yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante } : { yazi: 'Ante geri (kasanın oyunu yok)', tutar: 0 });
     if (t === 'kazandi') {
       k.push(anteKazanir ? { yazi: 'Ante 1:1', tutar: p.ante } : { yazi: 'Ante geri', tutar: 0 });
-      const ek = p.sonuc.ikinciEl != null ? ` + ${EL_ADI[p.sonuc.ikinciEl]} (${ODEME[p.sonuc.ana ?? sinif(p.kartlar).anahtar]}+${ODEME[p.sonuc.ikinciEl]})` : p.sonuc.ikinciAK ? (yalanciAK(p.kartlar) ? ' + As-Papaz' : p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
+      const ek = p.sonuc.ikinciEl != null ? ` + ${EL_ADI[p.sonuc.ikinciEl]} (${ODEME[p.sonuc.ana ?? sinif(p.kartlar).anahtar]}+${ODEME[p.sonuc.ikinciEl]})` : p.sonuc.ikinciAK ? (yalanciAK(p.kartlar) || yalanciIkiPer(p.kartlar) ? ' + As-Papaz (yalancı per)' : p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
       k.push({ yazi: `Bet ${p.elAdi}${ek} ${p.sonuc.oran}:1`, tutar: p.bahis * p.sonuc.oran });
     }
     if (t === 'berabere') k.push({ yazi: 'Berabere: ante ve bet geri', tutar: 0 });

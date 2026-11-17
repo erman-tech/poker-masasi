@@ -1,4 +1,4 @@
-// Kasanın sesi: Elif. Cümleler kısa parçalardan kurulur (sesler/elif/<parça>.mp3).
+// Kasanın sesi: Elif (kurpiye görselleri hayali; ses Elif'in onayıyla). Cümleler kısa parçalardan kurulur (sesler/elif/<parça>.mp3).
 // Kayıtlar varsa yalnız Elif konuşur (kaydı olmayan parça atlanır); hiç kayıt yoksa cihazın Türkçe sesi. Kayıtlar offline önbellekte durur; internet gerekmez.
 const ANAHTAR = 'poker.konusma';
 const KLASOR = 'sesler/elif/';
@@ -10,7 +10,7 @@ export const PARCALAR = {
   sigortadan: 'sigortadan', dolar_kazanir: 'dolar kazanır.', sigortayi_kaybetti: 'sigortayı kaybetti.',
   dolar_odeme: 'dolar ödeme.', kat_odeme: 'kat ödeme.', tebrikler: 'Tebrikler', ve: 've',
   kaybetti: 'kaybetti.', berabere: 'berabere.', ante_yandi: 'ante yandı.',
-  bonus_odeme: 'bonus ödeme,', dolar: 'dolar.', seslendirme_acik: 'Seslendirme açık.',
+  bonus_odeme: 'bonus ödeme,', dealer_change: 'Dealer change.', dolar: 'dolar.', seslendirme_acik: 'Seslendirme açık.',
   // kasanın açtığı el
   kasa_AK: 'Kasa as papaz.', kasa_1: 'Kasa per.', kasa_2: 'Kasa iki per.', kasa_3: 'Kasa üçlü.',
   kasa_4: 'Kasa kent.', kasa_5: 'Kasa renk.', kasa_6: 'Kasa full house.', kasa_7: 'Kasa kare.',
@@ -135,6 +135,18 @@ export function soyle(...parcalar) {
       siraSonu = t + 0.25;
     } catch (e) { /* kayıt çözülemedi: sessiz kal, cihaz sesine düşme */ }
   }).catch(() => {});
+}
+
+// Elif konuşmasını bitirene kadar bekle (en çok azami ms). Ödemeler konuşmanın üstüne binmesin.
+export async function bitince(azami = 8000) {
+  try { await zincir; } catch (e) {}
+  const t0 = Date.now();
+  while (Date.now() - t0 < azami) {
+    const kalan = ctx ? siraSonu - ctx.currentTime : 0;
+    const cihaz = typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking;
+    if (kalan <= 0 && !cihaz) return;
+    await new Promise(r => setTimeout(r, Math.max(60, Math.min(250, kalan * 1000))));
+  }
 }
 
 export function dur() {
