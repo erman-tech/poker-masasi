@@ -106,7 +106,7 @@ function cihazla(m) {
   const u = new SpeechSynthesisUtterance(m);
   u.lang = 'tr-TR';
   const v = sesSec(); if (v) u.voice = v;
-  u.rate = 1.05; u.pitch = 1.1;
+  u.rate = 0.88; u.pitch = 1.0;
   speechSynthesis.speak(u);
 }
 
