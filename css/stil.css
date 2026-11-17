@@ -426,3 +426,9 @@ input, select {
 .nkartlar .kart.hayalet { display: grid; place-items: center; background: transparent; border: 2px dashed #ffd76599; color: #ffd765; font-weight: 900; box-shadow: none; }
 
 .nkartlar .kart.acik.atilacak { transform: translateY(-10px) rotateY(180deg); }
+
+/* Yakılan (gömülen) kartlar */
+.n-yakilan { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; }
+.n-yakilan .yk-yigin { position: relative; width: 46px; height: 64px; }
+.n-yakilan .yk-kart { --kart-gen: 46px; position: absolute; left: calc(var(--j) * 2px); top: calc(var(--j) * -2px); transform: rotate(calc(var(--j) * 4deg - 8deg)); }
+.n-yakilan .yk-ad { font-size: 10px; letter-spacing: 2px; font-weight: 800; color: #ffffffaa; }

@@ -164,6 +164,15 @@ export function fis(adet = 3, gecikme = 0) {
   for (let k = 0; k < 3; k++) { carpisma(t, guc); t += ara; ara *= 0.55; guc *= 0.55; }
 }
 
+// Oyuncu bahis koyarken: tek fiş, kısık ve yumuşak
+export function fisHafif(gecikme = 0) {
+  if (!hazir()) return;
+  kayitlariYukle();
+  const t = ctx.currentTime + gecikme;
+  if (kayitCal('tek', t, 0.3)) return;
+  carpisma(t, 0.3);
+}
+
 // Masaya hafif vurma (kontrol)
 export function tik(gecikme = 0) {
   if (!hazir()) return;

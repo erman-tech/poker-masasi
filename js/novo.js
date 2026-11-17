@@ -25,8 +25,12 @@ export const EL_ADI = {
 
 // Destede yer: koltuk i'nin ilk 5 kartı 5i..5i+4, krupiye 20..24 (24 açık kart),
 // değişen ve satın alınan kartlar 25'ten itibaren sırayla.
-export function ilkEl(deste, koltuk) { return deste.slice(5 * koltuk, 5 * koltuk + 5); }
-const KRUPIYE = 20, CEKME = 25;
+// Novo: dağıtımdan önce desteden 3 kart yakılır (0..2); oyun kalan 49 kartla oynanır.
+export const YAKILAN_ILK = 3;
+export const KOLTUK_BASI = i => YAKILAN_ILK + 5 * i;           // koltuk i: 3+5i .. 3+5i+4
+export const KRUPIYE = YAKILAN_ILK + 5 * 3;                     // 18..22 (22 açık kart)
+export const CEKME = KRUPIYE + 5;                               // 23'ten itibaren sırayla
+export function ilkEl(deste, koltuk) { return deste.slice(KOLTUK_BASI(koltuk), KOLTUK_BASI(koltuk) + 5); }
 
 // Elin sınıfı: ödeme tablosundaki anahtar
 export function sinif(kartlar) {
@@ -223,6 +227,8 @@ function sonrakiCekme(g, i) {
 // Herkes karar verdikten sonra kasa yeni kartları sırayla (koltuk sırasına göre) toplu dağıtır.
 function cekmeleriDagit(g) {
   const el = g.el;
+  // Kart isteyen varsa, ilk kart dağıtılmadan önce 1 kart gömülür (yalnız bir kez).
+  if (el.oyuncular.some(p => p.katildi && p.cekKarar)) el.cekmeYakilan = el.deste[el.cek++];
   for (const p of el.oyuncular) {
     if (!p.katildi || !p.cekKarar) continue;
     if (p.cekKarar.tip === 'degistir') {

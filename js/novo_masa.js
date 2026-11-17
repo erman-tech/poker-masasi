@@ -1,7 +1,7 @@
 // Novo Poker masası (iPad). Kasaya karşı; oyuncu kartları açık, her şey bu ekranda.
 import {
   yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle,
-  katilabilir, ODEME, BONUS, EL_ADI, sinif, bonusAnahtari, kombinasyonlar, betOrani,
+  katilabilir, ODEME, BONUS, EL_ADI, YAKILAN_ILK, sinif, bonusAnahtari, kombinasyonlar, betOrani,
 } from './novo.js';
 import { yiginEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
@@ -81,6 +81,13 @@ function ciz() {
       kr.appendChild(acik ? kartEl(k, true) : kartEl(null, false));
     });
   } else for (let j = 0; j < 5; j++) kr.appendChild(Object.assign(kartEl(null), { className: 'kart bos' }));
+  // Yakılan (gömülen) kartlar destesi
+  const yk = $('n-yakilan');
+  if (yk) {
+    const n = el ? YAKILAN_ILK + (el.cekmeYakilan ? 1 : 0) + (el.krupiyeYakilan ? 1 : 0) + (el.krupiyeAtilan ? 1 : 0) : 0;
+    yk.innerHTML = `<div class="yk-yigin">${Array.from({ length: n }, (_, j) => `<div class="kart yk-kart" style="--j:${j}"><div class="yuz"></div><div class="arka"></div></div>`).join('')}</div>` +
+      `<div class="yk-ad">${n ? `YAKILAN ${n}` : ''}</div>`;
+  }
   $('n-krupiye-ad').textContent = el && el.krupiyeAcik
     ? (el.krupiyeOyunu ? el.krupiyeElAdi : 'Kasanın oyunu yok' + (el.krupiyeDegisim ? '' : ''))
     : '';
@@ -312,7 +319,9 @@ async function fisUcur(kaynak, hedef, miktar, sure = 450) {
   document.body.appendChild(y);
   y.getBoundingClientRect();
   y.style.transform = `translate(${(b.left + b.width / 2) - (a.left + a.width / 2)}px, ${(b.top + b.height / 2) - (a.top + a.height / 2)}px)`;
-  ses.fis(3);
+  // Kasa ödüyor ya da topluyorsa gerçek fiş sesi; oyuncu bahis koyarken kibar, kısık ses
+  const kasaIle = !kaynak.getBoundingClientRect || !hedef.getBoundingClientRect;
+  if (kasaIle) ses.fis(miktar >= 10 * (N.g.ante || 25) ? 8 : 4); else ses.fisHafif();
   await bekle(sure);
   y.remove();
 }
@@ -360,6 +369,16 @@ function altinciKart() {
   return uygula(g2 => novoHamle(g2, { tip: 'alti' }), 'alti');
 }
 
+// Yakılan kartı desteden yakılanlar yığınına uçur (yığının j. kartı gizliyken)
+async function yak(j, sure = 420) {
+  const yk = $('n-yakilan').querySelectorAll('.yk-kart')[j];
+  if (!yk) return;
+  yk.style.visibility = 'hidden';
+  ses.kartAt();
+  await kartUcur(kasaRect(), yk, sure);
+  yk.style.visibility = '';
+}
+
 // Herkes karar verdi: kasa yeni kartları koltuk sırasıyla toplu dağıtır.
 async function topluDagit() {
   const el = N.g.el;
@@ -374,8 +393,12 @@ async function topluDagit() {
     for (const j of konum) { ks[j].style.visibility = 'hidden'; yeniKartlar.push(ks[j]); }
   }
   ses.kartlariAt();
+  const ykIdx = YAKILAN_ILK; // çekme öncesi gömülen kart
+  const ykEl = $('n-yakilan').querySelectorAll('.yk-kart')[ykIdx];
+  if (ykEl) ykEl.style.visibility = 'hidden';
   await bekle(350);
   ruh('dagit');
+  if (el.cekmeYakilan) { await yak(ykIdx); await bekle(200); }
   for (const k of yeniKartlar) {
     ses.kartAt();
     await kartUcur(kasaRect(), k, 260);
@@ -408,7 +431,8 @@ async function sonAnimasyon(once, yeni) {
   el.faz = once.el.faz === 'oyunsuz' ? 'oyunsuz' : 'karar';
   el.krupiyeAcik = once.el.krupiyeAcik;
   const krupiyeSon = el.krupiye;
-  if (degisti) el.krupiye = once.el.krupiye;
+  const kAtilan = el.krupiyeAtilan, kYakilan = el.krupiyeYakilan;
+  if (degisti) { el.krupiye = once.el.krupiye; el.krupiyeAtilan = undefined; el.krupiyeYakilan = undefined; }
   ciz();
   await bekle(300);
   const kr = $('n-krupiye').children;
@@ -436,9 +460,28 @@ async function sonAnimasyon(once, yeni) {
     }
   }
   if (degisti) {
+    // Kasa en yüksek kartını atar, 1 kart gömülür, sıradaki kart açılır
+    const idx = once.el.krupiye.findIndex(k => k.d === kAtilan.d && k.r === kAtilan.r);
+    ruh('dagit');
+    const eski = $('n-krupiye').children[idx];
+    const eskiRect = eski.getBoundingClientRect();
+    eski.style.visibility = 'hidden';
+    el.krupiyeAtilan = kAtilan; el.krupiyeYakilan = kYakilan;
     el.krupiye = krupiyeSon; el.krupiyeAcik = true;
     ciz();
-    ses.kartAt(); await bekle(500);
+    const yigin = $('n-yakilan').querySelectorAll('.yk-kart');
+    const n = yigin.length;
+    yigin[n - 1].style.visibility = 'hidden'; yigin[n - 2].style.visibility = 'hidden';
+    const yeniK = $('n-krupiye').children[idx];
+    yeniK.style.visibility = 'hidden';
+    ses.kartlariAt();
+    await kartUcur(eskiRect, yigin[n - 2], 450); yigin[n - 2].style.visibility = '';   // atılan
+    await bekle(200);
+    ses.kartAt(); await kartUcur(kasaRect(), yigin[n - 1], 450); yigin[n - 1].style.visibility = ''; // gömülen
+    await bekle(250);
+    ses.kartAt(); await kartUcur(kasaRect(), yeniK, 520); yeniK.style.visibility = ''; ses.kartCevir();
+    ruh('normal');
+    await bekle(500);
   }
   el.faz = gercekFaz; el.krupiyeAcik = true;
   if (gercekFaz !== 'bitti') { mesgul = false; ciz(); return; }
@@ -513,6 +556,7 @@ async function dagit() {
   const gizle = e => { e.style.visibility = 'hidden'; };
   $('n-alan').querySelectorAll('.nkartlar .kart, .nel').forEach(gizle);
   [...$('n-krupiye').children].forEach(gizle);
+  $('n-yakilan').querySelectorAll('.yk-kart').forEach(gizle);
   // Girişler daireye
   for (const [p, i] of spotlar) {
     const s = spotEl(i);
@@ -523,6 +567,9 @@ async function dagit() {
   ruh('dagit');
   const sure = ses.karistir() || 0;
   await bekle(Math.min(1500, sure * 700));
+  // Novo: dağıtımdan önce 3 kart yakılır
+  for (let j = 0; j < YAKILAN_ILK; j++) { await yak(j, 520); await bekle(150); }
+  await bekle(250);
   // 5 tur: önce oyuncular, sonra krupiye
   for (let k = 0; k < 5; k++) {
     for (const [, i] of spotlar) {

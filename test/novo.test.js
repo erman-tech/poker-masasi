@@ -4,15 +4,15 @@ import { kartlariOku as K, yeniDeste, kartYazi, rastgeleDeste } from '../js/kart
 import {
   novoHamle as novoHamleGercek,
   yeniNovo, novoDagit, novoYasal, oyunSatinAl, sinif, ikinciAK, krupiyeOyunuVar,
-  bonusOrani, novoYenidenBaslat,
+  bonusOrani, novoYenidenBaslat, KOLTUK_BASI, KRUPIYE, CEKME, YAKILAN_ILK,
 } from '../js/novo.js';
 
-// koltuk i: 5i..5i+4 ; krupiye 20..24 (24 açık) ; çekme 25'ten
+// 0..2 yakılır; koltuk i: 3+5i ; krupiye 18..22 (22 açık) ; çekme 23'ten
 function deste(eller, krupiye, cekilecek = '') {
   const d = new Array(52).fill(null);
-  eller.forEach((e, i) => K(e).forEach((k, j) => { d[5 * i + j] = k; }));
-  K(krupiye).forEach((k, j) => { d[20 + j] = k; });
-  if (cekilecek) K(cekilecek).forEach((k, j) => { d[25 + j] = k; });
+  eller.forEach((e, i) => K(e).forEach((k, j) => { d[KOLTUK_BASI(i) + j] = k; }));
+  K(krupiye).forEach((k, j) => { d[KRUPIYE + j] = k; });
+  if (cekilecek) K(cekilecek).forEach((k, j) => { d[CEKME + j] = k; });
   const kul = new Set(d.filter(Boolean).map(kartYazi));
   const kalan = yeniDeste().filter(k => !kul.has(kartYazi(k)));
   for (let i = 0; i < 52; i++) if (!d[i]) d[i] = kalan.shift();
@@ -73,8 +73,8 @@ test('pas: ante gider; oyna: krupiye oyunlu, iyi el kazanır', () => {
   assert.equal(g.el.oyuncular[2].sonuc.tip, 'kaybetti');
 });
 
-test('kart değiştirme: seçilen kartlar sırayla gelir, ücret gider, ante kazanılmaz', () => {
-  let g = novoDagit(oyun(['Erman']), deste(['7h 7d 2c 4s 9d'], 'Qc Qd 3d 8s 4c', '7c 7s Kd'));
+test('kart değiştirme: 1 kart gömülür, seçilen kartlar sırayla gelir, ücret gider, ante kazanılmaz', () => {
+  let g = novoDagit(oyun(['Erman']), deste(['7h 7d 2c 4s 9d'], 'Qc Qd 3d 8s 4c', '2h 7c 7s Kd'));
   let y = novoYasal(g);
   assert.equal(y.degistir, true);
   g = novoHamle(g, { tip: 'degistir', konumlar: [2, 3, 4] });
@@ -605,9 +605,10 @@ test('kart çekmede kasa herkes karar verdikten sonra toplu dağıtır', () => {
   assert.equal(g.el.faz, 'karar');
   const a = g.el.oyuncular[0], b = g.el.oyuncular[1];
   assert.notEqual(JSON.stringify(a.kartlar), ilkA);
-  assert.deepEqual(a.kartlar[0], g.el.deste[cek0]); assert.deepEqual(a.kartlar[1], g.el.deste[cek0 + 1]);
-  assert.equal(b.kartlar.length, 6); assert.deepEqual(b.kartlar[5], g.el.deste[cek0 + 2]);
-  assert.equal(g.el.cek, cek0 + 3);
+  assert.deepEqual(g.el.cekmeYakilan, g.el.deste[cek0], 'ilk çekilen karttan önce 1 kart gömülür');
+  assert.deepEqual(a.kartlar[0], g.el.deste[cek0 + 1]); assert.deepEqual(a.kartlar[1], g.el.deste[cek0 + 2]);
+  assert.equal(b.kartlar.length, 6); assert.deepEqual(b.kartlar[5], g.el.deste[cek0 + 3], 'ikinci oyuncuya gömmeden devam');
+  assert.equal(g.el.cek, cek0 + 4);
 });
 
 test('kasanın eli oyuncununkiyle aynı olasılıkta (per %42,3, iki per %4,75, üçlü %2,11)', () => {
@@ -658,4 +659,21 @@ test('kasa kart çekerken en yüksek kartını atar, bir kart yakar, sıradakini
   assert.equal(kartYazi(g.el.krupiyeAtilan), kartYazi(K('Kd')[0]), 'en yüksek kart (Papaz) atıldı');
   assert.equal(kartYazi(g.el.krupiyeYakilan), kartYazi(g.el.deste[cek]), 'sıradaki kart yakıldı');
   assert.equal(kartYazi(g.el.krupiye[0]), kartYazi(g.el.deste[cek + 1]), 'ondan sonraki kart alındı');
+});
+
+test('Novo: dağıtımdan önce 3 kart yakılır, kimse onları almaz', () => {
+  for (let n = 0; n < 2000; n++) {
+    let g = yeniNovo({ adlar: ['A', 'B', 'C'], kod: 'X' });
+    g = novoDagit(g);
+    const yakilan = g.el.deste.slice(0, YAKILAN_ILK).map(kartYazi);
+    const masada = [...g.el.oyuncular.flatMap(p => p.kartlar), ...g.el.krupiye].map(kartYazi);
+    assert.ok(yakilan.every(k => !masada.includes(k)));
+    assert.equal(new Set(masada).size, 20);
+  }
+});
+test('kimse kart çekmezse gömme yapılmaz', () => {
+  let g = yeniNovo({ adlar: ['A', 'B'], kod: 'X' });
+  g = novoDagit(g); const c = g.el.cek;
+  g = novoHamleGercek(g, { tip: 'gec' }); g = novoHamleGercek(g, { tip: 'gec' });
+  assert.equal(g.el.cek, c); assert.equal(g.el.cekmeYakilan, undefined);
 });
