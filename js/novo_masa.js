@@ -3,11 +3,12 @@ import {
   yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle,
   katilabilir, ODEME, BONUS, EL_ADI, YAKILAN_ILK, sinif, bonusAnahtari, kombinasyonlar, betOrani,
 } from './novo.js';
-import { yiginEl } from './fis.js';
+import { yiginEl, ustCipEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
-import { krupiyeKur, ruh, kurpiyeAyarla, kurpiyeDegistir, eldekiKurpiye, degisimEli, konusuyor } from './krupiye.js';
+import { krupiyeKur, ruh, kurpiyeAyarla, kurpiyeDegistir, eldekiKurpiye, degisimEli, konusuyor, gala } from './krupiye.js';
 import * as konus from './konus.js';
+import { havaiFisek } from './havai.js';
 konus.konusmaDinle(sure => konusuyor(sure));
 
 const ANAHTAR = 'poker.novo.v1';
@@ -149,7 +150,7 @@ function ciz() {
       if (k === 'express' && p && p.katildi && el.faz !== 'bitti') d.classList.add(p.bonusOdeme ? 'ex-kazanc' : 'ex-kayip');
       const yer = document.createElement('div'); yer.className = 'yer';
       const tutar = daireTutari(p, k);
-      if (tutar > 0) yer.appendChild(yiginEl(tutar, { boyut: 24, enCok: 6 }));
+      if (tutar > 0) yer.appendChild(ustCipEl(tutar, 38));
       d.appendChild(yer);
       if (tutar > 0) { const tt = document.createElement('b'); tt.className = 'ntutar'; tt.textContent = para(tutar); d.appendChild(tt); }
       else if (k === 'express' && p && p.katildi && el.faz !== 'bitti' && !expressBekliyor) {
@@ -516,8 +517,8 @@ async function sonAnimasyon(once, yeni) {
   // daireleri bitiş öncesi tutarlarla doldur
   for (const [p, i] of spotlar) {
     const s = spotEl(i);
-    s.querySelector('.ndaire.ante .yer').appendChild(yiginEl(p.ante, { boyut: 24, enCok: 6 }));
-    s.querySelector('.ndaire.bet .yer').appendChild(yiginEl(p.bahis, { boyut: 24, enCok: 6 }));
+    s.querySelector('.ndaire.ante .yer').appendChild(ustCipEl(p.ante, 38));
+    s.querySelector('.ndaire.bet .yer').appendChild(ustCipEl(p.bahis, 38));
   }
   await bekle(500);
   if (degisti) konus.soyle('kasa_kart_cekti', el.krupiyeOyunu ? [konus.el(sinif(el.krupiye).anahtar), 'oldu'] : 'yine_bos');
@@ -618,12 +619,14 @@ async function dagit() {
   ses.kartCevir();
   ruh('normal');
   await bekle(300);
+  let galaGosterildi = false;
   // Express hemen: kazanan ödenir, kaybedenin express'i kasaya. Önce Elif bonusları söyler,
   // fişler konuşma bitince gider, çip sesi sonda bir kez çalar.
   for (const [p, i] of spotlar) {
     spotEl(i).querySelector('.nel').style.visibility = '';
     if (p.bonusOdeme) {
       ruh(p.bonusOran >= 30 ? 'saskin' : 'goz', 1600);
+      if (p.bonusOran >= 30 && !galaGosterildi) { galaGosterildi = true; gala(true); havaiFisek(); }
       konus.soyle(konus.ad(g0ad(i)), 'bonus_odeme', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
     }
   }

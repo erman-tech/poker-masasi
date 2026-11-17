@@ -4,7 +4,8 @@
 export const KURPIYE_SAYISI = 3;
 export const DEGISIM_EL = 10;
 
-let kok = null, img = null, vid = null, kvid = null, simdiki = -1, vidUrl = null, kvidUrl = null;
+let kok = null, img = null, vid = null, kvid = null, gvid = null, simdiki = -1, vidUrl = null, kvidUrl = null, gvidUrl = null;
+let galaAcik = false;
 let zaman = null;
 
 // El numarasına göre o elin kurpiyesi (1-10. el: 0, 11-20. el: 1 ...)
@@ -18,11 +19,12 @@ export function degisimEli(elNo) {
 
 export function krupiyeKur(yer) {
   if (!yer) return;
-  yer.innerHTML = '<div class="kr-foto"><img alt="Kurpiye"><video class="kr-dagit" muted playsinline loop preload="auto"></video><video class="kr-konus" muted playsinline loop preload="auto"></video></div>';
+  yer.innerHTML = '<div class="kr-foto"><img alt="Kurpiye"><video class="kr-dagit" muted playsinline loop preload="auto"></video><video class="kr-konus" muted playsinline loop preload="auto"></video><video class="kr-gala" muted playsinline preload="auto"></video></div>';
   kok = yer;
   img = yer.querySelector('img');
   vid = yer.querySelector('.kr-dagit');
   kvid = yer.querySelector('.kr-konus');
+  gvid = yer.querySelector('.kr-gala');
   simdiki = -1;
   ruh('normal');
 }
@@ -30,6 +32,8 @@ export function krupiyeKur(yer) {
 function yukle(i) {
   if (!img) return;
   simdiki = i;
+  galaAcik = false;
+  if (kok) kok.classList.remove('kr-gala');
   img.src = `img/kurpiye/${i + 1}.jpg`;
   // iPad Safari önbellekten (service worker) gelen videoyu parça parça isteyemez; videoyu
   // bir kez belleğe alıp oradan oynatırız, internetsiz de çalışır.
@@ -48,11 +52,31 @@ function yukle(i) {
     kvid.src = kvidUrl;
     kvid.load();
   }).catch(() => {});
+  fetch(`img/kurpiye/${i + 1}g.mp4`).then(r => (r.ok ? r.blob() : Promise.reject())).then(b => {
+    if (istenen !== simdiki) return;
+    if (gvidUrl) URL.revokeObjectURL(gvidUrl);
+    gvidUrl = URL.createObjectURL(b);
+    gvid.src = gvidUrl;
+    gvid.load();
+  }).catch(() => {});
 }
 
 // Animasyonsuz ayarla (sayfa açılışı, geri al)
 export function kurpiyeAyarla(i) {
   if (i !== simdiki) yukle(i);
+  else gala(false);
+}
+
+// Büyük express (30 kat ve üstü): kurpiye gala elbisesiyle kutlar; sonraki dağıtıma kadar öyle kalır.
+export function gala(acik) {
+  if (!kok || simdiki < 0 || acik === galaAcik) return;
+  galaAcik = acik;
+  img.src = `img/kurpiye/${simdiki + 1}${acik ? 'g' : ''}.jpg`;
+  kok.classList.toggle('kr-gala', acik);
+  if (gvid) {
+    if (acik) { gvid.currentTime = 0; const p = gvid.play(); if (p && p.catch) p.catch(() => {}); }
+    else gvid.pause();
+  }
 }
 
 // "Dealer change": eskisi solar, yenisi gelir
@@ -69,7 +93,7 @@ export async function kurpiyeDegistir(i) {
 
 // Elif konuşurken ağız hareketi (dağıtım sürerken araya girmez)
 export function konusuyor(sure) {
-  if (!kok || kok.dataset.ruh === 'dagit') return;
+  if (!kok || galaAcik || kok.dataset.ruh === 'dagit') return;
   ruh('konus', sure);
 }
 
@@ -81,8 +105,8 @@ export function ruh(ad, sure = 0) {
     if (!v) return;
     if (evet) { v.currentTime = 0; const p = v.play(); if (p && p.catch) p.catch(() => {}); } else v.pause();
   };
-  oynat(vid, ad === 'dagit');
-  oynat(kvid, ad === 'konus');
+  oynat(vid, ad === 'dagit' && !galaAcik);
+  oynat(kvid, ad === 'konus' && !galaAcik);
   clearTimeout(zaman);
   if (sure) zaman = setTimeout(() => ruh('normal'), sure);
 }
