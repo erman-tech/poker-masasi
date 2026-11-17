@@ -392,8 +392,9 @@ export function oyunSatinAl(g0, secimler) {
   const alanlar = [];
   for (const i of oynayan) {
     const p = el.oyuncular[i];
-    const al = !!secimler[i] && g.oyuncular[i].fis >= el.ante;
-    if (al) { g.oyuncular[i].fis -= el.ante; p.ucret += el.ante; p.satinAldi = true; alanlar.push(i); }
+    // Kasaya kart çektirmenin bedeli ante kazancıdır (ante 1:1 alınmaz); ayrı ücret yok, ante yanmaz.
+    const al = !!secimler[i];
+    if (al) { p.satinAldi = true; alanlar.push(i); }
     else { p.satinAldi = false; p.sonuc = { tip: 'oyunyok' }; }
   }
   if (alanlar.length) {
@@ -433,11 +434,11 @@ function odemeDokumu(p, el) {
   const ad = a => EL_ADI[a];
   if (p.bonusOdeme) k.push({ yazi: `Bonus ödeme ${ad(bonusAnahtari(p.ilk))} ${p.bonusOran}:1`, tutar: p.bonusOdeme - p.bonus });
   else k.push({ yazi: 'Express', tutar: -p.bonus });
-  const anteKazanir = p.ucret === 0;
+  const anteKazanir = p.ucret === 0 && !p.satinAldi;
   if (p.durum === 'pas') k.push({ yazi: 'Ante (pas)', tutar: -p.ante });
   else if (p.sonuc) {
     const t = p.sonuc.tip;
-    if (t === 'oyunyok' && p.satinAldi) k.push({ yazi: 'Ante yandı (kasa çektiği kartla da oyun bulamadı), bet geri', tutar: -p.ante });
+    if (t === 'oyunyok' && p.satinAldi) k.push({ yazi: 'Kasa çektiği kartla da oyun bulamadı: ante ve bet geri (kart çektirdiği için ante 1:1 yok)', tutar: 0 });
     else if (t === 'oyunyok') k.push(anteKazanir ? { yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante } : { yazi: 'Ante geri (kasanın oyunu yok)', tutar: 0 });
     if (t === 'kazandi') {
       k.push(anteKazanir ? { yazi: 'Ante 1:1', tutar: p.ante } : { yazi: 'Ante geri', tutar: 0 });
@@ -447,7 +448,7 @@ function odemeDokumu(p, el) {
     if (t === 'berabere') k.push({ yazi: 'Berabere: ante ve bet geri', tutar: 0 });
     if (t === 'kaybetti') k.push({ yazi: `Kasa kazandı (${el.krupiyeElAdi || EL_ADI[sinif(el.krupiye).anahtar]})`, tutar: -(p.ante + p.bahis) });
   }
-  if (p.ucret) k.push({ yazi: p.satinAldi ? 'Kart çekme / kasaya kart çektirme' : (p.alti ? '6. kart' : 'Kart çekme'), tutar: -p.ucret });
+  if (p.ucret) k.push({ yazi: p.alti ? '6. kart' : 'Kart çekme', tutar: -p.ucret });
   if (p.sigorta) k.push(p.sigortaGeri ? { yazi: 'Sigorta 1:1', tutar: p.sigorta } : { yazi: 'Sigorta yandı (kasa açtı)', tutar: -p.sigorta });
   return k;
 }
@@ -463,11 +464,10 @@ function bitir(g) {
     let geri = 0, odeme = 0;
     const s = sinif(p.kartlar);
     if (p.durum === 'oynadi' && p.sonuc) {
-      const anteKazanir = p.ucret === 0; // kart değiştiren / satın alan ante kazanmaz, geri alır
+      const anteKazanir = p.ucret === 0 && !p.satinAldi; // kart değiştiren / kasaya kart çektiren ante kazanmaz, geri alır
       if (p.sonuc.tip === 'oyunyok') {
-        // Kasaya kart çektirdi ama kasa yine oyun bulamadı: ante yanar, bet geri gelir.
-        if (p.satinAldi) geri = p.bahis;
-        else geri = p.ante + p.bahis + (anteKazanir ? p.ante : 0);
+        // Kasaya kart çektirdi ama kasa yine oyun bulamadı: ante ve bet geri gelir (ante kazancı alınmaz).
+        geri = p.ante + p.bahis + (anteKazanir ? p.ante : 0);
       } else if (p.sonuc.tip === 'kazandi') {
         const b = betOrani(p.kartlar);
         odeme = p.bahis * b.oran;

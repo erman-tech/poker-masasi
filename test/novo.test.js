@@ -118,8 +118,8 @@ test('oyun satın alma: krupiye en yüksek kartını değiştirir, oyun doğarsa
   assert.equal(g.el.krupiyeOyunu, true);
   assert.equal(g.el.krupiyeDegisim, 1);
   assert.equal(g.el.oyuncular[0].sonuc.tip, 'kazandi');
-  // koydu: 10 ante + 10 express + 20 + 10 ücret = 50; express üçlü 8:1 → +90; üçlü 3:1 → 10+20+60 = 90 geri
-  assert.equal(fis(g)[0], 1000 - 50 + 90 + 90);
+  // koydu: 10 ante + 10 express + 20 = 40 (kart çektirme ücretsiz); express üçlü 8:1 → +90; üçlü 3:1 → ante geri 10 + 20 + 60 = 90
+  assert.equal(fis(g)[0], 1000 - 40 + 90 + 90);
 });
 
 test('ikinci As-Papaz ödemesi çiftin üstüne eklenir', () => {
@@ -465,7 +465,7 @@ test('iki kombinasyonla kazanınca bet toplam kattan ödenir', () => {
   assert.ok(p.odemeler.some(k => k.yazi.includes('Kent + Bir çift') && k.tutar === 250));
 });
 
-test('kasaya kart çektirildi ve kasa yine açmadıysa ante yanar, bet geri gelir', () => {
+test('kasaya kart çektirildi ve kasa yine açmadıysa ante ve bet geri gelir, ante 1:1 ödenmez', () => {
   let bulundu = 0;
   for (let n = 0; n < 20000 && bulundu < 3; n++) {
     let g = yeniNovo({ adlar: ['Tek'], kod: 'X', baslangicFis: 100000 });
@@ -478,9 +478,10 @@ test('kasaya kart çektirildi ve kasa yine açmadıysa ante yanar, bet geri geli
     g = oyunSatinAl(g, [true]);
     if (g.el.krupiyeOyunu) continue;
     const p = g.el.oyuncular[0];
-    assert.equal(p.geri, p.bahis, 'yalnız bet geri');
-    assert.equal(g.oyuncular[0].fis, once - 25 + p.bahis);
-    assert.ok(p.odemeler.some(k => k.yazi.startsWith('Ante yandı') && k.tutar === -25));
+    assert.equal(p.geri, p.ante + p.bahis, 'ante ve bet geri');
+    assert.equal(g.oyuncular[0].fis, once + p.ante + p.bahis, 'ücret alınmadı');
+    assert.equal(p.net, -p.bonus + (p.bonusOdeme || 0) - p.ucret - (p.sigorta || 0) + (p.sigortaGeri || 0), 'ana oyunda kazanç da kayıp da yok');
+    assert.ok(!p.odemeler.some(k => k.yazi.startsWith('Ante 1:1')));
     bulundu++;
   }
   assert.ok(bulundu > 0);

@@ -52,7 +52,7 @@ function gecmiseAt() {
 
 // ---------------- Çizim ----------------
 function spotKonumu(i, n) {
-  const x = n === 1 ? [50] : n === 2 ? [32, 68] : n === 3 ? [18, 50, 82] : [14, 38, 62, 86];
+  const x = n === 1 ? [50] : n === 2 ? [32, 68] : n === 3 ? [15, 50, 85] : [14, 38, 62, 86];
   const y = n <= 2 ? [57, 57] : n === 3 ? [55, 60, 55] : [54, 60, 60, 54];
   return { x: x[i], y: y[i] };
 }
@@ -237,12 +237,12 @@ function panelCiz() {
   if (el.faz === 'oyunsuz') {
     const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi' && el.oyuncular[i].satinAldi === null);
     pn.innerHTML = `<div class="eylem-baslik"><span class="kim">Kasanın oyunu yok</span>
-      <span class="ne">İyi eli olan seçsin: ante'yi al ya da ${para(el.ante)} verip kasaya kart çektir (kasa oyun bulabilir). Diğerlerinin ante'si otomatik ödenir.</span></div>
+      <span class="ne">İyi eli olan seçsin: ante'yi al ya da kasaya kart çektir; çektirirsen ante 1:1 ödenmez, ante yanmaz (kasa açarsa bet'in oynar). Diğerlerinin ante'si otomatik ödenir.</span></div>
       <div class="oyunsuz">${oynayan.map(i => `
         ${el.oyuncular[i].sigorta ? `<div class="sig-not">${kacis(g.oyuncular[i].ad)}: sigortan kazandı, +${para(el.oyuncular[i].sigorta)} kesin</div>` : ''}
         <div class="satir"><b style="flex:0 0 120px">${kacis(g.oyuncular[i].ad)}</b>
           <button class="${oyunsuzSecim[i] ? 'btn-ikincil' : 'b-kontrol'}" data-o="${i}" data-v="0">Ante al</button>
-          <button class="${oyunsuzSecim[i] ? 'b-yukselt' : 'btn-ikincil'}" data-o="${i}" data-v="1">Kasaya kart çektir ${para(el.ante)}</button>
+          <button class="${oyunsuzSecim[i] ? 'b-yukselt' : 'btn-ikincil'}" data-o="${i}" data-v="1">Kasaya kart çektir</button>
         </div>`).join('')}</div>
       <button class="btn-ana" id="n-oyunsuz-tamam">Devam</button>
       <div class="hata">${kacis(hata)}</div>`;
@@ -258,7 +258,7 @@ function panelCiz() {
     <span class="ne">${(k => EL_ADI[k.ana] + (k.ikinci != null ? ' + ' + EL_ADI[k.ikinci] : ''))(kombinasyonlar(p.kartlar))} · elinde ${para(o.fis)}</span></div>`;
   if ('sigorta' in y) {
     const s = y.sigorta;
-    html += `<div class="ne" style="text-align:center;font-size:17px">Sigorta yapıyor musun? Kasa açmazsa sigorta 1'e 1 öder. Yapmazsan kasa açmadığında yalnız ante'yi alırsın; kasaya kart çektirirsen ve yine açmazsa ante de yanar.</div>
+    html += `<div class="ne" style="text-align:center;font-size:17px">Sigorta yapıyor musun? Kasa açmazsa sigorta 1'e 1 öder. Yapmazsan kasa açmadığında yalnız ante'yi alırsın; kasaya kart çektirirsen ve yine açmazsa ante ve bet geri gelir.</div>
       <div class="dugmeler" style="grid-template-columns:repeat(${s.enAz === s.enCok ? 2 : 3},1fr)">
         <button class="btn-ikincil" data-s="0">Sigorta yok</button>
         ${s.enAz === s.enCok ? '' : `<button class="b-kontrol" data-s="${s.enAz}">Min ${para(s.enAz)}</button>`}
@@ -530,7 +530,7 @@ async function sonAnimasyon(once, yeni) {
         odeme >= 10 * el.ante ? ['tebrikler', konus.ad(ad)] : []);
     } else if (t === 'kaybetti') konus.soyle(konus.ad(ad), 'kaybetti');
     else if (t === 'berabere') konus.soyle(konus.ad(ad), 'berabere');
-    else if (t === 'oyunyok' && p.satinAldi) konus.soyle(konus.ad(ad), 'ante_yandi');
+    else if (t === 'oyunyok' && p.satinAldi) konus.soyle(konus.ad(ad), 'berabere');
   }
   // Elif konuşurken ödeme yapılmaz; fişler konuşma bitince gider, çip sesi sonda bir kez çalar.
   await konus.bitince();
