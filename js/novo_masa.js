@@ -114,7 +114,7 @@ function ciz() {
       const s1 = sinif(p.kartlar);
       const kb = kombinasyonlar(p.kartlar);
       let t = EL_ADI[s1.anahtar] + (kb.ikinci != null ? ' + ' + EL_ADI[kb.ikinci] : '');
-      if (p.bonusOdeme) t = `EXPRESS ${EL_ADI[bonusAnahtari(p.ilk)]} +${para(p.bonusOdeme - p.bonus)}`;
+      if (p.bonusOdeme) t = `BONUS ÖDEME ${EL_ADI[bonusAnahtari(p.ilk)]} +${para(p.bonusOdeme - p.bonus)}`;
       if (el.faz === 'bitti' && p.durum === 'oynadi') t = sonucYazi(p);
       if (el.faz === 'bitti' && p.durum === 'pas') t = 'Pas';
       etiket.textContent = t;
@@ -534,7 +534,7 @@ async function dagit() {
     const ex = s.querySelector('.ndaire.express');
     if (p.bonusOdeme) {
       ruh(p.bonusOran >= 30 ? 'saskin' : 'goz', 1600);
-      konus.soyle(konus.ad(g0ad(i)), 'express', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
+      konus.soyle(konus.ad(g0ad(i)), 'bonus_odeme', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
       await fisUcur(kasaRect(), ex, p.bonusOdeme - p.bonus, 500);
       await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme - p.bonus, 450);
     }

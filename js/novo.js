@@ -394,7 +394,7 @@ function karsilastir(p, krupiye) {
 function odemeDokumu(p, el) {
   const k = [];
   const ad = a => EL_ADI[a];
-  if (p.bonusOdeme) k.push({ yazi: `Express ${ad(bonusAnahtari(p.ilk))} ${p.bonusOran}:1`, tutar: p.bonusOdeme - p.bonus });
+  if (p.bonusOdeme) k.push({ yazi: `Bonus ödeme ${ad(bonusAnahtari(p.ilk))} ${p.bonusOran}:1`, tutar: p.bonusOdeme - p.bonus });
   else k.push({ yazi: 'Express', tutar: -p.bonus });
   const anteKazanir = p.ucret === 0;
   if (p.durum === 'pas') k.push({ yazi: 'Ante (pas)', tutar: -p.ante });
