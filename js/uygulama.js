@@ -24,6 +24,22 @@ if ((rol === 'masa' && masaKaydiVar()) || (rol === 'novo' && novoKaydiVar()) || 
 
 // Offline: ilk açılışta her şey cihaza kaydedilir.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // Yeni sürüm indiğinde sayfa kendini bir kez yeniler (eski sürüm açık kalmasın).
+  const vardi = !!navigator.serviceWorker.controller;
+  let yenilendi = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!vardi || yenilendi) return;
+    yenilendi = true;
+    // Giriş ekranındaysa hemen yenile; oyun sürerken eli bölme, köşede düğme göster.
+    const giris = document.querySelector('#e-giris.etkin');
+    if (giris) { location.reload(); return; }
+    const b = document.createElement('button');
+    b.className = 'yeni-surum'; b.textContent = 'Yeni sürüm hazır · yenile';
+    b.onclick = () => location.reload();
+    document.body.appendChild(b);
+  });
+  // Sürümü giriş ekranına yaz
+  fetch('sw.js').then(r => r.text()).then(t => { const m = t.match(/poker-v(\d+)/); if (m) $('g-surum').textContent = 'Sürüm ' + m[1]; }).catch(() => {});
   navigator.serviceWorker.register('sw.js').then(() => {
     $('g-not').textContent = 'Bu sayfa cihaza kaydedildi; internetsiz de açılır.';
   }).catch(() => {

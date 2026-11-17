@@ -432,3 +432,6 @@ input, select {
 .n-yakilan .yk-yigin { position: relative; width: 46px; height: 64px; }
 .n-yakilan .yk-kart { --kart-gen: 46px; position: absolute; left: calc(var(--j) * 2px); top: calc(var(--j) * -2px); transform: rotate(calc(var(--j) * 4deg - 8deg)); }
 .n-yakilan .yk-ad { font-size: 10px; letter-spacing: 2px; font-weight: 800; color: #ffffffaa; }
+
+.g-surum { margin-top: 6px; font-size: 12px; color: #ffffff66; text-align: center; }
+.yeni-surum { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 9999; background: #ffd765; color: #1b1b1b; border: 0; border-radius: 20px; padding: 10px 18px; font-weight: 800; box-shadow: 0 4px 14px #0008; }
