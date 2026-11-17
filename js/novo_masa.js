@@ -413,7 +413,7 @@ async function sonAnimasyon(once, yeni) {
       konus.konus(`Kasa ${konus.elSoyle(sinif(el.krupiye).anahtar)}.`);
       for (const [, i] of sigortalilar) konus.konus(`${g.oyuncular[i].ad} sigortayı kaybetti.`);
     } else {
-      konus.konus('Kasa boş.');
+      konus.konus('Kasa boş, ante ödenir.');
       for (const [p, i] of sigortalilar) konus.konus(`${g.oyuncular[i].ad}, sigortadan ${konus.dolar(p.sigorta)} kazanır.`);
     }
     // Kasa boş açtı: sigorta yapanlar kazandı, bunu büyük söyle
