@@ -95,12 +95,23 @@ export function kombinasyonlar(kartlar) {
   return sonuc;
 }
 
+// Yalancı döperin üçlü hali: üç as + papaz ya da üç papaz + as → As-Papaz da ödenir (+1).
+export function yalanciAK(kartlar) {
+  const s = sinif(kartlar);
+  if (s.anahtar !== 3) return false;
+  const say = new Map();
+  for (const k of s.el.kartlar) say.set(k.d, (say.get(k.d) || 0) + 1);
+  const uclu = [...say.entries()].find(([, n]) => n === 3)[0];
+  const d = new Set(kartlar.map(k => k.d));
+  return (uclu === 14 && d.has(13)) || (uclu === 13 && d.has(14));
+}
+
 // Bet oranı: ana el + (varsa) ikinci el; ikinci el yoksa As-Papaz / yalancı döper +1.
 export function betOrani(kartlar) {
   const k = kombinasyonlar(kartlar);
   const ana = ODEME[k.ana] || 0;
   if (k.ikinci != null) return { oran: ana + (ODEME[k.ikinci] || 0), ana: k.ana, ikinci: k.ikinci, ek: 0 };
-  const ek = ikinciAK(kartlar) || doperTuru(kartlar) === 'yalanci' ? 1 : 0;
+  const ek = ikinciAK(kartlar) || doperTuru(kartlar) === 'yalanci' || yalanciAK(kartlar) ? 1 : 0;
   return { oran: ana + ek, ana: k.ana, ikinci: null, ek };
 }
 
@@ -239,13 +250,14 @@ function sonrakiKarar(g, i) {
   return null;
 }
 
-// Sigorta: eli üçlü ya da daha iyi olan oyuncu, oynadıktan sonra kasanın oyunu olmazsa diye
+// Sigorta: bet'i en az 4 kat ödeyen el (ör. üç as + papaz, kent ve üstü), oynadıktan sonra kasanın oyunu olmazsa diye
 // sigorta yapabilir. En az = oyna bahsi (2 ante), en çok = kazanılacak bet parasının yarısı
 // (ör. full 7 x 50 / 2 = 175). Parası yetmiyorsa en çok parası kadar.
 // Kasanın oyunu yoksa sigorta 1'e 1 öder; kasa oyuna girerse sigorta kasanındır.
-export const SIGORTA_EN_AZ_KAT = 3; // üçlü
+export const SIGORTA_EN_AZ_KAT = 4;  // sigorta: en az 4 kat
+export const SORU_EN_AZ_KAT = 3;     // kasa boşken "kasaya kart çektir" sorusu: en az 3 kat
 export function sigortaSiniri(p, fis, ante) {
-  if (!iyiEl(p.kartlar)) return null;
+  if (betOrani(p.kartlar).oran < SIGORTA_EN_AZ_KAT) return null;
   const oran = betOrani(p.kartlar).oran; // iki kombinasyon varsa toplam kat
   const tavan = Math.floor((oran * p.bahis) / 2 / 5) * 5;
   const enCok = Math.min(tavan, fis);
@@ -344,7 +356,7 @@ function krupiyeAc(g) {
 // "İyi el": bet'i en az 3 kat ödeyen el (üçlü ve üstü; 6 kartta iki kombinasyonla 3 kata çıkan da,
 // ör. üç per = iki per + per). Sigorta ve "kasaya kart çektir" sorusu yalnız bu ellere sorulur.
 export function iyiEl(kartlar) {
-  return betOrani(kartlar).oran >= SIGORTA_EN_AZ_KAT;
+  return betOrani(kartlar).oran >= SORU_EN_AZ_KAT;
 }
 
 // Krupiyenin oyunu yokken: her oyuncu için true (oyun satın al) / false (ante al)
@@ -409,7 +421,7 @@ function odemeDokumu(p, el) {
     else if (t === 'oyunyok') k.push(anteKazanir ? { yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante } : { yazi: 'Ante geri (kasanın oyunu yok)', tutar: 0 });
     if (t === 'kazandi') {
       k.push(anteKazanir ? { yazi: 'Ante 1:1', tutar: p.ante } : { yazi: 'Ante geri', tutar: 0 });
-      const ek = p.sonuc.ikinciEl != null ? ` + ${EL_ADI[p.sonuc.ikinciEl]} (${ODEME[p.sonuc.ana ?? sinif(p.kartlar).anahtar]}+${ODEME[p.sonuc.ikinciEl]})` : p.sonuc.ikinciAK ? (p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
+      const ek = p.sonuc.ikinciEl != null ? ` + ${EL_ADI[p.sonuc.ikinciEl]} (${ODEME[p.sonuc.ana ?? sinif(p.kartlar).anahtar]}+${ODEME[p.sonuc.ikinciEl]})` : p.sonuc.ikinciAK ? (yalanciAK(p.kartlar) ? ' + As-Papaz' : p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
       k.push({ yazi: `Bet ${p.elAdi}${ek} ${p.sonuc.oran}:1`, tutar: p.bahis * p.sonuc.oran });
     }
     if (t === 'berabere') k.push({ yazi: 'Berabere: ante ve bet geri', tutar: 0 });

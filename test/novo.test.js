@@ -315,7 +315,7 @@ test('As-Papaz-Kız elden express 5\'e 1 öder, oyunda As-Papaz kalır', () => {
   assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti', 'oyunda per değil: 4 çiftine kaybeder');
 });
 
-test('sigorta: üçlü ve üstünde sorulur; en az 2 ante, en çok kazanılacak betin yarısı', async () => {
+test('sigorta: en az 4 kat ödeyen elde sorulur; en az 2 ante, en çok kazanılacak betin yarısı', async () => {
   const { sigortaSiniri } = await import('../js/novo.js');
   // ante 25: bet 50. Full: 7 x 50 / 2 = 175
   let g = novoDagit(yeniNovo({ adlar: ['Erman', 'Fidan'], kod: 'N', ante: 25 }),
@@ -330,8 +330,9 @@ test('sigorta: üçlü ve üstünde sorulur; en az 2 ante, en çok kazanılacak 
   y = novoYasal(g);
   assert.equal(y.oyuncu, 1);
   assert.equal(y.sigorta, undefined, 'tek çift: sigorta yok');
-  // Üçlü: 3 x 50 / 2 = 75
-  assert.deepEqual(sigortaSiniri({ kartlar: K('9h 9d 9c 4s 2d'), bahis: 50 }, 1000, 25), { enAz: 50, enCok: 75 });
+  // Üçlü (3 kat): sigorta yok; kent (4 kat): 4 x 50 / 2 = 100
+  assert.equal(sigortaSiniri({ kartlar: K('9h 9d 9c 4s 2d'), bahis: 50 }, 1000, 25), null);
+  assert.deepEqual(sigortaSiniri({ kartlar: K('5h 6d 7c 8s 9h'), bahis: 50 }, 1000, 25), { enAz: 50, enCok: 100 });
   // Parası az: en çok parası kadar
   assert.deepEqual(sigortaSiniri({ kartlar: K('9h 9d 9c 4s 4d'), bahis: 50 }, 40, 25), { enAz: 40, enCok: 40 });
   assert.equal(sigortaSiniri({ kartlar: K('9h 9d 3c 3s 2d'), bahis: 50 }, 1000, 25), null, 'iki çift sorulmaz');
@@ -371,12 +372,12 @@ test('ödeme dökümü: her kalem yazılır ve toplamı nete eşit', () => {
   const yazi = g.el.oyuncular[0].odemeler.map(k => k.yazi);
   assert.ok(yazi.includes('Bet Full 7:1')); assert.ok(yazi.includes('Sigorta yandı (kasa açtı)')); assert.ok(yazi.includes('Ante 1:1'));
   // kasa açtı ve kasa kazandı: hem bet hem sigorta gider
-  g = novoDagit(yeniNovo({ adlar: ['Erman'], kod: 'N', ante: 25 }), deste(['9h 9d 9c 4s 2d'], 'Kc Kh Ks 7s 7c'));
-  g = novoHamle(g, { tip: 'oyna' }); g = novoHamle(g, { tip: 'sigorta', miktar: 75 });
+  g = novoDagit(yeniNovo({ adlar: ['Erman'], kod: 'N', ante: 25 }), deste(['5h 6d 7c 8s 9h'], 'Kc Qc Tc 4c 2c'));
+  g = novoHamle(g, { tip: 'oyna' }); g = novoHamle(g, { tip: 'sigorta', miktar: 100 });
   kontrol(g);
   assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti');
   assert.equal(g.el.oyuncular[0].sigortaGeri, 0);
-  assert.equal(g.el.oyuncular[0].net, 25 * 8 - 25 - 50 - 75, 'express üçlü kazanır; ante, bet ve sigorta gider');
+  assert.equal(g.el.oyuncular[0].net, 25 * 30 - 25 - 50 - 100, 'bonus kent kazanır; ante, bet ve sigorta gider');
   // kasa boş, zayıf el: ante otomatik
   g = novoDagit(yeniNovo({ adlar: ['Erman', 'Fidan'], kod: 'N', ante: 25 }), deste(['2h 2d 7c 9s Jd', 'Ah Kd 4c 6s 8d'], 'Qc Jh 3d 7s 5c'));
   g = oyna0(g); g = oyna0(g);
@@ -629,6 +630,16 @@ test('soru ve sigorta: bet en az 3 kat ödeyen eller (üç per dahil)', () => {
   assert.equal(iyiEl(K('7h 7d 7c 2s 9d')), true, 'üçlü');
   assert.equal(iyiEl(K('Ah Ad Kh Kd 7c')), false, 'iki per 2 kat');
   assert.equal(iyiEl(K('Ah Ad 2c 3s 4h 5d')), true, 'kent + per 5 kat');
-  const p = { kartlar: K('Ah Ad Kh Kd 7c 7s'), bahis: 50 };
-  assert.equal(sigortaSiniri(p, 5000, 25).enCok, 75, '3 x 50 / 2');
+  assert.equal(sigortaSiniri({ kartlar: K('Ah Ad Kh Kd 7c 7s'), bahis: 50 }, 5000, 25), null, '3 kat: soru var, sigorta yok');
+});
+
+test('sigorta en az 4 kat: üç as tek başına yok, üç as + papaz var; kart çektirme sorusu 3 kattan', () => {
+  assert.equal(betOrani(K('Ah Ad Ac 9s 4d')).oran, 3);
+  assert.equal(sigortaSiniri({ kartlar: K('Ah Ad Ac 9s 4d'), bahis: 50 }, 5000, 25), null, 'üç as: sigorta yok');
+  assert.equal(iyiEl(K('Ah Ad Ac 9s 4d')), true, 'üç as: kasaya kart çektirme sorulur');
+  assert.equal(betOrani(K('Ah Ad Ac Ks 4d')).oran, 4, 'üç as + papaz = 4');
+  assert.equal(betOrani(K('Kh Kd Kc As 4d')).oran, 4, 'üç papaz + as = 4');
+  assert.equal(betOrani(K('7h 7d 7c As Kd')).oran, 4, 'üçlü + dışarıda As-Papaz = 4');
+  assert.equal(sigortaSiniri({ kartlar: K('Ah Ad Ac Ks 4d'), bahis: 50 }, 5000, 25).enCok, 100, '4 x 50 / 2');
+  assert.ok(sigortaSiniri({ kartlar: K('5h 6d 7c 8s 9h'), bahis: 50 }, 5000, 25), 'kent: sigorta var');
 });
