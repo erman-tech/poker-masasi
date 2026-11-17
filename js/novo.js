@@ -416,6 +416,7 @@ export function oyunSatinAl(g0, secimler) {
     el.krupiyeAtilan = el.krupiye[enYuksek];
     el.krupiyeYakilan = el.deste[el.cek++];
     el.krupiye = el.krupiye.map((k, j) => (j === enYuksek ? el.deste[el.cek++] : k));
+    el.krupiyeYeni = el.krupiye[enYuksek];
     const tur = 1;
     el.krupiyeDegisim = tur;
     el.krupiyeOyunu = krupiyeOyunuVar(el.krupiye);

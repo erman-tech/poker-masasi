@@ -4,6 +4,7 @@ import {
   katilabilir, ODEME, BONUS, EL_ADI, YAKILAN_ILK, sinif, bonusAnahtari, kombinasyonlar, betOrani,
 } from './novo.js';
 import { yiginEl, ustCipEl } from './fis.js';
+import { DEGER_AD, RENK_SIMGE } from './kart.js';
 import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
 import { krupiyeKur, ruh, kurpiyeAyarla, kurpiyeDegistir, eldekiKurpiye, degisimEli, konusuyor, gala } from './krupiye.js';
@@ -232,7 +233,9 @@ function panelCiz() {
     if (el) {
       const kn = el.kasaNet;
       const tutar = v => (v > 0 ? '+' : v < 0 ? '−' : '') + (v ? para(Math.abs(v)) : '');
-      ozet = `<div class="sonuc-kutu dokum"><div class="baslik">${el.no}. el · kasa ${kasaYazi(kn)} · kasa: ${kacis(el.krupiyeOyunu ? el.krupiyeElAdi : 'oyun yok')}</div>
+      const kAd = k => (DEGER_AD[k.d] || String(k.d)) + RENK_SIMGE[k.r];
+      const cekti = el.krupiyeAtilan && el.krupiyeYeni ? ` · kasa ${kAd(el.krupiyeAtilan)} attı, ${kAd(el.krupiyeYeni)} çekti` : '';
+      ozet = `<div class="sonuc-kutu dokum"><div class="baslik">${el.no}. el · kasa ${kasaYazi(kn)} · kasa: ${kacis(el.krupiyeOyunu ? el.krupiyeElAdi : 'oyun yok')}${cekti}</div>
         ${el.oyuncular.map((p, i) => p.katildi ? `<div class="dokum-satir"><b>${kacis(g.oyuncular[i].ad)}</b>
           ${(p.odemeler || []).map(k => `<span class="${k.tutar > 0 ? 'art' : k.tutar < 0 ? 'eks' : ''}">${kacis(k.yazi)} ${tutar(k.tutar)}</span>`).join('')}
           <span class="toplam ${p.net >= 0 ? 'art' : 'eks'}">= ${tutar(p.net) || '$0'}</span></div>` : '').join('')}</div>`;
