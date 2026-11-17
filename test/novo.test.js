@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { kartlariOku as K, yeniDeste, kartYazi, rastgeleDeste } from '../js/kart.js';
 import {
-  yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, sinif, ikinciAK, krupiyeOyunuVar,
+  novoHamle as novoHamleGercek,
+  yeniNovo, novoDagit, novoYasal, oyunSatinAl, sinif, ikinciAK, krupiyeOyunuVar,
   bonusOrani, novoYenidenBaslat,
 } from '../js/novo.js';
 
@@ -20,6 +21,11 @@ function deste(eller, krupiye, cekilecek = '') {
 const oyun = (adlar = ['Erman', 'Fidan', 'Emrah']) => yeniNovo({ adlar, kod: 'N1', ante: 10 }); // testte ante 10: express 10, çekme 10, oyna 20
 const fis = g => g.oyuncular.map(o => o.fis);
 // Oyna; sigorta sorulursa sigortasız devam et.
+// Eski testler oyuncu oyuncu yazıldı: 'oyna' geldiğinde çekme aşaması hâlâ sürüyorsa kalan oyuncular çekmeden geçer.
+function novoHamle(g, h) {
+  while (g.el && g.el.faz === 'cekme' && (h.tip === 'oyna' || h.tip === 'sigorta')) g = novoHamleGercek(g, { tip: 'gec' });
+  return novoHamleGercek(g, h);
+}
 const oyna0 = g => { g = novoHamle(g, { tip: 'oyna' }); const y = novoYasal(g); return y && 'sigorta' in y ? novoHamle(g, { tip: 'sigorta', miktar: 0 }) : g; };
 
 test('el sınıfları ve krupiye oyunu', () => {
@@ -157,7 +163,7 @@ test('rastgele deste: her kart her konuma eşit olasılıkla (ki-kare)', () => {
 
 test('rastgele oyunlarda motor takılmaz, fiş eksiye düşmez', () => {
   for (let tur = 0; tur < 2000; tur++) {
-    let g = yeniNovo({ adlar: ['A', 'B', 'C', 'D'].slice(0, 1 + (tur % 4)), kod: 'X', ante: 10 });
+    let g = yeniNovo({ adlar: ['A', 'B', 'C', 'D'].slice(0, 1 + (tur % 3)), kod: 'X', ante: 10 });
     for (let el = 0; el < 3; el++) {
       g = novoDagit(g);
       let adim = 0;
@@ -170,6 +176,7 @@ test('rastgele oyunlarda motor takılmaz, fiş eksiye düşmez', () => {
         if (r < 0.2) g = novoHamle(g, { tip: 'pas' });
         else if (r < 0.4 && y.degistir) g = novoHamle(g, { tip: 'degistir', konumlar: [0, 2, 4].filter(() => Math.random() < 0.7).concat([1]) });
         else if (r < 0.5 && y.alti) g = novoHamle(g, { tip: 'alti' });
+        else if (y.asama === 'cekme') g = novoHamleGercek(g, { tip: 'gec' });
         else if (y.oyna) g = oyna0(g);
         else g = novoHamle(g, { tip: 'pas' });
       }
@@ -382,4 +389,37 @@ test('giriş 25+25 zorunlu; kart çekme 25, oyna 50, ikisi birlikte 75', () => {
   assert.equal(g.el.oyuncular[0].ucret + g.el.oyuncular[0].bahis, 75, 'kart çekip oyna: 25 + 50');
   g = yeni(); g = novoHamle(g, { tip: 'pas' });
   assert.equal(g.oyuncular[0].fis, 950, 'pas: yalnız giriş gider');
+});
+
+test('önce herkes kart çeker, oyuna girme sonra sorulur', () => {
+  let g = yeniNovo({ adlar: ['A', 'B'], kod: 'X' });
+  g = novoDagit(g);
+  assert.equal(g.el.faz, 'cekme');
+  assert.equal(novoYasal(g).oyuncu, 0);
+  assert.throws(() => novoHamleGercek(g, { tip: 'oyna' }), /Önce herkes kart çeksin/);
+  g = novoHamleGercek(g, { tip: 'degistir', konumlar: [0] });
+  assert.equal(g.el.faz, 'cekme'); assert.equal(novoYasal(g).oyuncu, 1, 'çeken oynamadan sıra ikinciye geçer');
+  g = novoHamleGercek(g, { tip: 'gec' });
+  assert.equal(g.el.faz, 'karar'); assert.equal(novoYasal(g).oyuncu, 0);
+  const y = novoYasal(g);
+  assert.equal(y.degistir, false); assert.equal(y.alti, false);
+  assert.throws(() => novoHamleGercek(g, { tip: 'degistir', konumlar: [1] }));
+  assert.equal(g.el.oyuncular[0].ucret, 25);
+});
+
+test('çekme aşamasında pas geçen oyuna girme sırasına gelmez', () => {
+  let g = yeniNovo({ adlar: ['A', 'B'], kod: 'X' });
+  g = novoDagit(g);
+  g = novoHamleGercek(g, { tip: 'pas' });
+  g = novoHamleGercek(g, { tip: 'alti' });
+  assert.equal(g.el.faz, 'karar'); assert.equal(novoYasal(g).oyuncu, 1);
+  assert.equal(g.el.oyuncular[1].kartlar.length, 6);
+});
+
+test('Novo en çok 3 oyuncu, tek kişi olur', () => {
+  assert.throws(() => yeniNovo({ adlar: ['a', 'b', 'c', 'd'], kod: 'X' }));
+  let g = yeniNovo({ adlar: ['Tek'], kod: 'X' });
+  g = novoDagit(g);
+  g = novoHamleGercek(g, { tip: 'gec' });
+  assert.equal(g.el.faz, 'karar');
 });

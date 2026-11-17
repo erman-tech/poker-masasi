@@ -8,7 +8,7 @@ import { rastgeleDeste, enIyiEl, gucKarsilastir } from './kart.js';
 
 const klon = o => JSON.parse(JSON.stringify(o));
 
-export const NOVO_AZAMI_OYUNCU = 4;
+export const NOVO_AZAMI_OYUNCU = 3;
 export const ANTE_SECENEKLERI = [5, 10, 25, 50, 100];
 // Express bonus zorunlu ve ante kadar: giriş = ante + express. Kart çekme = ante, oyna = 2 x ante.
 
@@ -88,7 +88,7 @@ export function bonusOrani(kartlar) {
 }
 
 export function yeniNovo({ adlar, kod, baslangicFis = 1000, ante = 25 }) {
-  if (adlar.length < 1 || adlar.length > NOVO_AZAMI_OYUNCU) throw new Error('Novo 1-4 oyuncu');
+  if (adlar.length < 1 || adlar.length > NOVO_AZAMI_OYUNCU) throw new Error('Novo 1-3 oyuncu');
   return {
     tip: 'novo', kod, baslangicFis, ante, elNo: 0, oyunNo: 1, kasaNet: 0, kasaToplam: 0,
     oyuncular: adlar.map((ad, i) => ({ ad, koltuk: i, fis: baslangicFis })),
@@ -125,7 +125,7 @@ export function novoDagit(g0, desteVerilen = null) {
   const deste = desteVerilen || rastgeleDeste();
   const A = g.ante;
   const el = {
-    no: g.elNo, faz: 'karar', ante: A, deste, cek: CEKME,
+    no: g.elNo, faz: 'cekme', ante: A, deste, cek: CEKME,
     krupiye: deste.slice(KRUPIYE, KRUPIYE + 5),
     krupiyeAcik: false, krupiyeOyunu: null, krupiyeDegisim: 0,
     oyuncular: g.oyuncular.map((o, i) => {
@@ -138,15 +138,27 @@ export function novoDagit(g0, desteVerilen = null) {
       o.fis += bonusOdeme;
       return {
         katildi: true, kartlar, ilk: kartlar, ante: A, bonus: B, bonusOran: oran, bonusOdeme,
-        ucret: 0, bahis: 0, durum: 'bekliyor', degisti: false, alti: false, satinAldi: null, sonuc: null,
+        ucret: 0, bahis: 0, durum: 'bekliyor', cekti: false, degisti: false, alti: false, satinAldi: null, sonuc: null,
       };
     }),
     sira: null,
   };
   g.el = el;
-  el.sira = sonrakiKarar(g, -1);
-  if (el.sira == null) krupiyeAc(g);
+  el.sira = sonrakiCekme(g, -1);
+  if (el.sira == null) kararaGec(g);
   return g;
+}
+
+// Önce herkes sırayla kart çeker (ya da çekmez); oyuna girme kararı herkes kartını aldıktan sonra sorulur.
+function sonrakiCekme(g, i) {
+  const ol = g.el.oyuncular;
+  for (let j = i + 1; j < ol.length; j++) if (ol[j].katildi && ol[j].durum === 'bekliyor' && !ol[j].cekti) return j;
+  return null;
+}
+function kararaGec(g) {
+  g.el.faz = 'karar';
+  g.el.sira = sonrakiKarar(g, -1);
+  if (g.el.sira == null) krupiyeAc(g);
 }
 
 function sonrakiKarar(g, i) {
@@ -173,20 +185,17 @@ export function sigortaSiniri(p, fis, ante) {
 
 export function novoYasal(g) {
   const el = g.el;
-  if (!el || el.faz !== 'karar' || el.sira == null) return null;
+  if (!el || (el.faz !== 'karar' && el.faz !== 'cekme') || el.sira == null) return null;
   const i = el.sira, p = el.oyuncular[i], o = g.oyuncular[i];
   const A = el.ante;
+  if (el.faz === 'cekme') {
+    const ek = o.fis >= A + 2 * A; // ücret + sonra oyna
+    return { asama: 'cekme', oyuncu: i, oyna: false, gec: true, pas: true, degistir: ek, alti: ek, kalanKart: 52 - el.cek - 7 };
+  }
   if (p.sigortaSor) {
     return { oyuncu: i, sigorta: sigortaSiniri(p, o.fis, A), oyna: false, degistir: false, alti: false, kalanKart: 0 };
   }
-  const ekAlinabilir = !p.degisti && !p.alti && o.fis >= A + 2 * A; // ücret + sonra oyna
-  return {
-    oyuncu: i,
-    oyna: o.fis >= 2 * A,
-    degistir: ekAlinabilir,
-    alti: ekAlinabilir,
-    kalanKart: 52 - el.cek - 7, // krupiye değişimi için 7 kart ayrılır
-  };
+  return { asama: 'karar', oyuncu: i, oyna: o.fis >= 2 * A, pas: true, degistir: false, alti: false, kalanKart: 0 };
 }
 
 // hamle: { tip: 'pas' | 'oyna' | 'degistir' (konumlar: [0..4]) | 'alti' }
@@ -197,6 +206,29 @@ export function novoHamle(g0, hamle) {
   const el = g.el, i = y.oyuncu, p = el.oyuncular[i], o = g.oyuncular[i];
   const A = el.ante;
   if ('sigorta' in y && hamle.tip !== 'sigorta') throw new Error('Önce sigorta sorusunu yanıtla');
+  if (y.asama === 'cekme') {
+    if (hamle.tip === 'oyna') throw new Error('Önce herkes kart çeksin; oyuna girme sonra sorulur');
+    if (hamle.tip === 'pas') p.durum = 'pas';
+    else if (hamle.tip === 'gec') { /* kart çekmedi */ }
+    else if (hamle.tip === 'degistir') {
+      if (!y.degistir) throw new Error('Kart çekecek para yok');
+      const konum = [...new Set(hamle.konumlar || [])].filter(k => k >= 0 && k < 5).sort();
+      if (!konum.length) throw new Error('Değiştirilecek kartları seç');
+      if (konum.length > y.kalanKart) throw new Error('Destede yeterli kart kalmadı');
+      o.fis -= A; p.ucret += A; p.degisti = true;
+      p.kartlar = p.kartlar.map((k, j) => (konum.includes(j) ? el.deste[el.cek++] : k));
+      p.degisenler = konum;
+    } else if (hamle.tip === 'alti') {
+      if (!y.alti) throw new Error('6. kart için para yok');
+      if (y.kalanKart < 1) throw new Error('Destede kart kalmadı');
+      o.fis -= A; p.ucret += A; p.alti = true;
+      p.kartlar = [...p.kartlar, el.deste[el.cek++]];
+    } else throw new Error('Bilinmeyen hamle');
+    p.cekti = true;
+    el.sira = sonrakiCekme(g, i);
+    if (el.sira == null) kararaGec(g);
+    return g;
+  }
   if (hamle.tip === 'pas') {
     p.durum = 'pas';
   } else if (hamle.tip === 'oyna') {
@@ -210,21 +242,6 @@ export function novoHamle(g0, hamle) {
       throw new Error(`Sigorta ${y.sigorta.enAz} ile ${y.sigorta.enCok} arasında olmalı`);
     }
     o.fis -= m; p.sigorta = m; p.sigortaSor = false;
-  } else if (hamle.tip === 'degistir') {
-    if (!y.degistir) throw new Error('Kart değiştiremezsin');
-    const konum = [...new Set(hamle.konumlar || [])].filter(k => k >= 0 && k < 5).sort();
-    if (!konum.length) throw new Error('Değiştirilecek kartları seç');
-    if (konum.length > y.kalanKart) throw new Error('Destede yeterli kart kalmadı');
-    o.fis -= A; p.ucret += A; p.degisti = true;
-    p.kartlar = p.kartlar.map((k, j) => (konum.includes(j) ? el.deste[el.cek++] : k));
-    p.degisenler = konum;
-    return g; // aynı oyuncu şimdi oynar ya da pas geçer
-  } else if (hamle.tip === 'alti') {
-    if (!y.alti) throw new Error('6. kart alamazsın');
-    if (y.kalanKart < 1) throw new Error('Destede kart kalmadı');
-    o.fis -= A; p.ucret += A; p.alti = true;
-    p.kartlar = [...p.kartlar, el.deste[el.cek++]];
-    return g;
   } else throw new Error('Bilinmeyen hamle');
   el.sira = sonrakiKarar(g, i);
   if (el.sira == null) krupiyeAc(g);

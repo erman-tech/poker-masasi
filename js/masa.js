@@ -73,7 +73,7 @@ function masayiAc() {
   const fis = Math.floor(Number($('k-fis').value));
   if (!(fis >= 100) || fis % 5) { $('k-hata').textContent = "Başlangıç parası en az 100 ve 5'in katı olmalı."; return; }
   if (tur === 'novo') {
-    if (temiz.length > NOVO_AZAMI_OYUNCU) { $('k-hata').textContent = 'Novo en çok 4 oyuncuyla oynanır.'; return; }
+    if (temiz.length > NOVO_AZAMI_OYUNCU) { $('k-hata').textContent = 'Novo en çok 3 oyuncuyla oynanır.'; return; }
     try { localStorage.setItem('poker.rol', 'novo'); } catch (e) {}
     novoAc({ adlar: temiz, baslangicFis: fis, ante: Number($('k-ante').value) });
     return;

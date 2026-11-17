@@ -32,7 +32,7 @@ kartlarını hesaplayabilir. Arkadaş masası için yazıldı.
 
 ## Novo Poker (kasaya karşı)
 
-*Masa kur* → **Novo Poker**. 1-4 oyuncu, telefon gerekmez; kartlar iPad'de açık.
+*Masa kur* → **Novo Poker**. 1-3 oyuncu (tek kişi de olur), telefon gerekmez; tablette ya da tek başına telefonda açılır. Önce herkes sırayla kart çeker, sonra tek tek oyuna girip girmeyeceği sorulur.
 - Giriş: ante $25 + zorunlu express $25. Express ilk 5 karta göre hemen ödenir.
 - Sırayla: Pas · Oyna ($50) · Kart çek ($25, istediğin kartları seç) · 6. kart ($25).
 - Kasanın son kartı açık, 4'ü kapalı. Kasa As-Papaz ve üstüyle oyuna girer; girmezse

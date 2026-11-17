@@ -100,17 +100,39 @@ export function karistir(gecikme = 0) {
 }
 
 // Fişler: seramik/kil fiş çarpışması (birkaç tok-tiz parça)
+// Kil fiş çarpışması: kısa bir darbe, fişin kendi titreşim tonlarından (yüksek Q bant
+// geçiren süzgeçler) geçer; tonlar her darbede biraz değişir, sesi canlı tutar.
+function carpisma(t, guc = 1) {
+  const temel = 2300 + Math.random() * 500;
+  const modlar = [[1, 1], [1.58, 0.7], [2.43, 0.45], [3.4, 0.25]];
+  for (const [kat, g] of modlar) {
+    const kaynak = ctx.createBufferSource();
+    kaynak.buffer = gurultuTampon;
+    const suz = ctx.createBiquadFilter();
+    suz.type = 'bandpass'; suz.Q.value = 18 + Math.random() * 10;
+    suz.frequency.value = temel * kat * (0.97 + Math.random() * 0.06);
+    const kazanc = ctx.createGain();
+    const sure = 0.05 + Math.random() * 0.04;
+    kazanc.gain.setValueAtTime(0.0001, t);
+    kazanc.gain.exponentialRampToValueAtTime(1.6 * g * guc, t + 0.0015);
+    kazanc.gain.exponentialRampToValueAtTime(0.0001, t + sure);
+    kaynak.connect(suz).connect(kazanc).connect(ctx.destination);
+    kaynak.start(t, Math.random() * 1.2, sure + 0.02);
+  }
+  // keçeye değen gövde
+  gurultu(t, { sure: 0.03, ses: 0.18 * guc, tip: 'lowpass', frekans: 700, q: 0.7 });
+}
+
+// Fiş sesi: fişler üst üste düşer, son fiş birkaç kez seker (aralık giderek kısalır).
 export function fis(adet = 3, gecikme = 0) {
   if (!hazir()) return;
   let t = ctx.currentTime + gecikme;
   for (let i = 0; i < adet; i++) {
-    const s = 0.12 + Math.random() * 0.08;
-    ton(t, { frekans: 3100 + Math.random() * 500, sure: 0.05, ses: s * 0.6 });
-    ton(t, { frekans: 5400 + Math.random() * 900, sure: 0.035, ses: s * 0.35 });
-    ton(t, { frekans: 1700 + Math.random() * 200, sure: 0.03, ses: s * 0.4, tip: 'triangle' });
-    gurultu(t, { sure: 0.02, ses: s, tip: 'highpass', frekans: 3500 });
-    t += 0.045 + Math.random() * 0.05;
+    carpisma(t, 0.55 + Math.random() * 0.3);
+    t += 0.05 + Math.random() * 0.06;
   }
+  let ara = 0.07, guc = 0.45;
+  for (let k = 0; k < 3; k++) { carpisma(t, guc); t += ara; ara *= 0.55; guc *= 0.55; }
 }
 
 // Masaya hafif vurma (kontrol)
