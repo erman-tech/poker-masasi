@@ -176,8 +176,11 @@ function panelCiz() {
     let ozet = '';
     if (el) {
       const kn = el.kasaNet;
-      ozet = `<div class="sonuc-kutu tek-satir"><b>${el.no}. el · kasa ${kasaYazi(kn)}</b>
-        ${el.oyuncular.map((p, i) => p.katildi ? `<span>${kacis(g.oyuncular[i].ad)} ${p.net >= 0 ? '+' : '−'}${para(Math.abs(p.net))}</span>` : '').join('')}</div>`;
+      const tutar = v => (v > 0 ? '+' : v < 0 ? '−' : '') + (v ? para(Math.abs(v)) : '');
+      ozet = `<div class="sonuc-kutu dokum"><div class="baslik">${el.no}. el · kasa ${kasaYazi(kn)} · kasa: ${kacis(el.krupiyeOyunu ? el.krupiyeElAdi : 'oyun yok')}</div>
+        ${el.oyuncular.map((p, i) => p.katildi ? `<div class="dokum-satir"><b>${kacis(g.oyuncular[i].ad)}</b>
+          ${(p.odemeler || []).map(k => `<span class="${k.tutar > 0 ? 'art' : k.tutar < 0 ? 'eks' : ''}">${kacis(k.yazi)} ${tutar(k.tutar)}</span>`).join('')}
+          <span class="toplam ${p.net >= 0 ? 'art' : 'eks'}">= ${tutar(p.net) || '$0'}</span></div>` : '').join('')}</div>`;
     }
     pn.innerHTML = `<div class="bekleme">${ozet}
       <div class="satir" style="width:min(640px,100%)">
@@ -191,9 +194,9 @@ function panelCiz() {
   }
 
   if (el.faz === 'oyunsuz') {
-    const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi');
+    const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi' && el.oyuncular[i].satinAldi === null);
     pn.innerHTML = `<div class="eylem-baslik"><span class="kim">Kasanın oyunu yok</span>
-      <span class="ne">Her oyuncu seçsin: ante'yi al ya da ${para(el.ante)} verip kasaya oyun satın al</span></div>
+      <span class="ne">İyi eli olan seçsin: ante'yi al ya da ${para(el.ante)} verip kasaya oyun satın al. Diğerlerinin ante'si otomatik ödenir.</span></div>
       <div class="oyunsuz">${oynayan.map(i => `
         <div class="satir"><b style="flex:0 0 120px">${kacis(g.oyuncular[i].ad)}</b>
           <button class="${oyunsuzSecim[i] ? 'btn-ikincil' : 'b-kontrol'}" data-o="${i}" data-v="0">Ante al</button>

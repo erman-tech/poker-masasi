@@ -243,9 +243,21 @@ function krupiyeAc(g) {
     for (const p of oynayan) p.sonuc = karsilastir(p, el.krupiye);
     return bitir(g);
   }
-  // Krupiyenin oyunu yok: oynayanlar ante alır ya da oyun satın alır
+  // Kasanın oyunu yok: eli zayıf olana ante otomatik ödenir; yalnız iyi eli (üçlü ve üstü)
+  // olana "ante mi alırsın, oyun mu satın alırsın" sorulur.
+  let soru = 0;
+  for (const p of oynayan) {
+    if (iyiEl(p.kartlar)) { p.satinAldi = null; soru++; }
+    else { p.satinAldi = false; p.sonuc = { tip: 'oyunyok' }; }
+  }
+  if (!soru) return bitir(g);
   el.faz = 'oyunsuz';
-  for (const p of oynayan) p.satinAldi = null;
+}
+
+// Sigorta ve oyun satın alma sorusu yalnız üçlü ve üstünde
+export function iyiEl(kartlar) {
+  const a = sinif(kartlar).anahtar;
+  return a === 'SF' || a === 'RF' || (typeof a === 'number' && a >= SIGORTA_EN_AZ_KAT);
 }
 
 // Krupiyenin oyunu yokken: her oyuncu için true (oyun satın al) / false (ante al)
@@ -253,7 +265,8 @@ export function oyunSatinAl(g0, secimler) {
   const g = klon(g0);
   const el = g.el;
   if (el.faz !== 'oyunsuz') throw new Error('Şu an oyun satın alınmaz');
-  const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi');
+  // Yalnız sorusu bekleyenler (eli zayıf olanın ante'si açılışta otomatik ödendi)
+  const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi' && el.oyuncular[i].satinAldi === null);
   const alanlar = [];
   for (const i of oynayan) {
     const p = el.oyuncular[i];
@@ -295,10 +308,35 @@ function karsilastir(p, krupiye) {
   return { tip: 'kaybetti' };
 }
 
+// Ne ödendi / ne alındı: kalem kalem (iade edilen paralar kalem değildir). Toplamı = net.
+function odemeDokumu(p, el) {
+  const k = [];
+  const ad = a => EL_ADI[a];
+  if (p.bonusOdeme) k.push({ yazi: `Express ${ad(bonusAnahtari(p.ilk))} ${p.bonusOran}:1`, tutar: p.bonusOdeme - p.bonus });
+  else k.push({ yazi: 'Express', tutar: -p.bonus });
+  const anteKazanir = p.ucret === 0;
+  if (p.durum === 'pas') k.push({ yazi: 'Ante (pas)', tutar: -p.ante });
+  else if (p.sonuc) {
+    const t = p.sonuc.tip;
+    if (t === 'oyunyok') k.push(anteKazanir ? { yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante } : { yazi: 'Ante geri (kasanın oyunu yok)', tutar: 0 });
+    if (t === 'kazandi') {
+      k.push(anteKazanir ? { yazi: 'Ante 1:1', tutar: p.ante } : { yazi: 'Ante geri', tutar: 0 });
+      const ek = p.sonuc.ikinciAK ? (p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
+      k.push({ yazi: `Bet ${p.elAdi}${ek} ${p.sonuc.oran}:1`, tutar: p.bahis * p.sonuc.oran });
+    }
+    if (t === 'berabere') k.push({ yazi: 'Berabere: ante ve bet geri', tutar: 0 });
+    if (t === 'kaybetti') k.push({ yazi: `Kasa kazandı (${el.krupiyeElAdi || EL_ADI[sinif(el.krupiye).anahtar]})`, tutar: -(p.ante + p.bahis) });
+  }
+  if (p.ucret) k.push({ yazi: p.satinAldi ? 'Kart çekme / oyun satın alma' : (p.alti ? '6. kart' : 'Kart çekme'), tutar: -p.ucret });
+  if (p.sigorta) k.push(p.sigortaGeri ? { yazi: 'Sigorta 1:1', tutar: p.sigorta } : { yazi: 'Sigorta yandı (kasa açtı)', tutar: -p.sigorta });
+  return k;
+}
+
 function bitir(g) {
   const el = g.el;
   el.faz = 'bitti';
   el.krupiyeAcik = true;
+  el.krupiyeElAdi = EL_ADI[sinif(el.krupiye).anahtar];
   el.oyuncular.forEach((p, i) => {
     if (!p.katildi) return;
     const o = g.oyuncular[i];
@@ -329,6 +367,7 @@ function bitir(g) {
     p.elAdi = EL_ADI[s.anahtar];
     // net: bu elde fişindeki değişim
     p.net = geri + p.bonusOdeme - (p.ante + p.bonus + p.bahis + p.ucret + (p.sigorta || 0));
+    p.odemeler = odemeDokumu(p, el);
   });
   const ks = sinif(el.krupiye);
   el.krupiyeElAdi = EL_ADI[ks.anahtar];
