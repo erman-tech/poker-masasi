@@ -15,6 +15,7 @@ export function acil() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
+    setTimeout(kayitlariYukle, 0);
     const n = ctx.sampleRate * 1.5;
     gurultuTampon = ctx.createBuffer(1, n, ctx.sampleRate);
     const v = gurultuTampon.getChannelData(0);
@@ -32,6 +33,31 @@ export function acil() {
 }
 
 function hazir() { return acik && ctx && ctx.state === 'running'; }
+
+// Gerçek fiş kayıtları (sesler/fis/*.mp3). Yüklenemezse sentez fiş sesi çalar.
+const KAYITLAR = ['tek', 'kucuk', 'yigin', 'itme'];
+const kayit = {};
+let kayitIstendi = false;
+function kayitlariYukle() {
+  if (kayitIstendi || !ctx) return;
+  kayitIstendi = true;
+  for (const ad of KAYITLAR) {
+    fetch('sesler/fis/' + ad + '.mp3').then(r => (r.ok ? r.arrayBuffer() : Promise.reject()))
+      .then(b => new Promise((ok, red) => ctx.decodeAudioData(b, ok, red)))
+      .then(buf => { kayit[ad] = buf; }).catch(() => {});
+  }
+}
+function kayitCal(ad, t, ses = 0.9) {
+  const b = kayit[ad];
+  if (!b) return false;
+  const k = ctx.createBufferSource();
+  k.buffer = b;
+  k.playbackRate.value = 0.95 + Math.random() * 0.1; // her seferinde biraz farklı
+  const g = ctx.createGain(); g.gain.value = ses;
+  k.connect(g).connect(ctx.destination);
+  k.start(t);
+  return true;
+}
 
 // Kısa gürültü patlaması: süzgeç + zarf
 function gurultu(t, { sure, ses = 0.5, tip = 'bandpass', frekans = 3000, frekansSon = null, q = 1, atak = 0.002 }) {
@@ -126,7 +152,10 @@ function carpisma(t, guc = 1) {
 // Fiş sesi: fişler üst üste düşer, son fiş birkaç kez seker (aralık giderek kısalır).
 export function fis(adet = 3, gecikme = 0) {
   if (!hazir()) return;
-  let t = ctx.currentTime + gecikme;
+  kayitlariYukle();
+  const t0 = ctx.currentTime + gecikme;
+  if (kayitCal(adet <= 1 ? 'tek' : adet <= 4 ? 'kucuk' : 'yigin', t0)) return;
+  let t = t0;
   for (let i = 0; i < adet; i++) {
     carpisma(t, 0.55 + Math.random() * 0.3);
     t += 0.05 + Math.random() * 0.06;
@@ -155,6 +184,8 @@ export function kartlariAt(gecikme = 0) {
 export function potuTopla(gecikme = 0) {
   if (!hazir()) return;
   const t = ctx.currentTime + gecikme;
+  kayitlariYukle();
+  if (kayitCal('itme', t)) return;
   gurultu(t, { sure: 0.45, ses: 0.2, tip: 'bandpass', frekans: 2200, frekansSon: 1200, q: 0.5, atak: 0.08 });
   fis(7, gecikme + 0.12);
 }
