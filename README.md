@@ -36,7 +36,7 @@ kartlarını hesaplayabilir. Arkadaş masası için yazıldı.
 - Giriş: ante $25 + zorunlu express $25. Express ilk 5 karta göre hemen ödenir.
 - Sırayla: Pas · Oyna ($50) · Kart çek ($25, istediğin kartları seç) · 6. kart ($25).
 - Kasanın son kartı açık, 4'ü kapalı. Kasa As-Papaz ve üstüyle oyuna girer; girmezse
-  ante'yi al ya da $25 verip kasaya kart çektir.
+  ante'yi al ya da $25 verip kasaya kart çektir (kasa en yüksek kartını atar, bir kart yakar, sıradakini alır).
 - Üçlü ve üstüyle oynayana sigorta sorulur: yok / min $50 / max (kazanılacak betin yarısı,
   parası azsa parası kadar). Kasanın oyunu olmazsa 1'e 1 öder, olursa kasanın.
 - Üst çubukta kasanın bu oyundaki artı/eksisi. Parası biten tabletten para yükler.

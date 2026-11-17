@@ -643,3 +643,19 @@ test('sigorta en az 4 kat: üç as tek başına yok, üç as + papaz var; kart �
   assert.equal(sigortaSiniri({ kartlar: K('Ah Ad Ac Ks 4d'), bahis: 50 }, 5000, 25).enCok, 100, '4 x 50 / 2');
   assert.ok(sigortaSiniri({ kartlar: K('5h 6d 7c 8s 9h'), bahis: 50 }, 5000, 25), 'kent: sigorta var');
 });
+
+test('kasa kart çekerken en yüksek kartını atar, bir kart yakar, sıradakini alır (tek sefer)', () => {
+  let g = yeniNovo({ adlar: ['A'], kod: 'X', baslangicFis: 100000 });
+  // oyuncu üçlü, kasa boş (As yok): en yüksek kartı Papaz
+  g = novoDagit(g, deste(['7h 7d 7c 2s 9d'], 'Kd Jd 8c 5s 3d', '4h Qs'));
+  g = novoHamleGercek(g, { tip: 'gec' });
+  g = novoHamleGercek(g, { tip: 'oyna' });
+  if ('sigorta' in (novoYasal(g) || {})) g = novoHamleGercek(g, { tip: 'sigorta', miktar: 0 });
+  assert.equal(g.el.faz, 'oyunsuz');
+  const cek = g.el.cek;
+  g = oyunSatinAl(g, [true]);
+  assert.equal(g.el.cek, cek + 2, 'bir yakılan + bir alınan');
+  assert.equal(kartYazi(g.el.krupiyeAtilan), kartYazi(K('Kd')[0]), 'en yüksek kart (Papaz) atıldı');
+  assert.equal(kartYazi(g.el.krupiyeYakilan), kartYazi(g.el.deste[cek]), 'sıradaki kart yakıldı');
+  assert.equal(kartYazi(g.el.krupiye[0]), kartYazi(g.el.deste[cek + 1]), 'ondan sonraki kart alındı');
+});

@@ -374,16 +374,13 @@ export function oyunSatinAl(g0, secimler) {
     else { p.satinAldi = false; p.sonuc = { tip: 'oyunyok' }; }
   }
   if (alanlar.length) {
-    // Krupiye en yüksek kartını değiştirir; eli değişene kadar (yeni sınıf ya da renk) tekrarlar.
-    const once = sinif(el.krupiye).el.guc;
-    let tur = 0;
-    while (tur < 7) {
-      const enYuksek = el.krupiye.reduce((m, k, j) => (k.d > el.krupiye[m].d ? j : m), 0);
-      el.krupiye = el.krupiye.map((k, j) => (j === enYuksek ? el.deste[el.cek++] : k));
-      tur++;
-      const yeni = enIyiEl(el.krupiye).guc;
-      if (yeni[0] !== once[0] || yeni[0] === 5) break;
-    }
+    // Normal oyundaki gibi: kasa en yüksek kartını atar, desteden bir kart yakar (kapalı atılır)
+    // ve sıradaki kartı alır. Tek sefer çeker.
+    const enYuksek = el.krupiye.reduce((m, k, j) => (k.d > el.krupiye[m].d ? j : m), 0);
+    el.krupiyeAtilan = el.krupiye[enYuksek];
+    el.krupiyeYakilan = el.deste[el.cek++];
+    el.krupiye = el.krupiye.map((k, j) => (j === enYuksek ? el.deste[el.cek++] : k));
+    const tur = 1;
     el.krupiyeDegisim = tur;
     el.krupiyeOyunu = krupiyeOyunuVar(el.krupiye);
     for (const i of alanlar) {
