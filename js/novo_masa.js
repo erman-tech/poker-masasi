@@ -703,21 +703,37 @@ function yukleAc() {
   });
 }
 
-function odemeTablosu() {
-  const satir = (ad, v) => `<div><span>${ad}</span><b>${v}:1</b></div>`;
+function odemeListeleri() {
   const ana = [['Royal flush', ODEME.RF], ['Renkli kent', ODEME.SF], ['Kare', ODEME[7]], ['Full', ODEME[6]], ['Renk', ODEME[5]],
     ['Kent', ODEME[4]], ['Üçlü', ODEME[3]], ['İki çift', ODEME[2]], ['Çift', ODEME[1]], ['As-Papaz', ODEME.AK]];
   const ex = [['Royal flush', BONUS.RF], ['Renkli kent', BONUS.SF], ['Kare', BONUS[7]], ['5 surat', BONUS.SURAT], ['Full', BONUS[6]], ['Renk', BONUS[5]],
     ['Kent', BONUS[4]], ['Üçlü', BONUS[3]], ['As-Papaz-Kız', BONUS.AKQ], ['Sahte renk', BONUS.SAHTE]];
-  $('n-tablo-bet').innerHTML = '<div class="bas">BET</div>' + ana.map(([a, v]) => satir(a, v)).join('');
-  $('n-tablo-ex').innerHTML = '<div class="bas">EXPRESS</div>' + ex.map(([a, v]) => satir(a, v)).join('');
+  return { ana, ex };
+}
+
+function kurallarAc() {
+  const { ana, ex } = odemeListeleri();
+  const tablo = (bas, l) => `<table class="kural-tablo"><tr><th colspan="2">${bas}</th></tr>${l.map(([a, v]) => `<tr><td>${a}</td><td>${v}:1</td></tr>`).join('')}</table>`;
+  const s = (b, m) => `<details class="kural-sss"><summary>${b}</summary><div>${m}</div></details>`;
+  perdeAc(`<div style="font-size:20px;font-weight:800">Kurallar ve ödeme tablosu</div>
+    <div class="kural-tablolar">${tablo('BET (oyna bahsi)', ana)}${tablo('EXPRESS (ilk 5 kart)', ex)}</div>
+    <div class="kural-liste">
+    ${s('Oyun nasıl başlar?', 'Herkes ante ve ante kadar express koyar. Herkese 5 açık kart, kasaya 5 kart (1 tanesi açık) dağıtılır. Dağıtımdan önce desteden 3 kart yakılır.')}
+    ${s('Express ne zaman öder?', 'İlk 5 karta göre hemen öder; sonra ne olursa olsun geri alınmaz. As-Papaz-Kız elde çift olsa da öder. Daha yüksek bir express eli varsa yalnız o ödenir.')}
+    ${s('Kart değiştirme ve 6. kart', 'Herkes sırayla karar verir: bir ya da birden çok kartı değiştirebilir ya da 6. kartı alabilir; bedeli 1 ante. Kartlar herkes karar verince sırayla dağıtılır, dağıtımdan önce 1 kart gömülür. Kart alan, kasanın oyunu olmazsa ante kazancını almaz, antesini geri alır.')}
+    ${s('Oyna ya da pas', 'Oyna bahsi 2 ante. Pas diyen ante ve express\'i bırakır (express ödemesi zaten yapılmıştır).')}
+    ${s('Kasanın oyunu', 'Kasa As-Papaz ya da daha iyi ele sahipse oyunu var. Oyunu yoksa oynayan oyuncu antesini 1:1 kazanır, bet\'i geri alır.')}
+    ${s('Kasaya kart çektirmek', 'Kasanın oyunu yokken üçlü ve üstü eli olan oyuncuya sorulur: ante mi alırsın, kasaya kart mı çektirirsin? Çektirmenin bedeli yalnız ante kazancından vazgeçmektir. Kasa en yüksek kartını atar, bir kart gömer, sıradakini alır. Kasa yine boşsa ante ve bet geri gelir.')}
+    ${s('Karşılaştırma', 'Kasanın oyunu varsa eller karşılaştırılır. Oyuncu kazanırsa ante 1:1, bet ödeme tablosuna göre ödenir. Beraberlikte ante ve bet geri gelir. Gerçek döper (bir çift + As + Papaz) yalancı döperi (A-A-K ya da K-K-A) yener.')}
+    ${s('İki kombinasyon', '6 kartla iki ayrı el çıkarsa ikisi birlikte ödenir (ör. kent + çift As = 5 kat). İkinci el ana elin kartlarından çıkamaz. Çift ve üstü elde ayrıca As ve Papaz varsa +1 ödenir.')}
+    ${s('Sigorta', 'Bet\'i en az 4 kat ödeyen el, oynadıktan sonra sigorta yapabilir: en az oyna bahsi, en çok kazanılacak bet parasının yarısı. Kasanın ilk açılışta oyunu yoksa sigorta 1:1 öder, oyunu varsa sigorta kasanındır.')}
+    ${s('Mola ve para yükleme', 'Eller arasında oyuncu molaya çıkabilir; çipleri onda kalır ve bir sonraki dağıtımda geri döner. Para yükleme de yalnız eller arasında yapılır. Bir ele girmek için en az 4 ante gerekir.')}
+    </div>
+    <button class="btn-ana" id="kr-tamam">Kapat</button>`, k => { k.querySelector('#kr-tamam').onclick = perdeKapat; });
 }
 
 export function novoBagla() {
-  odemeTablosu();
   krupiyeKur($('n-krupiye-kadin'));
-  $('n-yazi').onclick = () => $('e-novo').classList.toggle('tablo-acik');
-  $('n-alan').addEventListener('click', e => { if (e.target.id !== 'n-yazi') $('e-novo').classList.remove('tablo-acik'); });
   $('n-ses').onclick = () => { ses.acil(); ses.sesAyarla(!ses.sesAcikMi()); $('n-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇'; };
   $('n-geri').onclick = async () => {
     if (!N.gecmis.length || mesgul) return;
@@ -730,6 +746,7 @@ export function novoBagla() {
       <button class="btn-ikincil" id="nm-yukle">Para yükle</button>
       <button class="btn-ikincil" id="nm-konus">Seslendirme: ${konus.acikMi() ? 'Açık' : 'Kapalı'}</button>
       <button class="btn-ikincil" id="nm-ortam">Casino uğultusu: ${ses.ortamAcikMi() ? 'Açık' : 'Kapalı'}</button>
+      <button class="btn-ikincil" id="nm-kurallar">Kurallar ve ödeme tablosu</button>
       <button class="btn-ikincil" id="nm-cekmeler">Kasanın çektiği kartlar</button>
       <button class="btn-ikincil" id="nm-kutlama">Büyük bonus kutlamasını göster</button>
       <button class="btn-ikincil" id="nm-yeniden">Baştan başlat (herkese ${para(N.g.baslangicFis)})</button>
@@ -738,6 +755,7 @@ export function novoBagla() {
       k.querySelector('#nm-tamam').onclick = perdeKapat;
       k.querySelector('#nm-ortam').onclick = e => { ses.acil(); ses.ortamAyarla(!ses.ortamAcikMi()); e.target.textContent = 'Casino uğultusu: ' + (ses.ortamAcikMi() ? 'Açık' : 'Kapalı'); };
       k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.soyle('seslendirme_acik'); } };
+      k.querySelector('#nm-kurallar').onclick = kurallarAc;
       k.querySelector('#nm-cekmeler').onclick = () => {
         const liste = N.g.kasaCekmeleri || [];
         const kAd = c => (DEGER_AD[c.d] || String(c.d)) + RENK_SIMGE[c.r];
