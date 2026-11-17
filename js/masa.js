@@ -93,7 +93,7 @@ function kodGoster(ilk = false) {
     <div style="text-align:center;color:var(--soluk)">Herkes telefonunda <b>Oyuncuyum</b>'a bassın ve bunu yazsın:</div>
     <div class="kod-buyuk">${g.kod}</div>
     <div class="koltuk-listesi">${g.oyuncular.map(o => `<div><b>${o.koltuk + 1}</b>${kacis(o.ad)}</div>`).join('')}</div>
-    <div style="color:var(--soluk);font-size:14px">Her el dağıtılınca telefonda <b>Sonraki el</b>'e basın. Telefondaki
+    <div style="color:var(--soluk);font-size:14px">Her el dağıtılınca telefonda <b>Kartlarımı al</b>'a basın. Telefondaki
       <b>Kontrol</b> harfleri buradakiyle aynıysa doğru eldesiniz.</div>
     <button class="btn-ana" id="kod-tamam">${ilk ? 'Tamam, masaya geç' : 'Kapat'}</button>`,
   k => { k.querySelector('#kod-tamam').onclick = perdeKapat; });
@@ -129,6 +129,9 @@ function ciz() {
   const no = el ? el.no : g.elNo;
   $('m-elno').textContent = no > 0 ? no : '–';
   $('m-kontrol').textContent = no > 0 ? kontrolKodu(g.kod, no) : '–';
+  $('m-elrozet').innerHTML = no > 0
+    ? `<div class="no">${no}. EL</div><div class="kk">Kontrol <b>${kontrolKodu(g.kod, no)}</b></div>`
+    : '';
   const kElNo = el && el.sokak !== 'bitti' ? el.no : g.elNo + 1;
   const kk = korlar(g, kElNo);
   $('m-korlar').textContent = `${kk.kucuk}/${kk.buyuk}`;
@@ -335,6 +338,16 @@ function sonucHtml(g) {
   return `<div class="sonuc-kutu"><div class="baslik">${ad(kazanan[1])} kazandı</div>${satirlar}</div>`;
 }
 
+let duyuruZaman = null;
+function duyuru(html) {
+  const d = $('duyuru');
+  d.innerHTML = html;
+  d.classList.add('acik');
+  clearTimeout(duyuruZaman);
+  duyuruZaman = setTimeout(() => d.classList.remove('acik'), 4500);
+  d.onclick = () => d.classList.remove('acik');
+}
+
 // ---------------- Hamleler ----------------
 async function uygula(hamle) {
   if (mesgul) return;
@@ -434,6 +447,7 @@ async function dagit() {
   mesgul = false;
   ses.fis(2, 0.1);
   ciz();
+  duyuru(`<div class="no">${el.no}. EL</div><div>Telefonda <b>Kartlarımı al</b></div><div class="kk">Kontrol <b>${kontrolKodu(M.g.kod, el.no)}</b></div>`);
 }
 
 // ---------------- Bağlantılar ----------------

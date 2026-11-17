@@ -45,7 +45,7 @@ function ciz(animasyon) {
   alan.classList.remove('atildi');
   alan.innerHTML = '';
   if (D.elNo <= 0) {
-    $('oy-ipucu').textContent = "iPad ilk eli dağıtınca 'Sonraki el'e bas.";
+    $('oy-ipucu').textContent = "iPad ilk eli dağıtınca 'Kartlarımı al'a bas.";
     $('oy-at').disabled = true;
     return [];
   }
@@ -95,9 +95,11 @@ export function oyuncuBagla() {
     const koltuk = Number($('o-koltuk').value);
     const ad = $('o-ad').value.trim();
     const ayniMasa = D && D.kod === kod && D.koltuk === koltuk;
+    const yeniMasa = !ayniMasa;
     D = { kod, koltuk, ad, elNo: ayniMasa ? D.elNo : 0 };
     kaydet();
     oyuncuEkrani();
+    if (yeniMasa) sonrakiEl(); // yeni masada 1. elin kartları hemen gelir
   };
   $('oy-sonraki').onclick = sonrakiEl;
   $('oy-onceki').onclick = () => { if (D.elNo > 1 && !mesgul) { D.elNo -= 1; kaydet(); ciz(false); } };
@@ -113,7 +115,7 @@ export function oyuncuBagla() {
     atildi = true;
     ses.kartlariAt();
     $('oy-kartlar').classList.add('atildi');
-    $('oy-ipucu').textContent = 'Kartlar atıldı. Yeni el gelince Sonraki el.';
+    $('oy-ipucu').textContent = 'Kartlar atıldı. iPad yeni eli dağıtınca Kartlarımı al.';
     $('oy-at').disabled = true;
   };
   $('oy-ses').onclick = () => { ses.acil(); ses.sesAyarla(!ses.sesAcikMi()); $('oy-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇'; };

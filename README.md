@@ -15,7 +15,7 @@ Adres: https://erman-tech.github.io/poker-masasi/
 - **iPad (masa):** simgeden aç → *Masa kur* → adlar (Erman, Fidan, Emrah) → *Masayı aç*.
   Ekranda 6 harfli bir **masa kodu** ve koltuk numaraları çıkar.
 - **Her telefon:** simgeden aç → *Oyuncuyum* → masa kodu + kendi koltuk numaran → *Otur*.
-- iPad *İlk eli dağıt* der. Herkes telefonunda *Sonraki el*'e basar; iki kart gelir.
+- iPad *İlk eli dağıt* der. Herkes telefonunda *Kartlarımı al*'a basar; iki kart gelir.
   Kartlarına bakmak için ekrana **basılı tut**, bırakınca kapanır.
 - Telefondaki **Kontrol** harfleri iPad'dekiyle aynıysa herkes doğru eldedir.
 - Sırası gelen, iPad'de Fold / Check / Call / Raise / All-in'e basar. Ortak kartlar, pot,
