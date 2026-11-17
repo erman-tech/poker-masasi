@@ -646,7 +646,7 @@ function odemeTablosu() {
   const satir = (ad, v) => `<div><span>${ad}</span><b>${v}:1</b></div>`;
   const ana = [['Royal flush', ODEME.RF], ['Renkli kent', ODEME.SF], ['Kare', ODEME[7]], ['Full', ODEME[6]], ['Renk', ODEME[5]],
     ['Kent', ODEME[4]], ['Üçlü', ODEME[3]], ['İki çift', ODEME[2]], ['Çift', ODEME[1]], ['As-Papaz', ODEME.AK]];
-  const ex = [['Royal flush', BONUS.RF], ['Renkli kent', BONUS.SF], ['Kare', BONUS[7]], ['Full', BONUS[6]], ['Renk', BONUS[5]],
+  const ex = [['Royal flush', BONUS.RF], ['Renkli kent', BONUS.SF], ['Kare', BONUS[7]], ['5 surat', BONUS.SURAT], ['Full', BONUS[6]], ['Renk', BONUS[5]],
     ['Kent', BONUS[4]], ['Üçlü', BONUS[3]], ['As-Papaz-Kız', BONUS.AKQ], ['Sahte renk', BONUS.SAHTE]];
   $('n-tablo-bet').innerHTML = '<div class="bas">BET</div>' + ana.map(([a, v]) => satir(a, v)).join('');
   $('n-tablo-ex').innerHTML = '<div class="bas">EXPRESS</div>' + ex.map(([a, v]) => satir(a, v)).join('');

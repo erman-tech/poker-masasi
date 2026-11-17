@@ -19,7 +19,7 @@ export const ODEME = { AK: 1, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 7, 7: 20, SF: 50,
 export const BONUS = { SAHTE: 2, AKQ: 5, 3: 8, 4: 30, 5: 60, 6: 100, SURAT: 120, 7: 200, SF: 250, RF: 500 };
 
 export const EL_ADI = {
-  0: 'Yüksek kart', AK: 'As-Papaz', AKQ: 'As-Papaz-Kız', SAHTE: 'Sahte renk', SURAT: 'Beş surat', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
+  0: 'Yüksek kart', AK: 'As-Papaz', AKQ: 'As-Papaz-Kız', SAHTE: 'Sahte renk', SURAT: '5 surat', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
   5: 'Renk', 6: 'Full', 7: 'Kare', SF: 'Renkli kent', RF: 'Royal flush',
 };
 
