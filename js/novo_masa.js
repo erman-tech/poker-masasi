@@ -6,8 +6,9 @@ import {
 import { yiginEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
-import { krupiyeKur, ruh, kurpiyeAyarla, kurpiyeDegistir, eldekiKurpiye, degisimEli } from './krupiye.js';
+import { krupiyeKur, ruh, kurpiyeAyarla, kurpiyeDegistir, eldekiKurpiye, degisimEli, konusuyor } from './krupiye.js';
 import * as konus from './konus.js';
+konus.konusmaDinle(sure => konusuyor(sure));
 
 const ANAHTAR = 'poker.novo.v1';
 let N = null;          // { g, gecmis }

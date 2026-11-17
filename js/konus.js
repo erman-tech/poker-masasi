@@ -65,6 +65,9 @@ let ctx = null;
 let kayitli = null;          // Set: liste.json'daki parçalar
 const tampon = new Map();     // parça -> AudioBuffer
 let siraSonu = 0;
+let konusmaDinleyici = null;
+// Konuşma başlayınca (ms cinsinden süre) haber ver: kurpiyenin ağzı oynasın
+export function konusmaDinle(fn) { konusmaDinleyici = fn; }
 
 async function listeYukle() {
   if (kayitli) return kayitli;
@@ -128,11 +131,16 @@ export function soyle(...parcalar) {
       const bufs = [];
       for (const x of parcalar) bufs.push(await tamponAl(anahtarOf(x)));
       let t = Math.max(ctx.currentTime + 0.05, siraSonu);
+      const t0 = t;
       for (const b of bufs) {
         const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(t);
         t += b.duration + 0.04;
       }
       siraSonu = t + 0.25;
+      if (konusmaDinleyici) {
+        const gecikme = Math.max(0, t0 - ctx.currentTime) * 1000, sure = (t - t0) * 1000;
+        setTimeout(() => { try { konusmaDinleyici(sure); } catch (e) {} }, gecikme);
+      }
     } catch (e) { /* kayıt çözülemedi: sessiz kal, cihaz sesine düşme */ }
   }).catch(() => {});
 }
