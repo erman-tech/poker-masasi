@@ -1,7 +1,7 @@
 // Novo Poker masası (iPad). Kasaya karşı; oyuncu kartları açık, her şey bu ekranda.
 import {
   yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle,
-  katilabilir, ODEME, BONUS, EL_ADI, sinif, bonusAnahtari, kombinasyonlar,
+  katilabilir, ODEME, BONUS, EL_ADI, sinif, bonusAnahtari, kombinasyonlar, betOrani,
 } from './novo.js';
 import { yiginEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
@@ -383,6 +383,14 @@ async function topluDagit() {
   }
   ses.kartCevir();
   ruh('normal');
+  // Kart çekerek iyi el yapanı krupiye söyler (üçlü ve üstü ya da iki kombinasyon)
+  for (const [p, i] of cekenler) {
+    const k = kombinasyonlar(p.kartlar), b = betOrani(p.kartlar);
+    const iyi = k.ikinci != null || k.ana === 'SF' || k.ana === 'RF' || (typeof k.ana === 'number' && k.ana >= 3);
+    if (!iyi) continue;
+    ruh('saskin', 1800);
+    konus.soyle('tebrikler', konus.ad(N.g.oyuncular[i].ad), konus.el(k.ana), k.ikinci != null ? ['ve', konus.el(k.ikinci)] : [], konus.sayi(b.oran), 'kat_odeme');
+  }
   mesgul = false;
   ciz();
 }
@@ -519,10 +527,10 @@ async function dagit() {
   for (let k = 0; k < 5; k++) {
     for (const [, i] of spotlar) {
       const c = spotEl(i).querySelectorAll('.nkartlar .kart')[k];
-      ses.kartAt(); await kartUcur(kasaRect(), c, 220); c.style.visibility = '';
+      ses.kartAt(); await kartUcur(kasaRect(), c, 380); c.style.visibility = ''; await bekle(90);
     }
     const d = $('n-krupiye').children[k];
-    ses.kartAt(); await kartUcur(kasaRect(), d, 220); d.style.visibility = '';
+    ses.kartAt(); await kartUcur(kasaRect(), d, 380); d.style.visibility = ''; await bekle(140);
   }
   ses.kartCevir();
   ruh('normal');

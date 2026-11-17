@@ -9,7 +9,7 @@ export const PARCALAR = {
   kasa_bos: 'Kasa boş, ante ödenir.',
   kasa_kart_cekti: 'Kasa kart çekti,', oldu: 'oldu.', yine_bos: 'yine boş.',
   sigortadan: 'sigortadan', dolar_kazanir: 'dolar kazanır.', sigortayi_kaybetti: 'sigortayı kaybetti.',
-  dolar_odeme: 'dolar ödeme.', tebrikler: 'Tebrikler', ve: 've',
+  dolar_odeme: 'dolar ödeme.', kat_odeme: 'kat ödeme.', tebrikler: 'Tebrikler', ve: 've',
   kaybetti: 'kaybetti.', berabere: 'berabere.', ante_yandi: 'ante yandı.',
   bonus_odeme: 'bonus ödeme,', dolar: 'dolar.', seslendirme_acik: 'Seslendirme açık.',
   // kasanın açtığı el
