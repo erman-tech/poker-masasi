@@ -603,3 +603,16 @@ test('kart çekmede kasa herkes karar verdikten sonra toplu dağıtır', () => {
   assert.equal(b.kartlar.length, 6); assert.deepEqual(b.kartlar[5], g.el.deste[cek0 + 2]);
   assert.equal(g.el.cek, cek0 + 3);
 });
+
+test('kasanın eli oyuncununkiyle aynı olasılıkta (per %42,3, iki per %4,75, üçlü %2,11)', () => {
+  const N = 60000, say = {};
+  for (let n = 0; n < N; n++) {
+    let g = yeniNovo({ adlar: ['A'], kod: 'X' }); g = novoDagit(g);
+    const k = String(sinif(g.el.krupiye).anahtar); say[k] = (say[k] || 0) + 1;
+  }
+  const yuzde = k => (say[k] || 0) / N * 100;
+  assert.ok(Math.abs(yuzde('1') - 42.26) < 1.2, 'per ' + yuzde('1'));
+  assert.ok(Math.abs(yuzde('2') - 4.75) < 0.45, 'iki per ' + yuzde('2'));
+  assert.ok(Math.abs(yuzde('3') - 2.11) < 0.35, 'üçlü ' + yuzde('3'));
+  assert.ok((say['4'] || 0) + (say['5'] || 0) + (say['6'] || 0) > 300, 'kent/renk/full da gelir');
+});
