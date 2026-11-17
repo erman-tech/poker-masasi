@@ -16,10 +16,10 @@ export const ANTE_SECENEKLERI = [5, 10, 25, 50, 100];
 export const ODEME = { AK: 1, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 7, 7: 20, SF: 50, RF: 100 };
 // İlk 5 kart bonusu (kaça bir)
 // Erman'ın oranları: full 100, renk 60, kent 30, üçlü 8, iki çift yok. Kare ve üstü eski tabloda.
-export const BONUS = { 3: 8, 4: 30, 5: 60, 6: 100, 7: 200, SF: 500, RF: 1000 };
+export const BONUS = { AKQ: 5, 3: 8, 4: 30, 5: 60, 6: 100, 7: 200, SF: 500, RF: 1000 };
 
 export const EL_ADI = {
-  0: 'Yüksek kart', AK: 'As-Papaz', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
+  0: 'Yüksek kart', AK: 'As-Papaz', AKQ: 'As-Papaz-Kız', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
   5: 'Renk', 6: 'Full', 7: 'Kare', SF: 'Renkli kent', RF: 'Royal flush',
 };
 
@@ -59,9 +59,32 @@ export function ikinciAK(kartlar) {
   return disari.includes(14) && disari.includes(13);
 }
 
-export function bonusOrani(kartlar) {
+// Döper (Rus kuralı): bir çift + As + Papaz.
+//  'gercek' : çift başka bir değer, As ve Papaz ayrıca elde (ör. 4-4-A-K)
+//  'yalanci': çift As ve elde Papaz var, ya da çift Papaz ve elde As var (A-A-K, K-K-A)
+// İkisi de 2'ye 1 öder (çift + As-Papaz). Gerçek döper yalancı döperi yener.
+export function doperTuru(kartlar) {
+  const s = sinif(kartlar);
+  if (s.anahtar !== 1) return null;
+  const say = new Map();
+  for (const k of s.el.kartlar) say.set(k.d, (say.get(k.d) || 0) + 1);
+  const cift = [...say.entries()].find(([, n]) => n === 2)[0];
+  const d = new Set(kartlar.map(k => k.d));
+  if (cift === 14 && d.has(13)) return 'yalanci';
+  if (cift === 13 && d.has(14)) return 'yalanci';
+  if (d.has(14) && d.has(13)) return 'gercek';
+  return null;
+}
+
+// Express ilk 5 karta göre. As-Papaz-Kız (yüksek kart) 5'e 1 öder ama oyunda per sayılmaz
+// (oyunda yalnız As-Papaz olarak kalır).
+export function bonusAnahtari(kartlar) {
   const a = sinif(kartlar).anahtar;
-  return BONUS[a] || 0;
+  if (a === 'AK' && kartlar.some(k => k.d === 12)) return 'AKQ';
+  return a;
+}
+export function bonusOrani(kartlar) {
+  return BONUS[bonusAnahtari(kartlar)] || 0;
 }
 
 export function yeniNovo({ adlar, kod, baslangicFis = 1000, ante = 25 }) {
@@ -232,6 +255,10 @@ export function oyunSatinAl(g0, secimler) {
 }
 
 function karsilastir(p, krupiye) {
+  const pd = doperTuru(p.kartlar), kd = doperTuru(krupiye);
+  // Gerçek döper yalancı döperi geçer (çiftlerin büyüklüğüne bakılmaz).
+  if (pd === 'gercek' && kd === 'yalanci') return { tip: 'kazandi' };
+  if (pd === 'yalanci' && kd === 'gercek') return { tip: 'kaybetti' };
   const pg = enIyiEl(p.kartlar).guc, kg = enIyiEl(krupiye).guc;
   const c = gucKarsilastir(pg, kg);
   if (c > 0) return { tip: 'kazandi' };
@@ -254,11 +281,12 @@ function bitir(g) {
         geri = p.ante + p.bahis + (anteKazanir ? p.ante : 0);
       } else if (p.sonuc.tip === 'kazandi') {
         const oran = ODEME[s.anahtar] || 0;
-        const ek = ikinciAK(p.kartlar) ? 1 : 0;
+        const ek = ikinciAK(p.kartlar) || doperTuru(p.kartlar) === 'yalanci' ? 1 : 0;
         odeme = p.bahis * (oran + ek);
         geri = p.ante + p.bahis + odeme + (anteKazanir ? p.ante : 0);
         p.sonuc.oran = oran + ek;
         p.sonuc.ikinciAK = !!ek;
+        p.sonuc.doper = doperTuru(p.kartlar);
       } else if (p.sonuc.tip === 'berabere') {
         geri = p.ante + p.bahis;
       }

@@ -1,7 +1,7 @@
 // Novo Poker masası (iPad). Kasaya karşı; oyuncu kartları açık, her şey bu ekranda.
 import {
   yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle,
-  katilabilir, ODEME, BONUS, EL_ADI, sinif,
+  katilabilir, ODEME, BONUS, EL_ADI, sinif, bonusAnahtari,
 } from './novo.js';
 import { yiginEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
@@ -49,7 +49,7 @@ function gecmiseAt() {
 // ---------------- Çizim ----------------
 function spotKonumu(i, n) {
   const x = n === 1 ? [50] : n === 2 ? [32, 68] : n === 3 ? [20, 50, 80] : [14, 38, 62, 86];
-  const y = n <= 2 ? [60, 60] : n === 3 ? [57, 63, 57] : [55, 62, 62, 55];
+  const y = n <= 2 ? [55, 55] : n === 3 ? [51, 58, 51] : [50, 57, 57, 50];
   return { x: x[i], y: y[i] };
 }
 
@@ -59,6 +59,7 @@ function ciz() {
   const g = N.g, el = g.el;
   $('n-elno').textContent = el ? el.no : '–';
   $('n-ante').textContent = para(g.ante);
+  $('n-yazi').innerHTML = `KASAYA KARŞI · KASA AS-PAPAZ VE ÜSTÜYLE OYUNA GİRER<br>ANTE ${para(g.ante)} · EXPRESS ${para(g.ante)} · KART ÇEKME ${para(g.ante)} · OYNA ${para(2 * g.ante)}`;
   // Express dağıtımda sonuçlanır: el sürerken kasaya anında yansıt.
   let canli = g.kasaNet || 0;
   if (el && el.faz !== 'bitti') for (const p of el.oyuncular) if (p.katildi) canli += p.bonus - p.bonusOdeme;
@@ -78,7 +79,7 @@ function ciz() {
     });
   } else for (let j = 0; j < 5; j++) kr.appendChild(Object.assign(kartEl(null), { className: 'kart bos' }));
   $('n-krupiye-ad').textContent = el && el.krupiyeAcik
-    ? (el.krupiyeOyunu ? el.krupiyeElAdi : 'Krupiyenin oyunu yok' + (el.krupiyeDegisim ? '' : ''))
+    ? (el.krupiyeOyunu ? el.krupiyeElAdi : 'Kasanın oyunu yok' + (el.krupiyeDegisim ? '' : ''))
     : '';
 
   // Oyuncu yerleri
@@ -105,7 +106,7 @@ function ciz() {
     if (p && p.katildi) {
       const s1 = sinif(p.kartlar);
       let t = EL_ADI[s1.anahtar];
-      if (p.bonusOdeme) t = `EXPRESS ${EL_ADI[sinif(p.ilk).anahtar]} +${para(p.bonusOdeme - p.bonus)}`;
+      if (p.bonusOdeme) t = `EXPRESS ${EL_ADI[bonusAnahtari(p.ilk)]} +${para(p.bonusOdeme - p.bonus)}`;
       if (el.faz === 'bitti' && p.durum === 'oynadi') t = sonucYazi(p);
       if (el.faz === 'bitti' && p.durum === 'pas') t = 'Pas';
       etiket.textContent = t;
@@ -156,7 +157,7 @@ function sonucYazi(p) {
   const s = p.sonuc;
   if (!s) return '';
   const net = (p.net >= 0 ? '+' : '−') + para(Math.abs(p.net));
-  if (s.tip === 'oyunyok') return `Krupiyenin oyunu yok · ${net}`;
+  if (s.tip === 'oyunyok') return `Kasanın oyunu yok · ${net}`;
   if (s.tip === 'berabere') return `Berabere · ${net}`;
   if (s.tip === 'kazandi') return `${p.elAdi}${s.ikinciAK ? ' + As-Papaz' : ''} ${s.oran}:1 · ${net}`;
   return `${p.elAdi} · kasa kazandı · ${net}`;
@@ -171,12 +172,10 @@ function panelCiz() {
     let ozet = '';
     if (el) {
       const kn = el.kasaNet;
-      ozet = `<div class="sonuc-kutu"><div class="baslik">${el.no}. el bitti · kasa ${kasaYazi(kn)}</div>
-        ${el.oyuncular.map((p, i) => p.katildi ? `<div>${kacis(g.oyuncular[i].ad)}: ${p.net >= 0 ? '+' : '−'}${para(Math.abs(p.net))}</div>` : '').join('')}
-        <div style="color:var(--soluk)">Krupiye: ${kacis(el.krupiyeOyunu ? el.krupiyeElAdi : 'oyun yok')}</div></div>`;
+      ozet = `<div class="sonuc-kutu tek-satir"><b>${el.no}. el · kasa ${kasaYazi(kn)}</b>
+        ${el.oyuncular.map((p, i) => p.katildi ? `<span>${kacis(g.oyuncular[i].ad)} ${p.net >= 0 ? '+' : '−'}${para(Math.abs(p.net))}</span>` : '').join('')}</div>`;
     }
     pn.innerHTML = `<div class="bekleme">${ozet}
-      <div class="ne" style="color:var(--soluk)">Giriş: ante ${para(g.ante)} + express ${para(g.ante)} · kart çekme ${para(g.ante)} · oyna ${para(2 * g.ante)}</div>
       <div class="satir" style="width:min(640px,100%)">
         <button class="btn-ikincil" id="n-yukle">Para yükle</button>
         <button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>
@@ -189,8 +188,8 @@ function panelCiz() {
 
   if (el.faz === 'oyunsuz') {
     const oynayan = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi');
-    pn.innerHTML = `<div class="eylem-baslik"><span class="kim">Krupiyenin oyunu yok</span>
-      <span class="ne">Her oyuncu seçsin: ante'yi al ya da ${para(el.ante)} verip krupiyeye oyun satın al</span></div>
+    pn.innerHTML = `<div class="eylem-baslik"><span class="kim">Kasanın oyunu yok</span>
+      <span class="ne">Her oyuncu seçsin: ante'yi al ya da ${para(el.ante)} verip kasaya oyun satın al</span></div>
       <div class="oyunsuz">${oynayan.map(i => `
         <div class="satir"><b style="flex:0 0 120px">${kacis(g.oyuncular[i].ad)}</b>
           <button class="${oyunsuzSecim[i] ? 'btn-ikincil' : 'b-kontrol'}" data-o="${i}" data-v="0">Ante al</button>
@@ -245,7 +244,7 @@ function panelCiz() {
 
 // ---------------- Hamleler ve animasyonlar ----------------
 function spotEl(i) { return $('n-alan').querySelector(`.nspot[data-i="${i}"]`); }
-function kasaRect() { return $('n-krupiye').getBoundingClientRect(); }
+function kasaRect() { return $('n-kasa-kutu').getBoundingClientRect(); }
 
 async function fisUcur(kaynak, hedef, miktar, sure = 450) {
   if (!(miktar > 0) || !kaynak || !hedef) return;
@@ -465,7 +464,7 @@ function odemeTablosu() {
   const ana = [['Royal flush', ODEME.RF], ['Renkli kent', ODEME.SF], ['Kare', ODEME[7]], ['Full', ODEME[6]], ['Renk', ODEME[5]],
     ['Kent', ODEME[4]], ['Üçlü', ODEME[3]], ['İki çift', ODEME[2]], ['Çift', ODEME[1]], ['As-Papaz', ODEME.AK]];
   const ex = [['Royal flush', BONUS.RF], ['Renkli kent', BONUS.SF], ['Kare', BONUS[7]], ['Full', BONUS[6]], ['Renk', BONUS[5]],
-    ['Kent', BONUS[4]], ['Üçlü', BONUS[3]]];
+    ['Kent', BONUS[4]], ['Üçlü', BONUS[3]], ['As-Papaz-Kız', BONUS.AKQ]];
   $('n-tablo-bet').innerHTML = '<div class="bas">BET</div>' + ana.map(([a, v]) => satir(a, v)).join('');
   $('n-tablo-ex').innerHTML = '<div class="bas">EXPRESS</div>' + ex.map(([a, v]) => satir(a, v)).join('');
 }

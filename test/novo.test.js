@@ -199,3 +199,104 @@ test('para yükleme: yalnız el bitince, kasanın hesabını değiştirmez', asy
   g = novoDagit(g);
   if (g.el.faz !== 'bitti') assert.throws(() => paraYukle(g, 0, 100), /El bitince/);
 });
+
+// --- Kasayı geçtin mi? Bağımsız bir el değerlendiriciyle çapraz kontrol ---
+// Oyunun değerlendiricisi 5'li kombinasyonları tarar. Buradaki ise farklı bir yöntemle
+// (sayım + sıralama, kombinasyon taraması yok) yalnız 5 kartı puanlar. İkisi 50.000 rastgele
+// el çiftinde aynı kazananı bulmalı.
+function referansPuan(kartlar) {
+  const d = kartlar.map(k => k.d).sort((a, b) => b - a);
+  const renk = new Set(kartlar.map(k => k.r)).size === 1;
+  const tek = [...new Set(d)];
+  let kentTepe = 0;
+  if (tek.length === 5 && d[0] - d[4] === 4) kentTepe = d[0];
+  if (tek.length === 5 && d.join() === '14,5,4,3,2') kentTepe = 5;
+  const say = {};
+  d.forEach(x => { say[x] = (say[x] || 0) + 1; });
+  const gruplar = Object.entries(say).map(([v, n]) => [n, +v]).sort((a, b) => b[0] - a[0] || b[1] - a[1]);
+  const imza = gruplar.map(g => g[0]).join('');
+  const sirali = gruplar.map(g => g[1]);
+  let kat;
+  if (kentTepe && renk) kat = 8; else if (imza === '41') kat = 7; else if (imza === '32') kat = 6;
+  else if (renk) kat = 5; else if (kentTepe) kat = 4; else if (imza === '311') kat = 3;
+  else if (imza === '221') kat = 2; else if (imza === '2111') kat = 1; else kat = 0;
+  const bozucu = kentTepe ? [kentTepe] : sirali;
+  return [kat, ...bozucu].reduce((t, x) => t * 15 + x, 0) * Math.pow(15, 6 - bozucu.length);
+}
+
+test('kasa karşılaştırması: 50.000 rastgele elde bağımsız değerlendiriciyle aynı sonuç', async () => {
+  const { enIyiEl, gucKarsilastir } = await import('../js/kart.js');
+  let farkli = 0, berabere = 0;
+  for (let n = 0; n < 50000; n++) {
+    const d = rastgeleDeste();
+    const oyuncu = d.slice(0, 5), kasa = d.slice(5, 10);
+    const a = Math.sign(gucKarsilastir(enIyiEl(oyuncu).guc, enIyiEl(kasa).guc));
+    const b = Math.sign(referansPuan(oyuncu) - referansPuan(kasa));
+    if (a !== b) farkli++;
+    if (b === 0) berabere++;
+  }
+  assert.equal(farkli, 0);
+  assert.ok(berabere > 0, 'beraberlik durumu da denendi');
+});
+
+test('kasa karşılaştırması: elle seçilmiş zor durumlar', () => {
+  const sonuc = (oy, kasa) => {
+    let g = novoDagit(oyun(['Erman']), deste([oy], kasa));
+    g = novoHamle(g, { tip: 'oyna' });
+    if (g.el.faz === 'oyunsuz') return 'oyunyok';
+    return g.el.oyuncular[0].sonuc.tip;
+  };
+  assert.equal(sonuc('Ah Kd 9c 5s 2d', 'As Kh 8c 5d 3h'), 'kazandi', 'As-Papaz: üçüncü kart 9 > 8');
+  assert.equal(sonuc('Ah Kd 9c 5s 2d', 'As Kh 9d 5d 2h'), 'berabere', 'renkler eşitliği bozmaz');
+  assert.equal(sonuc('Qh Qd 9c 5s 2d', 'Qs Qc 9d 5d 3h'), 'kaybetti', 'aynı çift: son yan kart');
+  assert.equal(sonuc('Jh Jd 4c 4s Ad', 'Js Jc 4d 4h Kh'), 'kazandi', 'aynı iki çift: yan kart');
+  assert.equal(sonuc('Ah 2d 3c 4s 5d', 'Kh Kd 7c 7s 2h'), 'kazandi', 'As ile en küçük kent iki çifti yener');
+  assert.equal(sonuc('Ah 2d 3c 4s 5d', '2h 3d 4c 5s 6d'), 'kaybetti', '6 tepeli kent As-5 kentini yener');
+  assert.equal(sonuc('9h 9d 9c 4s 4d', 'Th Td 3c 3s 3d'), 'kazandi', 'full: üçlü belirler');
+  assert.equal(sonuc('2h 7h 9h Jh 4h', '2d 7d 9d Jd 5d'), 'kaybetti', 'renk: son kart');
+  assert.equal(sonuc('Kh Qd 9c 5s 2d', 'Ah Qs 8c 5d 3h'), 'oyunyok', 'As var Papaz yok: kasanın oyunu yok');
+  assert.equal(sonuc('2h 3d 7c 9s Jd', 'Ah Kh 8c 5d 3c'), 'kaybetti', 'kasa As-Papaz ile oyuna girer ve yüksek kartı yener');
+});
+
+test('döper: gerçek ve yalancı ayrımı', async () => {
+  const { doperTuru } = await import('../js/novo.js');
+  assert.equal(doperTuru(K('4h 4d Ac Ks 9d')), 'gercek');
+  assert.equal(doperTuru(K('Ah Ad Kc 7s 2d')), 'yalanci');
+  assert.equal(doperTuru(K('Kh Kd Ac 7s 2d')), 'yalanci');
+  assert.equal(doperTuru(K('Ah Ad Qc 7s 2d')), null, 'Papaz yok');
+  assert.equal(doperTuru(K('4h 4d 9c 9s Ad')), null, 'iki çift döper değil');
+});
+
+test('döper ödemesi ve gerçek döperin yalancıyı geçmesi', () => {
+  const oyna = (oy, kasa) => {
+    let g = novoDagit(oyun(['Erman']), deste([oy], kasa));
+    g = novoHamle(g, { tip: 'oyna' });
+    return g;
+  };
+  // Yalancı döper (A-A-K) kasanın 4 çiftini geçer: 2'ye 1
+  let g = oyna('Ah Ad Kc 7s 2d', '4h 4c 9d 6s 3h');
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kazandi');
+  assert.equal(g.el.oyuncular[0].sonuc.oran, 2);
+  assert.equal(g.oyuncular[0].fis, 1000 - 40 + (10 + 20 + 40 + 10));
+  // K-K-A de yalancı döper: 2'ye 1
+  g = oyna('Kh Kd Ac 7s 2d', '4h 4c 9d 6s 3h');
+  assert.equal(g.el.oyuncular[0].sonuc.oran, 2);
+  // Kasada gerçek döper (4-4-A-K) varsa yalancı döper (A-A-K) kaybeder
+  g = oyna('Ah Ad Kc 7s 2d', '4h 4c As Ks 3h');
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti');
+  // Oyuncuda gerçek döper, kasada yalancı: oyuncu kazanır, 2'ye 1
+  g = oyna('4h 4c As Ks 3h', 'Ah Ad Kc 7s 2d');
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kazandi');
+  assert.equal(g.el.oyuncular[0].sonuc.oran, 2);
+  // Yalancı döper, döpersiz büyük çifte normal kurala göre kaybeder (A-A kasada)
+  g = oyna('Kh Kd Ac 7s 2d', 'As Ac 9d 6s 3h');
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti');
+});
+
+test('As-Papaz-Kız elden express 5\'e 1 öder, oyunda As-Papaz kalır', () => {
+  let g = novoDagit(oyun(['Erman']), deste(['Ah Kd Qc 7s 2d'], '4h 4c 9d 6s 3h'));
+  assert.equal(g.el.oyuncular[0].bonusOran, 5);
+  assert.equal(g.oyuncular[0].fis, 1000 - 20 + 60);
+  g = novoHamle(g, { tip: 'oyna' });
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti', 'oyunda per değil: 4 çiftine kaybeder');
+});
