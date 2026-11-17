@@ -7,6 +7,7 @@ import { yiginEl } from './fis.js';
 import { $, ekranGoster, kartEl, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
 import { krupiyeKur, ruh } from './krupiye.js';
+import * as konus from './konus.js';
 
 const ANAHTAR = 'poker.novo.v1';
 let N = null;          // { g, gecmis }
@@ -136,6 +137,11 @@ function ciz() {
     const sig = document.createElement('div'); sig.className = 'ncekme nsigorta';
     sig.innerHTML = '<span>SİGORTA</span>';
     if (p && p.sigorta > 0 && el.faz !== 'bitti') sig.appendChild(yiginEl(p.sigorta, { boyut: 18, enCok: 4 }));
+    // Kasa boş açtıysa sigorta kesinleşti: kutu altın renginde ve kazancı yazar
+    if (p && p.sigorta > 0 && el.krupiyeAcik && el.ilkOyun === false) {
+      sig.classList.add('kazandi');
+      sig.insertAdjacentHTML('beforeend', `<b class="sig-kazanc">+${para(p.sigorta)}</b>`);
+    }
     daireler.appendChild(sig);
 
     const levha = document.createElement('div'); levha.className = 'nlevha';
@@ -165,7 +171,7 @@ function daireTutari(p, k) {
 function sonucYazi(p) {
   const s = p.sonuc;
   if (!s) return '';
-  const net = (p.net >= 0 ? '+' : '−') + para(Math.abs(p.net)) + (p.sigorta ? (p.sigortaGeri ? ' · sigorta ödendi' : ' · sigorta kasanın') : '');
+  const net = (p.net >= 0 ? '+' : '−') + para(Math.abs(p.net)) + (p.sigorta ? (p.sigortaGeri ? ` · sigorta kazandı +${para(p.sigorta)}` : ' · sigorta yandı') : '');
   if (s.tip === 'oyunyok') return `Kasanın oyunu yok · ${net}`;
   if (s.tip === 'berabere') return `Berabere · ${net}`;
   if (s.tip === 'kazandi') return `${p.elAdi}${s.ikinciEl != null ? ' + ' + EL_ADI[s.ikinciEl] : s.ikinciAK ? ' + As-Papaz' : ''} ${s.oran}:1 · ${net}`;
@@ -203,6 +209,7 @@ function panelCiz() {
     pn.innerHTML = `<div class="eylem-baslik"><span class="kim">Kasanın oyunu yok</span>
       <span class="ne">İyi eli olan seçsin: ante'yi al ya da ${para(el.ante)} verip kasaya kart çektir (kasa oyun bulabilir). Diğerlerinin ante'si otomatik ödenir.</span></div>
       <div class="oyunsuz">${oynayan.map(i => `
+        ${el.oyuncular[i].sigorta ? `<div class="sig-not">${kacis(g.oyuncular[i].ad)}: sigortan kazandı, +${para(el.oyuncular[i].sigorta)} kesin</div>` : ''}
         <div class="satir"><b style="flex:0 0 120px">${kacis(g.oyuncular[i].ad)}</b>
           <button class="${oyunsuzSecim[i] ? 'btn-ikincil' : 'b-kontrol'}" data-o="${i}" data-v="0">Ante al</button>
           <button class="${oyunsuzSecim[i] ? 'b-yukselt' : 'btn-ikincil'}" data-o="${i}" data-v="1">Kasaya kart çektir ${para(el.ante)}</button>
@@ -271,6 +278,17 @@ function panelCiz() {
       uygula(g2 => novoHamle(g2, { tip: a }), a);
     });
   }
+}
+
+const g0ad = i => N.g.oyuncular[i].ad;
+let duyuruZaman = null;
+function duyuru(html) {
+  const d = $('duyuru');
+  d.innerHTML = html;
+  d.classList.add('acik');
+  clearTimeout(duyuruZaman);
+  duyuruZaman = setTimeout(() => d.classList.remove('acik'), 4000);
+  d.onclick = () => d.classList.remove('acik');
 }
 
 // ---------------- Hamleler ve animasyonlar ----------------
@@ -390,6 +408,25 @@ async function sonAnimasyon(once, yeni) {
   if (acildi) {
     for (let j = 0; j < 4; j++) { kr[j].classList.add('acik'); ses.kartCevir(); await bekle(380); }
     await bekle(300);
+    const sigortalilar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && p.sigorta > 0);
+    if (el.ilkOyun) {
+      konus.konus(`Kasa ${konus.elSoyle(sinif(el.krupiye).anahtar)}.`);
+      for (const [, i] of sigortalilar) konus.konus(`${g.oyuncular[i].ad} sigortayı kaybetti.`);
+    } else {
+      konus.konus('Kasa boş.');
+      for (const [p, i] of sigortalilar) konus.konus(`${g.oyuncular[i].ad}, sigortadan ${konus.dolar(p.sigorta)} kazanır.`);
+    }
+    // Kasa boş açtı: sigorta yapanlar kazandı, bunu büyük söyle
+    if (!el.ilkOyun) {
+      const sigortali = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && p.sigorta > 0);
+      if (sigortali.length) {
+        ruh('saskin', 2500);
+        duyuru(`<div class="no" style="font-size:clamp(34px,6vw,64px)">KASA BOŞ AÇTI</div>
+          <div style="font-size:24px">Sigorta kazandı: ${sigortali.map(([p, i]) => `<b>${kacis(g.oyuncular[i].ad)} +${para(p.sigorta)}</b>`).join(' · ')}</div>
+          <div class="kk">Sigorta 1'e 1 ödendi; kasa sonradan kart çekse de geçerli</div>`);
+        ses.fis(6);
+      }
+    }
   }
   if (degisti) {
     el.krupiye = krupiyeSon; el.krupiyeAcik = true;
@@ -414,6 +451,18 @@ async function sonAnimasyon(once, yeni) {
     const s = spotEl(i), ex = s.querySelector('.ndaire.express');
     ex.querySelector('.yer').innerHTML = '';
     await fisUcur(ex, p.bonusOdeme ? s.querySelector('.nlevha') : kasaRect(), p.bonus, 300);
+  }
+  if (degisti) konus.konus(el.krupiyeOyunu ? `Kasa kart çekti, ${konus.elSoyle(sinif(el.krupiye).anahtar)} oldu.` : 'Kasa kart çekti, yine boş.');
+  for (const [p, i] of spotlar) {
+    const ad = g.oyuncular[i].ad, t = p.sonuc.tip;
+    if (t === 'kazandi') {
+      const k = kombinasyonlar(p.kartlar);
+      const elAd = konus.elSoyle(k.ana) + (k.ikinci != null ? ' ve ' + konus.elSoyle(k.ikinci) : '');
+      const odeme = p.bahis * p.sonuc.oran;
+      konus.konus(`${elAd}! ${ad}, ${konus.dolar(odeme)} ödeme.${odeme >= 10 * el.ante ? ` Tebrikler ${ad}!` : ''}`);
+    } else if (t === 'kaybetti') konus.konus(`${ad} kaybetti.`);
+    else if (t === 'berabere') konus.konus(`${ad}, berabere.`);
+    else if (t === 'oyunyok' && p.satinAldi) konus.konus(`${ad}, ante yandı.`);
   }
   for (const [p, i] of spotlar) {
     const s = spotEl(i);
@@ -446,6 +495,7 @@ async function sonAnimasyon(once, yeni) {
 async function dagit() {
   if (mesgul) return;
   ses.acil();
+  konus.kilidiAc();
   let yeni;
   try { yeni = novoDagit(N.g); } catch (e) { hata = e.message; panelCiz(); return; }
   gecmiseAt(); hata = ''; N.g = yeni; kaydet();
@@ -485,6 +535,7 @@ async function dagit() {
     const ex = s.querySelector('.ndaire.express');
     if (p.bonusOdeme) {
       ruh(p.bonusOran >= 30 ? 'saskin' : 'goz', 1600);
+      konus.konus(`${g0ad(i)}, express ${konus.elSoyle(bonusAnahtari(p.ilk))}, ${konus.dolar(p.bonusOdeme - p.bonus)}`);
       await fisUcur(kasaRect(), ex, p.bonusOdeme - p.bonus, 500);
       await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme - p.bonus, 450);
     }
@@ -538,10 +589,12 @@ export function novoBagla() {
   $('n-menu').onclick = () => {
     perdeAc(`<div style="font-size:20px;font-weight:800">Novo masası</div>
       <button class="btn-ikincil" id="nm-yukle">Para yükle</button>
+      <button class="btn-ikincil" id="nm-konus">Seslendirme: ${konus.acikMi() ? 'Açık' : 'Kapalı'}</button>
       <button class="btn-ikincil" id="nm-yeniden">Baştan başlat (herkese ${para(N.g.baslangicFis)})</button>
       <button class="btn-tehlike" id="nm-kapat">Masayı kapat</button>
       <button class="btn-ana" id="nm-tamam">Kapat</button>`, k => {
       k.querySelector('#nm-tamam').onclick = perdeKapat;
+      k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.konus('Seslendirme açık.'); } };
       k.querySelector('#nm-yukle').onclick = () => { perdeKapat(); if (!N.g.el || N.g.el.faz === 'bitti') yukleAc(); };
       k.querySelector('#nm-yeniden').onclick = async () => {
         perdeKapat();

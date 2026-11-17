@@ -414,3 +414,9 @@ input, select {
 @keyframes kr-kupe { 50% { transform: rotate(8deg); } }
 /* Eller kartların üstünde görünsün */
 .krupiye { width: clamp(140px, 15vw, 180px); margin-bottom: -6px; }
+
+.ncekme.nsigorta.kazandi { border-color: #ffd765; background: #ffd76526; box-shadow: 0 0 14px #ffd76588; }
+.ncekme.nsigorta.kazandi span { color: #ffd765; }
+.sig-kazanc { position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #ffd765; background: #0009; border-radius: 6px; padding: 0 5px; white-space: nowrap; }
+.ncekme { position: relative; }
+.sig-not { color: #ffd765; font-weight: 800; text-align: center; margin: 4px 0; }

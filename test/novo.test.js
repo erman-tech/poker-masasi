@@ -491,3 +491,57 @@ test('sahte renk: ilk 5 kart hepsi kırmızı ya da hepsi siyah → express 2:1'
   assert.equal(bonusOrani(K('7h 7d 4h 4d 2h')), 2, 'kırmızı iki çift: iki çifte bonus yok, sahte renk öder');
   assert.equal(bonusOrani(K('Ah Kd Qh 4d 2h')), 5, 'As-Papaz-Kız sahte renkten yüksek');
 });
+
+test('52 kartlık deste: çekmeler, 6. kart ve kasanın çektiği kartlar dahil hiçbir kart iki kez çıkmaz', () => {
+  const ad = k => k.d + k.r;
+  let el = 0, cekilen = 0, kasaCekti = 0;
+  const ilkKart = new Map();
+  for (let tur = 0; tur < 20000; tur++) {
+    let g = yeniNovo({ adlar: ['A', 'B', 'C'], kod: 'X', baslangicFis: 100000 });
+    g = novoDagit(g);
+    const deste = g.el.deste.map(ad);
+    assert.equal(new Set(deste).size, 52, 'deste 52 farklı kart');
+    const ilk = ad(g.el.oyuncular[0].kartlar[0]);
+    ilkKart.set(ilk, (ilkKart.get(ilk) || 0) + 1);
+    const gorunen = new Set();
+    const ekle = k => { const a = ad(k); assert.ok(deste.includes(a)); gorunen.add(a); };
+    g.el.oyuncular.forEach(p => p.kartlar.forEach(ekle));
+    g.el.krupiye.forEach(ekle);
+    assert.equal(gorunen.size, 20, 'dağıtılan 20 kart birbirinden farklı');
+    while (g.el.faz !== 'bitti') {
+      if (g.el.faz === 'oyunsuz') {
+        const once = g.el.cek;
+        g = oyunSatinAl(g, [true, true, true]);
+        kasaCekti += g.el.cek - once;
+        continue;
+      }
+      const y = novoYasal(g);
+      if ('sigorta' in y) { g = novoHamleGercek(g, { tip: 'sigorta', miktar: 0 }); continue; }
+      if (y.asama === 'cekme') {
+        const r = Math.random(), once = g.el.cek;
+        if (r < 0.6) g = novoHamleGercek(g, { tip: 'degistir', konumlar: [0, 1, 2, 3, 4].filter(() => Math.random() < 0.5).concat([2]) });
+        else if (r < 0.8) g = novoHamleGercek(g, { tip: 'alti' });
+        else g = novoHamleGercek(g, { tip: 'gec' });
+        cekilen += g.el.cek - once;
+      } else g = novoHamleGercek(g, { tip: 'oyna' });
+    }
+    // el sonunda: herkesin eli ve kasanın son eli birbirinden ve atılan kartlardan farklı;
+    // çekilen her kart destenin sıradaki kartı (kullanılmamış)
+    const son = new Set();
+    for (const p of g.el.oyuncular) for (const k of p.kartlar) son.add(ad(k));
+    for (const k of g.el.krupiye) son.add(ad(k));
+    const toplam = g.el.oyuncular.reduce((t, p) => t + p.kartlar.length, 0) + 5;
+    assert.equal(son.size, toplam, 'masadaki kartların hiçbiri iki kez yok');
+    assert.ok(g.el.cek <= 52);
+    // her oyuncunun değiştirilen kartları yeni gelenlerle çakışmaz
+    for (const p of g.el.oyuncular) for (const k of p.ilk) if (!p.kartlar.some(x => ad(x) === ad(k))) {
+      assert.ok(!son.has(ad(k)), 'atılan kart masaya geri gelmez');
+    }
+    el++;
+  }
+  assert.equal(el, 20000);
+  assert.ok(cekilen > 30000 && kasaCekti > 500, `yeterince çekme sınandı (${cekilen} oyuncu, ${kasaCekti} kasa)`);
+  // ilk kart 52 değerin her birine yakın sıklıkla düşer (rastgelelik)
+  assert.equal(ilkKart.size, 52);
+  for (const n of ilkKart.values()) assert.ok(n > 20000 / 52 * 0.7 && n < 20000 / 52 * 1.3);
+});
