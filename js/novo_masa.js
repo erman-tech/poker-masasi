@@ -722,6 +722,7 @@ export function novoBagla() {
       <button class="btn-ikincil" id="nm-yukle">Para yükle</button>
       <button class="btn-ikincil" id="nm-konus">Seslendirme: ${konus.acikMi() ? 'Açık' : 'Kapalı'}</button>
       <button class="btn-ikincil" id="nm-ortam">Casino uğultusu: ${ses.ortamAcikMi() ? 'Açık' : 'Kapalı'}</button>
+      <button class="btn-ikincil" id="nm-cekmeler">Kasanın çektiği kartlar</button>
       <button class="btn-ikincil" id="nm-kutlama">Büyük bonus kutlamasını göster</button>
       <button class="btn-ikincil" id="nm-yeniden">Baştan başlat (herkese ${para(N.g.baslangicFis)})</button>
       <button class="btn-tehlike" id="nm-kapat">Masayı kapat</button>
@@ -729,6 +730,18 @@ export function novoBagla() {
       k.querySelector('#nm-tamam').onclick = perdeKapat;
       k.querySelector('#nm-ortam').onclick = e => { ses.acil(); ses.ortamAyarla(!ses.ortamAcikMi()); e.target.textContent = 'Casino uğultusu: ' + (ses.ortamAcikMi() ? 'Açık' : 'Kapalı'); };
       k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.soyle('seslendirme_acik'); } };
+      k.querySelector('#nm-cekmeler').onclick = () => {
+        const liste = N.g.kasaCekmeleri || [];
+        const kAd = c => (DEGER_AD[c.d] || String(c.d)) + RENK_SIMGE[c.r];
+        const say = {};
+        for (const c of liste) say[c.yeni.d] = (say[c.yeni.d] || 0) + 1;
+        const sira = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
+        perdeAc(`<div style="font-size:20px;font-weight:800">Kasanın çektiği kartlar</div>
+          <div class="ne">${liste.length ? `Bu masada kasaya ${liste.length} kez kart çektirildi.` : 'Bu masada henüz kasaya kart çektirilmedi.'} Deste her elde baştan karıştırılır; kasa en yüksek kartını atar, bir kart gömer, sıradakini alır.</div>
+          ${liste.length ? `<div class="dokum-satir">${sira.filter(d => say[d]).map(d => `<span><b>${DEGER_AD[d] || d}</b> ${say[d]}</span>`).join('')}</div>
+          <div class="ne" style="font-size:13px">Son çekişler: ${liste.slice(-15).reverse().map(c => `${kAd(c.at)} attı → ${kAd(c.yeni)}`).join(' · ')}</div>` : ''}
+          <button class="btn-ana" id="kc-tamam">Kapat</button>`, k2 => { k2.querySelector('#kc-tamam').onclick = perdeKapat; });
+      };
       k.querySelector('#nm-kutlama').onclick = async () => {
         perdeKapat();
         if (mesgul) return;

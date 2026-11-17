@@ -417,6 +417,8 @@ export function oyunSatinAl(g0, secimler) {
     el.krupiyeYakilan = el.deste[el.cek++];
     el.krupiye = el.krupiye.map((k, j) => (j === enYuksek ? el.deste[el.cek++] : k));
     el.krupiyeYeni = el.krupiye[enYuksek];
+    // Kasanın çektiği kartların geçmişi (menüden bakılır): hangi değerler geliyor, şans mı?
+    g.kasaCekmeleri = [...(g.kasaCekmeleri || []), { at: el.krupiyeAtilan, yeni: el.krupiyeYeni }].slice(-300);
     const tur = 1;
     el.krupiyeDegisim = tur;
     el.krupiyeOyunu = krupiyeOyunuVar(el.krupiye);
