@@ -545,3 +545,28 @@ test('52 kartlık deste: çekmeler, 6. kart ve kasanın çektiği kartlar dahil 
   assert.equal(ilkKart.size, 52);
   for (const n of ilkKart.values()) assert.ok(n > 20000 / 52 * 0.7 && n < 20000 / 52 * 1.3);
 });
+
+test('kasa boşken her oyuncu ayrı seçer: biri kasaya kart çektirir, öteki ante alır', () => {
+  let bulundu = 0;
+  for (let n = 0; n < 50000 && bulundu < 3; n++) {
+    let g = yeniNovo({ adlar: ['A', 'B'], kod: 'X', baslangicFis: 100000 });
+    g = novoDagit(g);
+    g = novoHamleGercek(g, { tip: 'gec' }); g = novoHamleGercek(g, { tip: 'gec' });
+    for (let i = 0; i < 2; i++) {
+      g = novoHamleGercek(g, { tip: 'oyna' });
+      if ('sigorta' in (novoYasal(g) || {})) g = novoHamleGercek(g, { tip: 'sigorta', miktar: 0 });
+    }
+    if (g.el.faz !== 'oyunsuz') continue;
+    const sorulan = g.el.oyuncular.map((p, i) => p.satinAldi === null ? i : -1).filter(i => i >= 0);
+    if (sorulan.length < 2) continue;
+    const fisB = g.oyuncular[1].fis;
+    g = oyunSatinAl(g, [true, false]);
+    const [a, b] = g.el.oyuncular;
+    assert.equal(a.satinAldi, true); assert.equal(b.satinAldi, false);
+    assert.equal(b.sonuc.tip, 'oyunyok');
+    assert.equal(g.oyuncular[1].fis, fisB + 2 * b.ante + b.bahis, 'B ante 1:1 aldı, bet geri');
+    assert.notEqual(a.sonuc, null);
+    bulundu++;
+  }
+  assert.ok(bulundu > 0);
+});
