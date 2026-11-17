@@ -239,3 +239,7 @@ test('rastgele oyunlarda fiş korunur ve motor takılmaz', () => {
     assert.ok(g.bitti, 'oyun bitmedi');
   }
 });
+
+test('pot hesabı: pas geçenin katkısı kalanlardan fazlaysa yine potta kalır', () => {
+  assert.deepEqual(potlariHesapla([200, 50], [true, false]), [{ miktar: 250, hak: [1] }]);
+});
