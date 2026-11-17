@@ -129,6 +129,10 @@ function ciz() {
     cek.innerHTML = '<span>ÇEKME</span>';
     if (p && p.ucret > 0 && el.faz !== 'bitti') cek.appendChild(yiginEl(p.ucret, { boyut: 18, enCok: 4 }));
     daireler.appendChild(cek);
+    const sig = document.createElement('div'); sig.className = 'ncekme nsigorta';
+    sig.innerHTML = '<span>SİGORTA</span>';
+    if (p && p.sigorta > 0 && el.faz !== 'bitti') sig.appendChild(yiginEl(p.sigorta, { boyut: 18, enCok: 4 }));
+    daireler.appendChild(sig);
 
     const levha = document.createElement('div'); levha.className = 'nlevha';
     levha.innerHTML = `<div class="ad">${kacis(o.ad)}</div><div class="fis-sayi">${para(o.fis)}</div>` +
@@ -156,7 +160,7 @@ function daireTutari(p, k) {
 function sonucYazi(p) {
   const s = p.sonuc;
   if (!s) return '';
-  const net = (p.net >= 0 ? '+' : '−') + para(Math.abs(p.net));
+  const net = (p.net >= 0 ? '+' : '−') + para(Math.abs(p.net)) + (p.sigorta ? (p.sigortaGeri ? ' · sigorta ödendi' : ' · sigorta kasanın') : '');
   if (s.tip === 'oyunyok') return `Kasanın oyunu yok · ${net}`;
   if (s.tip === 'berabere') return `Berabere · ${net}`;
   if (s.tip === 'kazandi') return `${p.elAdi}${s.ikinciAK ? ' + As-Papaz' : ''} ${s.oran}:1 · ${net}`;
@@ -207,7 +211,15 @@ function panelCiz() {
   const A = el.ante;
   let html = `<div class="eylem-baslik"><span class="kim">Sıra: ${kacis(o.ad)}</span>
     <span class="ne">${EL_ADI[sinif(p.kartlar).anahtar]} · elinde ${para(o.fis)}</span></div>`;
-  if (secimModu) {
+  if ('sigorta' in y) {
+    const s = y.sigorta;
+    html += `<div class="ne" style="text-align:center;font-size:17px">Sigorta yapıyor musun? Kasanın oyunu olmazsa 1'e 1 öder.</div>
+      <div class="dugmeler" style="grid-template-columns:repeat(${s.enAz === s.enCok ? 2 : 3},1fr)">
+        <button class="btn-ikincil" data-s="0">Sigorta yok</button>
+        ${s.enAz === s.enCok ? '' : `<button class="b-kontrol" data-s="${s.enAz}">Min ${para(s.enAz)}</button>`}
+        <button class="b-yukselt" data-s="${s.enCok}">${s.enAz === s.enCok ? '' : 'Max '}${para(s.enCok)}</button>
+      </div>`;
+  } else if (secimModu) {
     html += `<div class="buyuk-kartlar" id="n-secim">${p.kartlar.map((_, j) => `<div data-j="${j}"></div>`).join('')}</div>
       <div class="ne" style="text-align:center;color:var(--soluk)">Değiştirmek istediğin kartlara dokun</div>
       <div class="satir"><button class="btn-ikincil" id="n-vazgec">Vazgeç</button>
@@ -221,7 +233,12 @@ function panelCiz() {
   }
   html += `<div class="hata">${kacis(hata)}</div>`;
   pn.innerHTML = html;
-  if (secimModu) {
+  if ('sigorta' in y) {
+    pn.querySelectorAll('[data-s]').forEach(b => b.onclick = () => {
+      ses.acil();
+      uygula(g2 => novoHamle(g2, { tip: 'sigorta', miktar: Number(b.dataset.s) }), 'sigorta');
+    });
+  } else if (secimModu) {
     const kap = $('n-secim');
     [...kap.children].forEach((d, j) => {
       const ke = kartEl(p.kartlar[j], true);
@@ -276,6 +293,12 @@ async function uygula(fn, tip) {
     const i = once.el.sira;
     ciz();
     await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ndaire.bet'), 2 * once.el.ante);
+  }
+  if (tip === 'sigorta') {
+    const i = once.el.sira;
+    const m = yeni.el.oyuncular[i].sigorta;
+    ciz();
+    if (m) await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.nsigorta'), m);
   }
   if (tip === 'pas') {
     const i = once.el.sira;
@@ -385,6 +408,11 @@ async function sonAnimasyon(once, yeni) {
       await fisUcur(bet, levha, p.geri, 450);
     }
     if (p.ucret) await fisUcur(s.querySelector('.ncekme'), kasaRect(), p.ucret, 350);
+    if (p.sigorta) {
+      const sg = s.querySelector('.nsigorta');
+      if (p.sigortaGeri) { await fisUcur(kasaRect(), sg, p.sigorta, 450); await fisUcur(sg, levha, p.sigortaGeri, 400); }
+      else await fisUcur(sg, kasaRect(), p.sigorta, 350);
+    }
   }
   mesgul = false;
   void g;

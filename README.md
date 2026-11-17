@@ -37,6 +37,8 @@ kartlarını hesaplayabilir. Arkadaş masası için yazıldı.
 - Sırayla: Pas · Oyna ($50) · Kart çek ($25, istediğin kartları seç) · 6. kart ($25).
 - Kasanın son kartı açık, 4'ü kapalı. Kasa As-Papaz ve üstüyle oyuna girer; girmezse
   ante'yi al ya da $25 verip kasaya oyun satın al.
+- Üçlü ve üstüyle oynayana sigorta sorulur: yok / min $50 / max (kazanılacak betin yarısı,
+  parası azsa parası kadar). Kasanın oyunu olmazsa 1'e 1 öder, olursa kasanın.
 - Üst çubukta kasanın bu oyundaki artı/eksisi. Parası biten tabletten para yükler.
 - Her el iPad'in güvenli rastgele üreteciyle sıfırdan karıştırılır.
 

@@ -19,6 +19,8 @@ function deste(eller, krupiye, cekilecek = '') {
 }
 const oyun = (adlar = ['Erman', 'Fidan', 'Emrah']) => yeniNovo({ adlar, kod: 'N1', ante: 10 }); // testte ante 10: express 10, çekme 10, oyna 20
 const fis = g => g.oyuncular.map(o => o.fis);
+// Oyna; sigorta sorulursa sigortasız devam et.
+const oyna0 = g => { g = novoHamle(g, { tip: 'oyna' }); const y = novoYasal(g); return y && 'sigorta' in y ? novoHamle(g, { tip: 'sigorta', miktar: 0 }) : g; };
 
 test('el sınıfları ve krupiye oyunu', () => {
   assert.equal(sinif(K('Ah Kd 7c 5s 2d')).anahtar, 'AK');
@@ -54,9 +56,9 @@ test('bonus ilk ele göre dağıtımda hemen ödenir', () => {
 test('pas: ante gider; oyna: krupiye oyunlu, iyi el kazanır', () => {
   // Krupiye: Q çifti. Erman renk, Fidan pas, Emrah yüksek kart (kaybeder)
   let g = novoDagit(oyun(), deste(['2h 5h 9h Jh Kh', 'Ah Ad 3c 5s 9d', '2c 4d 6c 8s Td'], 'Qc Qd 3d 7s 4c'));
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   g = novoHamle(g, { tip: 'pas' });
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   assert.equal(g.el.faz, 'bitti');
   // Erman: express renk 60'a 1 → 610; oyna: renk 5'e 1 → 20+100 + ante 10 + ante kazancı 10 = 140
   // 1000 - 20 + 610 - 20 + 140 = 1710. Fidan pas: 980. Emrah kaybetti: 960.
@@ -73,7 +75,7 @@ test('kart değiştirme: seçilen kartlar sırayla gelir, ücret gider, ante kaz
   assert.deepEqual(g.el.oyuncular[0].kartlar.map(kartYazi), ['7♥', '7♦', '7♣', '7♠', 'K♦']);
   y = novoYasal(g);
   assert.equal(y.degistir, false, 'bir kez'); assert.equal(y.alti, false);
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   // 10 ante + 10 express + 10 ücret + 20 bahis = 50. Kare 20'ye 1 → 20+400+ante 10 = 430
   assert.equal(fis(g)[0], 1000 - 50 + 430);
 });
@@ -82,21 +84,21 @@ test('6. kart: en iyi 5 kart sayılır', () => {
   let g = novoDagit(oyun(['Erman']), deste(['2h 5h 9h Jh 3c'], 'Qc Qd 3d 8s 4c', 'Kh'));
   g = novoHamle(g, { tip: 'alti' });
   assert.equal(g.el.oyuncular[0].kartlar.length, 6);
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   assert.equal(g.el.oyuncular[0].elAdi, 'Renk');
   assert.equal(fis(g)[0], 1000 - 50 + (10 + 20 + 100));
 });
 
 test('beraberlik: ante ve bahis geri', () => {
   let g = novoDagit(oyun(['Erman']), deste(['Qh Qs 3c 8d 4h'], 'Qc Qd 3d 8s 4c'));
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   assert.equal(g.el.oyuncular[0].sonuc.tip, 'berabere');
   assert.equal(fis(g)[0], 1000 - 10, 'yalnız express gider');
 });
 
 test('krupiyenin oyunu yok: ante al seçen ante kadar kazanır', () => {
   let g = novoDagit(oyun(['Erman']), deste(['2h 2d 3c 8d 4h'], 'Jc 9d 3d 7s 5c'));
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   assert.equal(g.el.faz, 'oyunsuz');
   g = oyunSatinAl(g, [false]);
   assert.equal(g.el.faz, 'bitti');
@@ -106,7 +108,7 @@ test('krupiyenin oyunu yok: ante al seçen ante kadar kazanır', () => {
 test('oyun satın alma: krupiye en yüksek kartını değiştirir, oyun doğarsa karşılaştırılır', () => {
   // Krupiye J yüksek. Satın alınca J (en yüksek) değişir; gelen 9 → 9 çifti, oyun var.
   let g = novoDagit(oyun(['Erman']), deste(['Th Td 3c 8d 4h'], 'Jc 9d 3d 7s 5c', '9s'));
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   g = oyunSatinAl(g, [true]);
   assert.equal(g.el.krupiyeOyunu, true);
   assert.equal(g.el.krupiyeDegisim, 1);
@@ -117,7 +119,7 @@ test('oyun satın alma: krupiye en yüksek kartını değiştirir, oyun doğarsa
 
 test('ikinci As-Papaz ödemesi çiftin üstüne eklenir', () => {
   let g = novoDagit(oyun(['Erman']), deste(['7h 7d Ac Ks 2d'], 'Qc 4d 3d 8s 4c'));
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   const p = g.el.oyuncular[0];
   assert.equal(p.sonuc.tip, 'kazandi'); assert.equal(p.sonuc.oran, 2);
   assert.equal(fis(g)[0], 1000 - 40 + (10 + 20 + 40 + 10));
@@ -164,11 +166,12 @@ test('rastgele oyunlarda motor takılmaz, fiş eksiye düşmez', () => {
         assert.ok(++adim < 30);
         if (g.el.faz === 'oyunsuz') { g = oyunSatinAl(g, g.oyuncular.map(() => Math.random() < 0.5)); continue; }
         const y = novoYasal(g);
+        if ('sigorta' in y) { g = novoHamle(g, { tip: 'sigorta', miktar: Math.random() < 0.5 ? 0 : y.sigorta.enCok }); continue; }
         const r = Math.random();
         if (r < 0.2) g = novoHamle(g, { tip: 'pas' });
         else if (r < 0.4 && y.degistir) g = novoHamle(g, { tip: 'degistir', konumlar: [0, 2, 4].filter(() => Math.random() < 0.7).concat([1]) });
         else if (r < 0.5 && y.alti) g = novoHamle(g, { tip: 'alti' });
-        else if (y.oyna) g = novoHamle(g, { tip: 'oyna' });
+        else if (y.oyna) g = oyna0(g);
         else g = novoHamle(g, { tip: 'pas' });
       }
       assert.ok(g.oyuncular.every(o => o.fis >= 0));
@@ -180,7 +183,7 @@ test('rastgele oyunlarda motor takılmaz, fiş eksiye düşmez', () => {
 
 test('kasanın artısı/eksisi oyuncuların toplam kaybına eşit', () => {
   let g = novoDagit(oyun(), deste(['2h 5h 9h Jh Kh', 'Ah Ad 3c 5s 9d', '2c 4d 6c 8s Td'], 'Qc Qd 3d 7s 4c'));
-  g = novoHamle(g, { tip: 'oyna' }); g = novoHamle(g, { tip: 'pas' }); g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g); g = novoHamle(g, { tip: 'pas' }); g = oyna0(g);
   const oyuncuDegisim = g.oyuncular.reduce((t, o) => t + o.fis - 1000, 0);
   assert.equal(g.kasaNet, -oyuncuDegisim);
   assert.equal(g.kasaNet, -(710 - 20 - 40));
@@ -242,7 +245,7 @@ test('kasa karşılaştırması: 50.000 rastgele elde bağımsız değerlendiric
 test('kasa karşılaştırması: elle seçilmiş zor durumlar', () => {
   const sonuc = (oy, kasa) => {
     let g = novoDagit(oyun(['Erman']), deste([oy], kasa));
-    g = novoHamle(g, { tip: 'oyna' });
+    g = oyna0(g);
     if (g.el.faz === 'oyunsuz') return 'oyunyok';
     return g.el.oyuncular[0].sonuc.tip;
   };
@@ -270,7 +273,7 @@ test('döper: gerçek ve yalancı ayrımı', async () => {
 test('döper ödemesi ve gerçek döperin yalancıyı geçmesi', () => {
   const oyna = (oy, kasa) => {
     let g = novoDagit(oyun(['Erman']), deste([oy], kasa));
-    g = novoHamle(g, { tip: 'oyna' });
+    g = oyna0(g);
     return g;
   };
   // Yalancı döper (A-A-K) kasanın 4 çiftini geçer: 2'ye 1
@@ -297,6 +300,50 @@ test('As-Papaz-Kız elden express 5\'e 1 öder, oyunda As-Papaz kalır', () => {
   let g = novoDagit(oyun(['Erman']), deste(['Ah Kd Qc 7s 2d'], '4h 4c 9d 6s 3h'));
   assert.equal(g.el.oyuncular[0].bonusOran, 5);
   assert.equal(g.oyuncular[0].fis, 1000 - 20 + 60);
-  g = novoHamle(g, { tip: 'oyna' });
+  g = oyna0(g);
   assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti', 'oyunda per değil: 4 çiftine kaybeder');
+});
+
+test('sigorta: üçlü ve üstünde sorulur; en az 2 ante, en çok kazanılacak betin yarısı', async () => {
+  const { sigortaSiniri } = await import('../js/novo.js');
+  // ante 25: bet 50. Full: 7 x 50 / 2 = 175
+  let g = novoDagit(yeniNovo({ adlar: ['Erman', 'Fidan'], kod: 'N', ante: 25 }),
+    deste(['9h 9d 9c 4s 4d', '2h 2d 7c 8s Jd'], 'Qc 4h 3d 7s 5c'));
+  g = novoHamle(g, { tip: 'oyna' });
+  let y = novoYasal(g);
+  assert.equal(y.oyuncu, 0, 'sıra aynı oyuncuda: sigorta sorusu');
+  assert.deepEqual(y.sigorta, { enAz: 50, enCok: 175 });
+  assert.throws(() => novoHamle(g, { tip: 'sigorta', miktar: 200 }));
+  assert.throws(() => novoHamle(g, { tip: 'sigorta', miktar: 30 }));
+  g = novoHamle(g, { tip: 'sigorta', miktar: 175 });
+  y = novoYasal(g);
+  assert.equal(y.oyuncu, 1);
+  assert.equal(y.sigorta, undefined, 'tek çift: sigorta yok');
+  // Üçlü: 3 x 50 / 2 = 75
+  assert.deepEqual(sigortaSiniri({ kartlar: K('9h 9d 9c 4s 2d'), bahis: 50 }, 1000, 25), { enAz: 50, enCok: 75 });
+  // Parası az: en çok parası kadar
+  assert.deepEqual(sigortaSiniri({ kartlar: K('9h 9d 9c 4s 4d'), bahis: 50 }, 40, 25), { enAz: 40, enCok: 40 });
+  assert.equal(sigortaSiniri({ kartlar: K('9h 9d 3c 3s 2d'), bahis: 50 }, 1000, 25), null, 'iki çift sorulmaz');
+});
+
+test('sigorta: kasanın oyunu yoksa 1\'e 1, varsa kasanın', () => {
+  const oyna = (kasa, sig) => {
+    let g = novoDagit(yeniNovo({ adlar: ['Erman'], kod: 'N', ante: 25 }), deste(['9h 9d 9c 4s 4d'], kasa));
+    g = novoHamle(g, { tip: 'oyna' });
+    g = novoHamle(g, { tip: 'sigorta', miktar: sig });
+    if (g.el.faz === 'oyunsuz') g = oyunSatinAl(g, [false]);
+    return g;
+  };
+  // Kasa oyunsuz (Q yüksek): ante al + sigorta 175 x 2 geri. Express full 100'e 1.
+  let g = oyna('Qc Jh 3d 7s 5c', 175);
+  const p = g.el.oyuncular[0];
+  assert.equal(p.sigortaGeri, 350);
+  assert.equal(g.oyuncular[0].fis, 1000 - 50 + 25 * 101 - 50 - 175 + (25 + 50 + 25) + 350);
+  // Kasa oyunlu (Q çifti): full kazanır 7:1, sigorta gider
+  g = oyna('Qc Qh 3d 7s 5c', 175);
+  assert.equal(g.el.oyuncular[0].sigortaGeri, 0);
+  assert.equal(g.oyuncular[0].fis, 1000 - 50 + 25 * 101 - 50 - 175 + (25 + 50 + 350 + 25));
+  // Sigorta yok seçilirse hiçbir şey değişmez
+  g = oyna('Qc Qh 3d 7s 5c', 0);
+  assert.equal(g.el.oyuncular[0].sigorta, 0);
 });

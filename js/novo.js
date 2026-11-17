@@ -155,11 +155,30 @@ function sonrakiKarar(g, i) {
   return null;
 }
 
+// Sigorta: eli üçlü ya da daha iyi olan oyuncu, oynadıktan sonra kasanın oyunu olmazsa diye
+// sigorta yapabilir. En az = oyna bahsi (2 ante), en çok = kazanılacak bet parasının yarısı
+// (ör. full 7 x 50 / 2 = 175). Parası yetmiyorsa en çok parası kadar.
+// Kasanın oyunu yoksa sigorta 1'e 1 öder; kasa oyuna girerse sigorta kasanındır.
+export const SIGORTA_EN_AZ_KAT = 3; // üçlü
+export function sigortaSiniri(p, fis, ante) {
+  const s = sinif(p.kartlar);
+  const kat = s.anahtar === 'RF' ? 9 : s.anahtar === 'SF' ? 8 : s.anahtar;
+  if (typeof kat !== 'number' || kat < SIGORTA_EN_AZ_KAT) return null;
+  const oran = ODEME[s.anahtar] || 0;
+  const tavan = Math.floor((oran * p.bahis) / 2 / 5) * 5;
+  const enCok = Math.min(tavan, fis);
+  if (enCok <= 0) return null;
+  return { enAz: Math.min(2 * ante, enCok), enCok };
+}
+
 export function novoYasal(g) {
   const el = g.el;
   if (!el || el.faz !== 'karar' || el.sira == null) return null;
   const i = el.sira, p = el.oyuncular[i], o = g.oyuncular[i];
   const A = el.ante;
+  if (p.sigortaSor) {
+    return { oyuncu: i, sigorta: sigortaSiniri(p, o.fis, A), oyna: false, degistir: false, alti: false, kalanKart: 0 };
+  }
   const ekAlinabilir = !p.degisti && !p.alti && o.fis >= A + 2 * A; // ücret + sonra oyna
   return {
     oyuncu: i,
@@ -177,11 +196,20 @@ export function novoHamle(g0, hamle) {
   if (!y) throw new Error('Şu an karar beklenmiyor');
   const el = g.el, i = y.oyuncu, p = el.oyuncular[i], o = g.oyuncular[i];
   const A = el.ante;
+  if ('sigorta' in y && hamle.tip !== 'sigorta') throw new Error('Önce sigorta sorusunu yanıtla');
   if (hamle.tip === 'pas') {
     p.durum = 'pas';
   } else if (hamle.tip === 'oyna') {
     if (!y.oyna) throw new Error('Bahis için yeterli fiş yok');
     o.fis -= 2 * A; p.bahis = 2 * A; p.durum = 'oynadi';
+    if (sigortaSiniri(p, o.fis, A)) { p.sigortaSor = true; return g; } // aynı oyuncuya sigorta sorulur
+  } else if (hamle.tip === 'sigorta') {
+    if (!y.sigorta) throw new Error('Şu an sigorta sorulmuyor');
+    const m = Math.floor(Number(hamle.miktar) || 0);
+    if (m !== 0 && (m < y.sigorta.enAz || m > y.sigorta.enCok)) {
+      throw new Error(`Sigorta ${y.sigorta.enAz} ile ${y.sigorta.enCok} arasında olmalı`);
+    }
+    o.fis -= m; p.sigorta = m; p.sigortaSor = false;
   } else if (hamle.tip === 'degistir') {
     if (!y.degistir) throw new Error('Kart değiştiremezsin');
     const konum = [...new Set(hamle.konumlar || [])].filter(k => k >= 0 && k < 5).sort();
@@ -209,6 +237,7 @@ function krupiyeAc(g) {
   el.sira = null;
   const oynayan = el.oyuncular.filter(p => p.katildi && p.durum === 'oynadi');
   el.krupiyeOyunu = krupiyeOyunuVar(el.krupiye);
+  el.ilkOyun = el.krupiyeOyunu; // sigorta kasanın ilk açılışına göre ödenir
   if (!oynayan.length) return bitir(g);
   if (el.krupiyeOyunu) {
     for (const p of oynayan) p.sonuc = karsilastir(p, el.krupiye);
@@ -291,11 +320,15 @@ function bitir(g) {
         geri = p.ante + p.bahis;
       }
     }
+    // Sigorta: kasanın (açılıştaki) oyunu yoksa 1'e 1
+    p.sigortaGeri = 0;
+    if (p.sigorta) p.sigortaGeri = el.ilkOyun ? 0 : 2 * p.sigorta;
+    geri += p.sigortaGeri;
     o.fis += geri;
     p.geri = geri;
     p.elAdi = EL_ADI[s.anahtar];
     // net: bu elde fişindeki değişim
-    p.net = geri + p.bonusOdeme - (p.ante + p.bonus + p.bahis + p.ucret);
+    p.net = geri + p.bonusOdeme - (p.ante + p.bonus + p.bahis + p.ucret + (p.sigorta || 0));
   });
   const ks = sinif(el.krupiye);
   el.krupiyeElAdi = EL_ADI[ks.anahtar];
