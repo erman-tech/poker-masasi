@@ -702,3 +702,23 @@ test('yalancı per iki per elde de geçer: A-A-8-8-K ve K-K-8-8-A 3 kat öder', 
   assert.equal(betOrani(K('As Ad 8c 8h 2s')).oran, 2, 'As per ama Papaz yok');
   assert.ok(yalanciIkiPer(K('8h 8d As Ac Kh')));
 });
+
+import { molaAyarla } from '../js/novo.js';
+test('mola: oyuncu çipleriyle beklerken dağıtıma girmez, dönünce sonraki dağıtımda girer', () => {
+  let g = yeniNovo({ adlar: ['A', 'B'], kod: 'X' });
+  const once = g.oyuncular[1].fis;
+  g = molaAyarla(g, 1, true);
+  g = novoDagit(g);
+  assert.equal(g.el.oyuncular[1].katildi, false);
+  assert.equal(g.oyuncular[1].fis, once, 'molada çipleri değişmez');
+  assert.throws(() => molaAyarla(g, 1, false), /El bitince/);
+  while (g.el.faz !== 'bitti') {
+    if (g.el.faz === 'oyunsuz') { g = oyunSatinAl(g, [false, false]); continue; }
+    const y = novoYasal(g);
+    if ('sigorta' in y) { g = novoHamleGercek(g, { tip: 'sigorta', miktar: 0 }); continue; }
+    g = novoHamleGercek(g, y.asama === 'cekme' ? { tip: 'gec' } : { tip: 'oyna' });
+  }
+  g = molaAyarla(g, 1, false);
+  g = novoDagit(g);
+  assert.equal(g.el.oyuncular[1].katildi, true);
+});

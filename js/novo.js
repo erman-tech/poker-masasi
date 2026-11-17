@@ -190,7 +190,17 @@ export function novoYenidenBaslat(g) {
 
 // El başına oyuncunun en az ihtiyacı: ante + express + oyna bahsi (2 ante) = 4 ante
 export function katilabilir(g, i) {
-  return g.oyuncular[i].fis >= 4 * g.ante;
+  return !g.oyuncular[i].mola && g.oyuncular[i].fis >= 4 * g.ante;
+}
+
+// Oyuncu masadan kalkar (çipleri onda kalır) ya da geri döner. Yalnız eller arasında;
+// dönüş bir sonraki dağıtımda geçerli olur.
+export function molaAyarla(g0, i, mola) {
+  const g = klon(g0);
+  if (g.el && g.el.faz !== 'bitti') throw new Error('El bitince değiştirilebilir');
+  if (!g.oyuncular[i]) throw new Error('Oyuncu yok');
+  g.oyuncular[i].mola = !!mola;
+  return g;
 }
 
 export function ayarla(g0, { ante }) {
