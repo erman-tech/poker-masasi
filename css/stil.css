@@ -466,3 +466,6 @@ input, select {
 .ndaire, .ndaire.express, .ndaire.bet { border-color: transparent; }
 .ndaire.express.ex-kazanc { box-shadow: none; }
 .ndaire.express.ex-kazanc .yer { filter: drop-shadow(0 0 8px #ffd765cc); }
+
+/* Masadaki BET/EXPRESS tabloları kaldırıldı */
+#e-novo .n-tablo, #e-novo.tablo-acik .n-tablo { display: none !important; }
