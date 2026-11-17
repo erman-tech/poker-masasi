@@ -10,11 +10,13 @@ export const KOR_SEVIYELERI = [
 
 const klon = o => JSON.parse(JSON.stringify(o));
 
-export function yeniOyun({ adlar, kod, baslangicFis = 1000, korArtisEl = 10, ilkElNo = 1, oyunNo = 1 }) {
+// birim: en küçük fiş (ekranda $5). Bahisler ve pot bölüşümü bu birimin katlarıyla yapılır.
+export function yeniOyun({ adlar, kod, baslangicFis = 1000, korArtisEl = 10, ilkElNo = 1, oyunNo = 1, birim = 1 }) {
   if (!Array.isArray(adlar) || adlar.length < 2) throw new Error('En az 2 oyuncu gerekir');
   if (adlar.length > 9) throw new Error('En çok 9 oyuncu');
   return {
     surum: 1,
+    birim,
     kod,
     oyunNo,
     baslangicFis,
@@ -34,7 +36,7 @@ export function yeniOyun({ adlar, kod, baslangicFis = 1000, korArtisEl = 10, ilk
 export function yenidenBaslat(g) {
   const y = yeniOyun({
     adlar: g.oyuncular.map(o => o.ad), kod: g.kod, baslangicFis: g.baslangicFis,
-    korArtisEl: g.korArtisEl, ilkElNo: g.elNo + 1, oyunNo: (g.oyunNo || 1) + 1,
+    korArtisEl: g.korArtisEl, birim: g.birim || 1, ilkElNo: g.elNo + 1, oyunNo: (g.oyunNo || 1) + 1,
   });
   return y;
 }
@@ -178,6 +180,8 @@ export function hamleYap(g0, hamle) {
     if (!(hedef > el.enYuksek)) throw new Error('Yükseltme mevcut bahisten büyük olmalı');
     if (hedef > enCok) throw new Error('Yeterli fiş yok');
     if (hedef < y.enAz && hedef !== enCok) throw new Error('En az ' + y.enAz + ' yapmalısın');
+    const birim = g.birim || 1;
+    if (hedef % birim !== 0 && hedef !== enCok) throw new Error(birim + "'in katı olmalı");
     const fark = hedef - el.enYuksek;
     ode(g, i, hedef - d.bahis, el.enYuksek === 0 ? 'bet' : 'yükselt');
     const tam = fark >= el.sonYukseltme;
@@ -285,14 +289,16 @@ function eliBitir(g) {
       }
     }
     // Bölünme: artan fiş butonun solundan başlayarak dağıtılır.
-    const pay = Math.floor(p.miktar / kazananlar.length);
+    const birim = g.birim || 1;
+    const pay = Math.floor(p.miktar / kazananlar.length / birim) * birim;
     let artan = p.miktar - pay * kazananlar.length;
     for (const i of kazananlar) kazanc[i] += pay;
     if (artan > 0) {
       let j = g.buton;
       while (artan > 0) {
         j = sonraki(g, j, x => kazananlar.includes(x));
-        kazanc[j] += 1; artan--;
+        const v = Math.min(birim, artan);
+        kazanc[j] += v; artan -= v;
       }
     }
     sonuclar.push({ miktar: p.miktar, hak: p.hak, kazananlar });

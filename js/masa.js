@@ -3,7 +3,8 @@ import { kontrolKodu, AZAMI_KOLTUK, KATEGORI_AD } from './kart.js';
 import {
   yeniOyun, eliBaslat, hamleYap, yasalHamleler, potToplam, potlariHesapla, korlar, korSeviyesi, yenidenBaslat,
 } from './motor.js';
-import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, sayi, kacis } from './arayuz.js';
+import { yiginEl } from './fis.js';
+import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, sayi, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
 
 const ANAHTAR = 'poker.masa.v1';
@@ -63,9 +64,9 @@ function masayiAc() {
   const temiz = adlar.map(a => a.trim());
   if (temiz.some(a => !a)) { $('k-hata').textContent = 'Her oyuncuya bir ad yaz.'; return; }
   const fis = Math.floor(Number($('k-fis').value));
-  if (!(fis >= 100)) { $('k-hata').textContent = 'Başlangıç fişi en az 100 olmalı.'; return; }
+  if (!(fis >= 100) || fis % 5) { $('k-hata').textContent = "Başlangıç parası en az 100 ve 5'in katı olmalı."; return; }
   M = {
-    g: yeniOyun({ adlar: temiz, kod: kodUret(), baslangicFis: fis, korArtisEl: Number($('k-kor').value) }),
+    g: yeniOyun({ adlar: temiz, kod: kodUret(), baslangicFis: fis, korArtisEl: Number($('k-kor').value), birim: 5 }),
     gecmis: [],
     sahip: Number($('k-sahip').value),
   };
@@ -114,7 +115,7 @@ function durumYazisi(g, i) {
   const d = el.durum[i];
   if (el.sokak === 'bitti') {
     const k = el.sonuc.kazanc[i];
-    if (k > 0) return '+' + sayi(k);
+    if (k > 0) return '+' + para(k);
     return d.pas ? 'fold' : '';
   }
   if (d.pas) return 'fold';
@@ -169,7 +170,7 @@ function ciz() {
     const bahis = document.createElement('div');
     const b = d && el.sokak !== 'bitti' ? d.bahis : 0;
     bahis.className = 'bahis' + (b > 0 ? '' : ' bos');
-    bahis.innerHTML = `<span class="fis-ikon"></span>${sayi(b)}`;
+    if (b > 0) { bahis.appendChild(yiginEl(b, { boyut: 22, enCok: 6 })); bahis.insertAdjacentHTML('beforeend', `<span>${para(b)}</span>`); }
 
     const levha = document.createElement('div'); levha.className = 'levha';
     let isaretler = '';
@@ -182,9 +183,11 @@ function ciz() {
     }
     const elAdi = el && el.sokak === 'bitti' && el.sonuc.gosterim && el.sonuc.eller[i] ? el.sonuc.eller[i].ad : '';
     levha.innerHTML = `${isaretler}<div class="ad">${kacis(o.ad)}</div>
-      <div class="fis-sayi">${sayi(o.fis)}</div>
+      <div class="fis-sayi">${para(o.fis)}</div>
+      <div class="yigin-yeri"></div>
       <div class="durum">${kacis(elAdi ? elAdi + ' · ' + durumYazisi(g, i) : durumYazisi(g, i))}</div>`;
     levha.style.position = 'relative';
+    if (o.fis > 0) levha.querySelector('.yigin-yeri').appendChild(yiginEl(o.fis, { cesitli: true, boyut: 22, enCok: 8 }));
     // Üst yarıdaki koltuklarda bahis aşağıda (masaya doğru) dursun
     if (y < 50) k.append(eller, levha, bahis); else k.append(bahis, eller, levha);
     alan.appendChild(k);
@@ -200,9 +203,12 @@ function ciz() {
     ortak.appendChild(ke);
   }
   const pot = el ? potToplam(g) : 0;
+  const potFis = $('m-potfis');
+  potFis.innerHTML = '';
+  if (el && el.sokak !== 'bitti' && pot > 0) potFis.appendChild(yiginEl(pot, { boyut: 28, enCok: 10 }));
   $('m-pot').innerHTML = el && el.sokak !== 'bitti'
-    ? `Pot ${sayi(pot)}${yanPotYazisi(g)}`
-    : (el ? `Pot ${sayi(pot)} dağıtıldı` : 'Pot 0');
+    ? `Pot ${para(pot)}${yanPotYazisi(g)}`
+    : (el ? `Pot ${para(pot)} dağıtıldı` : 'Pot 0');
   panelCiz();
 }
 
@@ -211,7 +217,7 @@ function yanPotYazisi(g) {
   if (!el.durum.some(d => d.allin && !d.pas)) return '';
   const p = potlariHesapla(el.durum.map(d => d.katki), el.durum.map(d => d.pas));
   if (p.length < 2) return '';
-  return `<small>${p.map((x, i) => (i ? 'yan ' : 'ana ') + sayi(x.miktar)).join(' · ')}</small>`;
+  return `<small>${p.map((x, i) => (i ? 'yan ' : 'ana ') + para(x.miktar)).join(' · ')}</small>`;
 }
 
 function panelCiz() {
@@ -223,9 +229,9 @@ function panelCiz() {
     p.innerHTML = `<div class="bekleme">
       ${el && el.sonuc ? sonucHtml(g) : ''}
       <div style="font-size:26px;font-weight:800;color:var(--altin)">🏆 ${kacis(s.ad)} masadaki tüm fişleri topladı</div>
-      <button class="btn-ana" id="p-yeniden">Yeniden başla · herkese ${sayi(g.baslangicFis)}</button></div>`;
+      <button class="btn-ana" id="p-yeniden">Yeniden başla · herkese ${para(g.baslangicFis)}</button></div>`;
     $('p-yeniden').onclick = async () => {
-      if (!(await onayla(`Yeni oyun: herkes yeniden ${sayi(g.baslangicFis)} fişle başlar. El numarası kaldığı yerden devam eder, telefonlarda bir şey değiştirmeye gerek yok.`, 'Başlat'))) return;
+      if (!(await onayla(`Yeni oyun: herkes yeniden ${para(g.baslangicFis)} ile başlar. El numarası kaldığı yerden devam eder, telefonlarda bir şey değiştirmeye gerek yok.`, 'Başlat'))) return;
       M.gecmis.push(JSON.stringify(M.g));
       M.g = yenidenBaslat(M.g);
       kaydet(); ciz();
@@ -243,14 +249,14 @@ function panelCiz() {
 
   const y = yasalHamleler(g);
   const o = g.oyuncular[y.oyuncu];
-  const ne = y.kontrol ? 'Check ya da bet' : `Call için ${sayi(y.odenecek)}${y.gorAllin ? ' (all-in)' : ''}`;
+  const ne = y.kontrol ? 'Check ya da bet' : `Call için ${para(y.odenecek)}${y.gorAllin ? ' (all-in)' : ''}`;
   let html = `<div class="eylem-baslik"><span class="kim">Sıra: ${kacis(o.ad)}</span>
-    <span class="ne">${ne} · elinde ${sayi(o.fis)}</span></div>`;
+    <span class="ne">${ne} · elinde ${para(o.fis)}</span></div>`;
   if (yukseltAcik && y.yukselt) {
     const pasif = y.enAz === y.enCok;
     html += `<div class="yukselt-alani">
       <div class="miktar-goster" id="p-miktar"></div>
-      <input type="range" id="p-kaydir" min="${y.enAz}" max="${y.enCok}" step="1" value="${yukseltMiktar}" ${pasif ? 'disabled' : ''}>
+      <input type="range" id="p-kaydir" min="${y.enAz}" max="${y.enCok}" step="${g.birim || 1}" value="${yukseltMiktar}" ${pasif ? 'disabled' : ''}>
       <div class="satir hizli">
         <button data-h="eksi">−</button><button data-h="enaz">En az</button><button data-h="yarim">½ pot</button>
         <button data-h="pot">Pot</button><button data-h="hepsi">All-in</button><button data-h="arti">+</button>
@@ -260,7 +266,7 @@ function panelCiz() {
   } else {
     html += `<div class="dugmeler">
       <button class="b-pas" data-a="pas">Fold</button>
-      <button class="b-kontrol" data-a="${y.kontrol ? 'kontrol' : 'gor'}">${y.kontrol ? 'Check' : 'Call ' + sayi(y.odenecek)}</button>
+      <button class="b-kontrol" data-a="${y.kontrol ? 'kontrol' : 'gor'}">${y.kontrol ? 'Check' : 'Call ' + para(y.odenecek)}</button>
       <button class="b-yukselt" data-a="yukselt" ${y.yukselt ? '' : 'disabled'}>${y.acilis ? 'Bet' : 'Raise'}</button>
       <button class="b-allin" data-a="allin" ${(y.yukselt || y.gorAllin) ? '' : 'disabled'}>All-in</button>
     </div>`;
@@ -280,10 +286,11 @@ function panelCiz() {
   if (yukseltAcik && y.yukselt) {
     const kay = $('p-kaydir');
     const goster = () => {
-      $('p-miktar').textContent = (yukseltMiktar >= y.enCok ? 'ALL-IN ' : (y.acilis ? 'Bet ' : 'Raise → ')) + sayi(yukseltMiktar);
+      $('p-miktar').textContent = (yukseltMiktar >= y.enCok ? 'ALL-IN ' : (y.acilis ? 'Bet ' : 'Raise → ')) + para(yukseltMiktar);
       kay.value = yukseltMiktar;
     };
-    const sinirla = v => Math.max(y.enAz, Math.min(y.enCok, Math.round(v)));
+    const b5 = g.birim || 1;
+    const sinirla = v => (v >= y.enCok ? y.enCok : Math.max(y.enAz, Math.min(y.enCok, Math.round(v / b5) * b5)));
     kay.oninput = () => { yukseltMiktar = sinirla(Number(kay.value)); goster(); };
     const adim = el.buyuk;
     const enYuksek = el.enYuksek, odenecek = y.odenecek;
@@ -331,8 +338,8 @@ function sonucHtml(g) {
     const kim = p.kazananlar.map(ad).join(' ve ');
     const neyle = s.gosterim && p.hak.length > 1 ? ' · ' + KATEGORI_AD[s.eller[p.kazananlar[0]].guc[0]] : '';
     const potAdi = s.potlar.length > 1 ? (j ? 'Yan pot' : 'Ana pot') : 'Pot';
-    if (p.hak.length === 1 && s.potlar.length > 1) return `<div>${ad(p.hak[0])} fazladan koyduğu ${sayi(p.miktar)} fişi geri aldı</div>`;
-    return `<div>${potAdi} ${sayi(p.miktar)} → <b>${kim}</b>${p.kazananlar.length > 1 ? ' (bölüştü)' : ''}${neyle}</div>`;
+    if (p.hak.length === 1 && s.potlar.length > 1) return `<div>${ad(p.hak[0])} fazladan koyduğu ${para(p.miktar)} geri aldı</div>`;
+    return `<div>${potAdi} ${para(p.miktar)} → <b>${kim}</b>${p.kazananlar.length > 1 ? ' (bölüştü)' : ''}${neyle}</div>`;
   }).join('');
   const kazanan = s.kazanc.map((k, i) => [k - el.durum[i].katki, i]).sort((a, b) => b[0] - a[0])[0];
   return `<div class="sonuc-kutu"><div class="baslik">${ad(kazanan[1])} kazandı</div>${satirlar}</div>`;
@@ -468,7 +475,7 @@ export function masaBagla() {
     perdeAc(`
       <div style="font-size:20px;font-weight:800">Masa</div>
       <button class="btn-ikincil" id="mn-kod">Masa kodu ve koltuklar</button>
-      <button class="btn-ikincil" id="mn-yeniden">Oyunu baştan başlat (herkese ${sayi(M.g.baslangicFis)})</button>
+      <button class="btn-ikincil" id="mn-yeniden">Oyunu baştan başlat (herkese ${para(M.g.baslangicFis)})</button>
       <button class="btn-tehlike" id="mn-kapat">Masayı kapat, yeni masa kur</button>
       <button class="btn-ana" id="mn-tamam">Kapat</button>`,
     k => {

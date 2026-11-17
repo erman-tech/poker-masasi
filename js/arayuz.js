@@ -81,6 +81,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 export function sayi(n) { return Number(n).toLocaleString('tr-TR'); }
+export function para(n) { return '$' + sayi(n); }
 export function kacis(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }

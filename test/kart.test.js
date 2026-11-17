@@ -107,3 +107,16 @@ test('farklı masa kodları birbirinden bağımsız desteler verir', () => {
   // beklenen 2000/52 ≈ 38
   assert.ok(ayniIlkKart > 15 && ayniIlkKart < 70, String(ayniIlkKart));
 });
+
+test('fiş dökümü tutarı tam karşılar; 1000 yalnız büyük yığında', async () => {
+  const { fisDok } = await import('../js/fis.js');
+  const top = l => l.reduce((t, f) => t + f.deger * f.adet, 0);
+  for (const m of [0, 5, 20, 135, 990, 1000, 1995, 2000, 2500, 3000, 12345]) {
+    assert.equal(top(fisDok(m, true)), m); assert.equal(top(fisDok(m)), m);
+  }
+  const bin = fisDok(1000, true);
+  assert.ok(!bin.some(f => f.deger === 1000), 'başlangıç yığınında 1000\'lik yok');
+  assert.ok(bin.some(f => f.deger === 5) && bin.some(f => f.deger === 25) && bin.some(f => f.deger === 100));
+  assert.ok(fisDok(3000, true).some(f => f.deger === 1000));
+  assert.deepEqual(fisDok(135).map(f => [f.deger, f.adet]), [[100, 1], [25, 1], [5, 2]]);
+});

@@ -243,3 +243,27 @@ test('rastgele oyunlarda fiş korunur ve motor takılmaz', () => {
 test('pot hesabı: pas geçenin katkısı kalanlardan fazlaysa yine potta kalır', () => {
   assert.deepEqual(potlariHesapla([200, 50], [true, false]), [{ miktar: 250, hak: [1] }]);
 });
+
+test('5\'lik fişle bölünen pot 5\'in katlarıyla dağılır', () => {
+  const d = deste(['2c 3d', '2h 4d', '3h 5c'], 'Ts Jh Qd Kc As');
+  let g = yeniOyun({ adlar: ['Erman', 'Fidan', 'Emrah'], kod: 'T', korArtisEl: 0, birim: 5 });
+  g = eliBaslat(g, d);
+  assert.throws(() => H(g, 'yukselt', 41), /katı/);
+  g = H(g, 'yukselt', 45); g = H(g, 'gor'); g = H(g, 'pas');   // pot 45+45+20 = 110
+  for (let i = 0; i < 6; i++) g = H(g, 'kontrol');
+  assert.equal(g.el.sokak, 'bitti');
+  assert.deepEqual(g.el.sonuc.kazanc.slice(0, 2), [55, 55]);
+  g = eliBaslat(yenidenBaslat(g));
+  assert.equal(g.birim, 5, 'yeniden başlatınca birim korunur');
+});
+
+test('5\'lik fişte tek kalan 5 butonun solundaki kazanana gider', () => {
+  const d = deste(['2c 3d', '2h 4d', '3h 5c'], 'Ts Jh Qd Kc As');
+  let g = yeniOyun({ adlar: ['Erman', 'Fidan', 'Emrah'], kod: 'T', korArtisEl: 0, birim: 5 });
+  g = eliBaslat(g, d);
+  g = H(g, 'yukselt', 45); g = H(g, 'gor'); g = H(g, 'gor');   // pot 135
+  g = H(g, 'kontrol'); g = H(g, 'kontrol'); g = H(g, 'yukselt', 20);
+  g = H(g, 'gor'); g = H(g, 'pas');                            // pot 175, Erman ve Fidan
+  for (let i = 0; i < 4; i++) g = H(g, 'kontrol');
+  assert.deepEqual([g.el.sonuc.kazanc[0], g.el.sonuc.kazanc[1]], [85, 90]);
+});
