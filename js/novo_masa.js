@@ -540,6 +540,8 @@ async function sonAnimasyon(once, yeni) {
     s.querySelector('.ndaire.bet .yer').appendChild(ustCipEl(p.bahis, 34));
   }
   await bekle(500);
+  // Bet'te 5 kat ve üstü kazanan varsa kurpiye gala kutlaması (express'teki gibi), sonraki dağıtıma kadar
+  if (spotlar.some(([p]) => p.sonuc && p.sonuc.tip === 'kazandi' && p.sonuc.oran >= 5)) { gala(true); havaiFisek(); }
   if (degisti) konus.soyle('kasa_kart_cekti', el.krupiyeOyunu ? [konus.el(sinif(el.krupiye).anahtar), 'oldu'] : 'yine_bos');
   for (const [p, i] of spotlar) {
     const ad = g.oyuncular[i].ad, t = p.sonuc.tip;
