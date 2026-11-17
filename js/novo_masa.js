@@ -140,6 +140,11 @@ function ciz() {
       if (tutar > 0) yer.appendChild(yiginEl(tutar, { boyut: 24, enCok: 6 }));
       d.appendChild(yer);
       if (tutar > 0) { const tt = document.createElement('b'); tt.className = 'ntutar'; tt.textContent = para(tutar); d.appendChild(tt); }
+      else if (k === 'express' && p && p.katildi && el.faz !== 'bitti' && !expressBekliyor) {
+        const tt = document.createElement('b'); tt.className = 'ntutar';
+        tt.textContent = p.bonusOdeme ? '+' + para(p.bonusOdeme - p.bonus) : 'kasaya';
+        d.appendChild(tt);
+      }
       daireler.appendChild(d);
     }
     const cek = document.createElement('div'); cek.className = 'ncekme';
@@ -173,8 +178,9 @@ function daireTutari(p, k) {
   if (!p || !p.katildi) return 0;
   const bitti = N.g.el.faz === 'bitti';
   if (bitti) return 0;
-  // Express zorunlu giriş: el boyunca dairesinde görünür (sonucu dağıtımda belli olur).
-  if (k === 'express') return p.bonus;
+  // Express yalnız ilk 5 karta bakar ve dağıtım biter bitmez kapanır: kazanan ödenir,
+  // kaybedenin express'i kasaya gider. Dağıtım animasyonu sürerken dairesinde durur.
+  if (k === 'express') return expressBekliyor ? p.bonus : 0;
   if (k === 'ante') return p.durum === 'pas' ? 0 : p.ante;
   if (k === 'bet') return p.bahis;
   return 0;
@@ -494,14 +500,7 @@ async function sonAnimasyon(once, yeni) {
     s.querySelector('.ndaire.ante .yer').appendChild(yiginEl(p.ante, { boyut: 24, enCok: 6 }));
     s.querySelector('.ndaire.bet .yer').appendChild(yiginEl(p.bahis, { boyut: 24, enCok: 6 }));
   }
-  const herkes = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi);
-  for (const [p, i] of herkes) spotEl(i).querySelector('.ndaire.express .yer').appendChild(yiginEl(p.bonus, { boyut: 24, enCok: 6 }));
   await bekle(500);
-  for (const [p, i] of herkes) {
-    const s = spotEl(i), ex = s.querySelector('.ndaire.express');
-    ex.querySelector('.yer').innerHTML = '';
-    await fisUcur(ex, p.bonusOdeme ? s.querySelector('.nlevha') : kasaRect(), p.bonus, 300);
-  }
   if (degisti) konus.soyle('kasa_kart_cekti', el.krupiyeOyunu ? [konus.el(sinif(el.krupiye).anahtar), 'oldu'] : 'yine_bos');
   for (const [p, i] of spotlar) {
     const ad = g.oyuncular[i].ad, t = p.sonuc.tip;
@@ -542,6 +541,8 @@ async function sonAnimasyon(once, yeni) {
   ciz();
 }
 
+let expressBekliyor = false; // dağıtım animasyonu bitene kadar express dairesinde durur
+
 async function dagit() {
   if (mesgul) return;
   ses.acil();
@@ -549,7 +550,7 @@ async function dagit() {
   let yeni;
   try { yeni = novoDagit(N.g); } catch (e) { hata = e.message; panelCiz(); return; }
   gecmiseAt(); hata = ''; N.g = yeni; kaydet();
-  mesgul = true;
+  mesgul = true; expressBekliyor = true;
   const el = N.g.el;
   ciz();
   const spotlar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi);
@@ -591,10 +592,15 @@ async function dagit() {
       ruh(p.bonusOran >= 30 ? 'saskin' : 'goz', 1600);
       konus.soyle(konus.ad(g0ad(i)), 'bonus_odeme', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
       await fisUcur(kasaRect(), ex, p.bonusOdeme - p.bonus, 500);
-      await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme - p.bonus, 450);
+      ex.querySelector('.yer').innerHTML = '';
+      await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme, 450);
+    } else {
+      // bonus yok: express kasaya
+      ex.querySelector('.yer').innerHTML = '';
+      await fisUcur(ex, kasaRect(), p.bonus, 350);
     }
-    // kaybeden express el sonuna kadar dairesinde kalır, el bitince kasaya gider
   }
+  expressBekliyor = false;
   mesgul = false;
   ciz();
   if (N.g.el.faz !== 'karar' && N.g.el.faz !== 'cekme') await sonAnimasyon({ el: { ...N.g.el, krupiyeAcik: false, faz: 'karar' } }, N.g);
@@ -644,10 +650,12 @@ export function novoBagla() {
     perdeAc(`<div style="font-size:20px;font-weight:800">Novo masası</div>
       <button class="btn-ikincil" id="nm-yukle">Para yükle</button>
       <button class="btn-ikincil" id="nm-konus">Seslendirme: ${konus.acikMi() ? 'Açık' : 'Kapalı'}</button>
+      <button class="btn-ikincil" id="nm-ortam">Casino uğultusu: ${ses.ortamAcikMi() ? 'Açık' : 'Kapalı'}</button>
       <button class="btn-ikincil" id="nm-yeniden">Baştan başlat (herkese ${para(N.g.baslangicFis)})</button>
       <button class="btn-tehlike" id="nm-kapat">Masayı kapat</button>
       <button class="btn-ana" id="nm-tamam">Kapat</button>`, k => {
       k.querySelector('#nm-tamam').onclick = perdeKapat;
+      k.querySelector('#nm-ortam').onclick = e => { ses.acil(); ses.ortamAyarla(!ses.ortamAcikMi()); e.target.textContent = 'Casino uğultusu: ' + (ses.ortamAcikMi() ? 'Açık' : 'Kapalı'); };
       k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.soyle('seslendirme_acik'); } };
       k.querySelector('#nm-yukle').onclick = () => { perdeKapat(); if (!N.g.el || N.g.el.faz === 'bitti') yukleAc(); };
       k.querySelector('#nm-yeniden').onclick = async () => {

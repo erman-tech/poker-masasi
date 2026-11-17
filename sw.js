@@ -1,10 +1,10 @@
 // Offline önbellek: ilk açılışta tüm dosyalar cihaza kaydedilir.
 // Dosya değişince SURUM artırılır.
-const SURUM = 'poker-v31';
+const SURUM = 'poker-v32';
 const DOSYALAR = [
   './', 'index.html', 'css/stil.css', 'manifest.webmanifest',
   'js/uygulama.js', 'js/arayuz.js', 'js/masa.js', 'js/oyuncu.js', 'js/motor.js', 'js/kart.js', 'js/ses.js', 'js/fis.js', 'js/novo.js', 'js/novo_masa.js', 'js/krupiye.js', 'js/konus.js',
-  'sesler/fis/tek.mp3', 'sesler/fis/kucuk.mp3', 'sesler/fis/yigin.mp3', 'sesler/fis/itme.mp3',
+  'sesler/fis/tek.mp3', 'sesler/fis/kucuk.mp3', 'sesler/fis/yigin.mp3', 'sesler/fis/itme.mp3', 'sesler/ortam.mp3',
   'ikon-180.png', 'ikon-192.png', 'ikon-512.png',
 ];
 self.addEventListener('install', e => {
@@ -15,7 +15,7 @@ self.addEventListener('install', e => {
       const r = await fetch('sesler/elif/liste.json', { cache: 'no-store' });
       const liste = r.ok ? await r.json() : [];
       await c.put('sesler/elif/liste.json', new Response(JSON.stringify(liste), { headers: { 'content-type': 'application/json' } }));
-      await c.addAll(liste.map(k => 'sesler/elif/' + k + '.m4a'));
+      await c.addAll(liste.map(k => 'sesler/elif/' + k + '.mp3'));
     } catch (err) { /* kayıt yoksa cihaz sesi kullanılır */ }
   }).then(() => self.skipWaiting()));
 });

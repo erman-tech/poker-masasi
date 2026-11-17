@@ -16,10 +16,10 @@ export const ANTE_SECENEKLERI = [5, 10, 25, 50, 100];
 export const ODEME = { AK: 1, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 7, 7: 20, SF: 50, RF: 100 };
 // İlk 5 kart bonusu (kaça bir)
 // Erman'ın oranları: full 100, renk 60, kent 30, üçlü 8, iki çift yok. Kare ve üstü eski tabloda.
-export const BONUS = { SAHTE: 2, AKQ: 5, 3: 8, 4: 30, 5: 60, 6: 100, 7: 200, SF: 500, RF: 1000 };
+export const BONUS = { SAHTE: 2, AKQ: 5, 3: 8, 4: 30, 5: 60, 6: 100, SURAT: 120, 7: 200, SF: 250, RF: 500 };
 
 export const EL_ADI = {
-  0: 'Yüksek kart', AK: 'As-Papaz', AKQ: 'As-Papaz-Kız', SAHTE: 'Sahte renk', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
+  0: 'Yüksek kart', AK: 'As-Papaz', AKQ: 'As-Papaz-Kız', SAHTE: 'Sahte renk', SURAT: 'Beş surat', 1: 'Bir çift', 2: 'İki çift', 3: 'Üçlü', 4: 'Kent',
   5: 'Renk', 6: 'Full', 7: 'Kare', SF: 'Renkli kent', RF: 'Royal flush',
 };
 
@@ -146,9 +146,15 @@ export function sahteRenk(kartlar) {
   const kirmizi = kartlar.map(k => KIRMIZI.has(k.r));
   return kirmizi.every(x => x) || kirmizi.every(x => !x);
 }
+// Beş surat (five picture): ilk 5 kartın hepsi vale, kız ya da papaz → express 120'ye 1.
+// Bu kartlarla kent/renk olamaz. Full (100) yerine beş surat ödenir; surat karesi (200) ise kare olarak öder.
+export function besSurat(kartlar) {
+  return kartlar.length === 5 && kartlar.every(k => k.d >= 11 && k.d <= 13);
+}
 export function bonusAnahtari(kartlar) {
   const a = sinif(kartlar).anahtar;
   const k = a === 'AK' && kartlar.some(x => x.d === 12) ? 'AKQ' : a;
+  if (besSurat(kartlar) && (BONUS[k] || 0) < BONUS.SURAT) return 'SURAT';
   if (!BONUS[k] && sahteRenk(kartlar)) return 'SAHTE';
   return k;
 }

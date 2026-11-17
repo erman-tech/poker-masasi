@@ -677,3 +677,18 @@ test('kimse kart çekmezse gömme yapılmaz', () => {
   g = novoHamleGercek(g, { tip: 'gec' }); g = novoHamleGercek(g, { tip: 'gec' });
   assert.equal(g.el.cek, c); assert.equal(g.el.cekmeYakilan, undefined);
 });
+
+test('beş surat: ilk 5 kartın hepsi vale/kız/papaz → express 120:1, her başka bonustan önce', () => {
+  assert.equal(bonusAnahtari(K('Jh Qd Ks Jc Qh')), 'SURAT');
+  assert.equal(bonusOrani(K('Jh Qd Ks Jc Qh')), 120);
+  assert.equal(bonusOrani(K('Kh Kd Ks Qc Qh')), 120, 'full (100) yerine beş surat');
+  assert.equal(bonusOrani(K('Kh Kd Ks Kc Qh')), 200, 'papaz karesi: kare 200 beş suratı geçer');
+  assert.equal(bonusOrani(K('Jh Qh Kh Jd Qd')), 120, 'hepsi kırmızı: sahte renk değil beş surat');
+  assert.notEqual(bonusAnahtari(K('Ah Qd Ks Jc Qh')), 'SURAT', 'as surat değil');
+  assert.notEqual(bonusAnahtari(K('Th Qd Ks Jc Qh')), 'SURAT', 'on surat değil');
+});
+
+test('express renkli kent 250, royal flush 500', () => {
+  assert.equal(bonusOrani(K('9h Th Jh Qh Kh')), 250);
+  assert.equal(bonusOrani(K('Ts Js Qs Ks As')), 500);
+});

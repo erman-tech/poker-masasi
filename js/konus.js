@@ -1,4 +1,4 @@
-// Kasanın sesi: Elif. Cümleler kısa parçalardan kurulur (sesler/elif/<parça>.m4a).
+// Kasanın sesi: Elif. Cümleler kısa parçalardan kurulur (sesler/elif/<parça>.mp3).
 // Bir cümlenin parçalarından biri bile kayıtlı değilse o cümle cihazın Türkçe sesiyle söylenir
 // (iki sesi karıştırmamak için). Kayıtlar offline önbellekte durur; internet gerekmez.
 const ANAHTAR = 'poker.konusma';
@@ -17,7 +17,7 @@ export const PARCALAR = {
   kasa_4: 'Kasa kent.', kasa_5: 'Kasa renk.', kasa_6: 'Kasa full house.', kasa_7: 'Kasa kare.',
   kasa_SF: 'Kasa renkli kent.', kasa_RF: 'Kasa royal flush.',
   // el adları
-  el_AK: 'as papaz', el_AKQ: 'as papaz kız', el_SAHTE: 'sahte renk', el_1: 'per', el_2: 'iki per',
+  el_AK: 'as papaz', el_AKQ: 'as papaz kız', el_SAHTE: 'sahte renk', el_SURAT: 'beş surat', el_1: 'per', el_2: 'iki per',
   el_3: 'üçlü', el_4: 'kent', el_5: 'renk', el_6: 'full house', el_7: 'kare', el_SF: 'renkli kent', el_RF: 'royal flush',
   // adlar
   ad_erman: 'Erman', ad_emrah: 'Emrah', ad_fidan: 'Fidan',
@@ -77,7 +77,7 @@ async function listeYukle() {
 }
 async function tamponAl(k) {
   if (tampon.has(k)) return tampon.get(k);
-  const r = await fetch(KLASOR + k + '.m4a');
+  const r = await fetch(KLASOR + k + '.mp3');
   const b = await ctx.decodeAudioData(await r.arrayBuffer());
   tampon.set(k, b);
   return b;

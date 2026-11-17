@@ -1,5 +1,5 @@
-// Kart ve fiş sesleri: hiçbir ses dosyası yok, hepsi Web Audio ile anında üretilir
-// (offline'da da çalışır, indirilecek bir şey yok).
+// Kart sesleri Web Audio ile anında üretilir; fiş sesleri ve arka plan uğultusu sesler/ altındaki
+// kayıtlardan çalar (offline önbellekte durur).
 // iOS ses motorunu ancak bir dokunuşla açar; ilk dokunuşta acil() çağrılır.
 
 let ctx = null;
@@ -7,7 +7,10 @@ let gurultuTampon = null;
 let acik = true;
 
 export function sesAcikMi() { return acik; }
-export function sesAyarla(v) { acik = !!v; try { localStorage.setItem('poker.ses', acik ? '1' : '0'); } catch (e) {} }
+export function sesAyarla(v) {
+  acik = !!v; try { localStorage.setItem('poker.ses', acik ? '1' : '0'); } catch (e) {}
+  if (typeof ortamAyarla === 'function' && ortamKazanc) ortamAyarla(ortamAcik);
+}
 try { acik = localStorage.getItem('poker.ses') !== '0'; } catch (e) {}
 
 export function acil() {
@@ -30,6 +33,33 @@ export function acil() {
     }
   }
   if (ctx.state === 'suspended') ctx.resume();
+  ortamBaslat();
+}
+
+// Arka planda kısık casino uğultusu (sesler/ortam.mp3, döngü). Menüden kapatılabilir.
+let ortamAcik = true;
+try { ortamAcik = localStorage.getItem('poker.ortam') !== '0'; } catch (e) {}
+let ortamKaynak = null, ortamKazanc = null, ortamIstendi = false;
+const ORTAM_SES = 0.12;
+export function ortamAcikMi() { return ortamAcik; }
+export function ortamAyarla(v) {
+  ortamAcik = !!v;
+  try { localStorage.setItem('poker.ortam', ortamAcik ? '1' : '0'); } catch (e) {}
+  if (ortamKazanc && ctx) ortamKazanc.gain.setTargetAtTime(ortamAcik && acik ? ORTAM_SES : 0, ctx.currentTime, 0.3);
+  if (ortamAcik) ortamBaslat();
+}
+function ortamBaslat() {
+  if (!ctx || !ortamAcik || !acik || ortamIstendi) return;
+  ortamIstendi = true;
+  fetch('sesler/ortam.mp3').then(r => (r.ok ? r.arrayBuffer() : Promise.reject()))
+    .then(b => new Promise((ok, red) => ctx.decodeAudioData(b, ok, red)))
+    .then(buf => {
+      ortamKaynak = ctx.createBufferSource(); ortamKaynak.buffer = buf; ortamKaynak.loop = true;
+      ortamKazanc = ctx.createGain(); ortamKazanc.gain.value = 0;
+      ortamKaynak.connect(ortamKazanc).connect(ctx.destination);
+      ortamKaynak.start();
+      ortamKazanc.gain.setTargetAtTime(ortamAcik && acik ? ORTAM_SES : 0, ctx.currentTime, 1.5);
+    }).catch(() => { ortamIstendi = false; });
 }
 
 function hazir() { return acik && ctx && ctx.state === 'running'; }
