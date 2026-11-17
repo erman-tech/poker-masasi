@@ -4,7 +4,7 @@ import {
   katilabilir, ODEME, BONUS, EL_ADI, sinif, bonusAnahtari, kombinasyonlar,
 } from './novo.js';
 import { yiginEl } from './fis.js';
-import { $, ekranGoster, kartEl, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
+import { $, ekranGoster, kartEl, kartYuzu, kartUcur, bekle, perdeAc, perdeKapat, onayla, ekranAcikTut, para, kacis } from './arayuz.js';
 import * as ses from './ses.js';
 import { krupiyeKur, ruh } from './krupiye.js';
 import * as konus from './konus.js';
@@ -77,7 +77,8 @@ function ciz() {
   if (el) {
     el.krupiye.forEach((k, j) => {
       const acik = el.krupiyeAcik || j === 4;
-      kr.appendChild(kartEl(k, acik));
+      // Kapalı kartın yüzü sayfaya hiç konmaz (iPad'de 3B gizleme bazen tutmuyor); açılırken eklenir.
+      kr.appendChild(acik ? kartEl(k, true) : kartEl(null, false));
     });
   } else for (let j = 0; j < 5; j++) kr.appendChild(Object.assign(kartEl(null), { className: 'kart bos' }));
   $('n-krupiye-ad').textContent = el && el.krupiyeAcik
@@ -404,7 +405,7 @@ async function sonAnimasyon(once, yeni) {
   await bekle(300);
   const kr = $('n-krupiye').children;
   if (acildi) {
-    for (let j = 0; j < 4; j++) { kr[j].classList.add('acik'); ses.kartCevir(); await bekle(380); }
+    for (let j = 0; j < 4; j++) { kartYuzu(kr[j], el.krupiye[j]); kr[j].classList.add('acik'); ses.kartCevir(); await bekle(380); }
     await bekle(300);
     const sigortalilar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && p.sigorta > 0);
     if (el.ilkOyun) {

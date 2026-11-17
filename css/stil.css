@@ -424,3 +424,5 @@ input, select {
 /* Çekme kararı: atılacak kartlar kalkık ve soluk, 6. kart için boş yer */
 .nkartlar .kart.atilacak { transform: translateY(-10px); opacity: .45; outline: 2px dashed #ffd765; outline-offset: 1px; }
 .nkartlar .kart.hayalet { display: grid; place-items: center; background: transparent; border: 2px dashed #ffd76599; color: #ffd765; font-weight: 900; box-shadow: none; }
+
+.nkartlar .kart.acik.atilacak { transform: translateY(-10px) rotateY(180deg); }
