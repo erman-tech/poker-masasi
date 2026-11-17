@@ -245,7 +245,12 @@ test('kasa karşılaştırması: 50.000 rastgele elde bağımsız değerlendiric
     if (b === 0) berabere++;
   }
   assert.equal(farkli, 0);
-  assert.ok(berabere > 0, 'beraberlik durumu da denendi');
+  void berabere;
+  // Beraberlik rastgele ellerde çok nadir; sabit örneklerle sınanır
+  for (const [x, y] of [['Ah Kd 9c 7s 4h', 'Ac Ks 9d 7h 4c'], ['8h 8d Kc 7s 4h', '8c 8s Kd 7h 4d'], ['5h 6d 7c 8s 9h', '5c 6s 7d 8h 9c']]) {
+    assert.equal(Math.sign(gucKarsilastir(enIyiEl(K(x)).guc, enIyiEl(K(y)).guc)), 0);
+    assert.equal(Math.sign(referansPuan(K(x)) - referansPuan(K(y))), 0);
+  }
 });
 
 test('kasa karşılaştırması: elle seçilmiş zor durumlar', () => {
@@ -589,10 +594,10 @@ test('kart çekmede kasa herkes karar verdikten sonra toplu dağıtır', () => {
   let g = yeniNovo({ adlar: ['A', 'B', 'C'], kod: 'X' });
   g = novoDagit(g);
   const ilkA = JSON.stringify(g.el.oyuncular[0].kartlar);
-  const cek0 = g.el.cek;
+  const cek0 = g.el.cek, fis0 = g.oyuncular[0].fis;
   g = novoHamleGercek(g, { tip: 'degistir', konumlar: [0, 1] });
   assert.equal(JSON.stringify(g.el.oyuncular[0].kartlar), ilkA, 'A karar verdi ama kartı henüz gelmedi');
-  assert.equal(g.el.cek, cek0); assert.equal(g.oyuncular[0].fis, 1000 - 75, 'çekme ücreti kararla alınır');
+  assert.equal(g.el.cek, cek0); assert.equal(g.oyuncular[0].fis, fis0 - 25, 'çekme ücreti kararla alınır');
   g = novoHamleGercek(g, { tip: 'alti' });
   assert.equal(g.el.oyuncular[1].kartlar.length, 5);
   g = novoHamleGercek(g, { tip: 'gec' });
