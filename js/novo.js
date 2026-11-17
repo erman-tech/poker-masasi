@@ -75,6 +75,12 @@ export function kombinasyonlar(kartlar) {
   const ana = sinif(kartlar);
   const sonuc = { ana: ana.anahtar, ikinci: null };
   if (kartlar.length < 6 || ana.anahtar === 0 || ana.anahtar === 'AK') return sonuc;
+  // Üç per (6 kartta üç ayrı çift): iki per + per = 3 kat
+  if (ana.anahtar === 2) {
+    const say = new Map();
+    for (const k of kartlar) say.set(k.d, (say.get(k.d) || 0) + 1);
+    if ([...say.values()].filter(n => n === 2).length === 3) { sonuc.ikinci = 1; return sonuc; }
+  }
   const anaYapan = yapanKartlar(ana.el.kartlar, ana.anahtar);
   let enIyi = null;
   for (let atla = 0; atla < kartlar.length; atla++) {
@@ -239,9 +245,7 @@ function sonrakiKarar(g, i) {
 // Kasanın oyunu yoksa sigorta 1'e 1 öder; kasa oyuna girerse sigorta kasanındır.
 export const SIGORTA_EN_AZ_KAT = 3; // üçlü
 export function sigortaSiniri(p, fis, ante) {
-  const s = sinif(p.kartlar);
-  const kat = s.anahtar === 'RF' ? 9 : s.anahtar === 'SF' ? 8 : s.anahtar;
-  if (typeof kat !== 'number' || kat < SIGORTA_EN_AZ_KAT) return null;
+  if (!iyiEl(p.kartlar)) return null;
   const oran = betOrani(p.kartlar).oran; // iki kombinasyon varsa toplam kat
   const tavan = Math.floor((oran * p.bahis) / 2 / 5) * 5;
   const enCok = Math.min(tavan, fis);
@@ -337,9 +341,10 @@ function krupiyeAc(g) {
 }
 
 // Sigorta ve oyun satın alma sorusu yalnız üçlü ve üstünde
+// "İyi el": bet'i en az 3 kat ödeyen el (üçlü ve üstü; 6 kartta iki kombinasyonla 3 kata çıkan da,
+// ör. üç per = iki per + per). Sigorta ve "kasaya kart çektir" sorusu yalnız bu ellere sorulur.
 export function iyiEl(kartlar) {
-  const a = sinif(kartlar).anahtar;
-  return a === 'SF' || a === 'RF' || (typeof a === 'number' && a >= SIGORTA_EN_AZ_KAT);
+  return betOrani(kartlar).oran >= SIGORTA_EN_AZ_KAT;
 }
 
 // Krupiyenin oyunu yokken: her oyuncu için true (oyun satın al) / false (ante al)

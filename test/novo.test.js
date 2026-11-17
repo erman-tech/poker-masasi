@@ -621,3 +621,14 @@ test('kasanın eli oyuncununkiyle aynı olasılıkta (per %42,3, iki per %4,75, 
   assert.ok(Math.abs(yuzde('3') - 2.11) < 0.35, 'üçlü ' + yuzde('3'));
   assert.ok((say['4'] || 0) + (say['5'] || 0) + (say['6'] || 0) > 300, 'kent/renk/full da gelir');
 });
+
+import { iyiEl } from '../js/novo.js';
+test('soru ve sigorta: bet en az 3 kat ödeyen eller (üç per dahil)', () => {
+  assert.equal(betOrani(K('Ah Ad Kh Kd 7c 7s')).oran, 3, 'üç per = iki per + per = 3 kat');
+  assert.equal(iyiEl(K('Ah Ad Kh Kd 7c 7s')), true);
+  assert.equal(iyiEl(K('7h 7d 7c 2s 9d')), true, 'üçlü');
+  assert.equal(iyiEl(K('Ah Ad Kh Kd 7c')), false, 'iki per 2 kat');
+  assert.equal(iyiEl(K('Ah Ad 2c 3s 4h 5d')), true, 'kent + per 5 kat');
+  const p = { kartlar: K('Ah Ad Kh Kd 7c 7s'), bahis: 50 };
+  assert.equal(sigortaSiniri(p, 5000, 25).enCok, 75, '3 x 50 / 2');
+});

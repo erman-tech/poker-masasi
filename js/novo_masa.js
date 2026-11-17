@@ -527,10 +527,10 @@ async function dagit() {
   for (let k = 0; k < 5; k++) {
     for (const [, i] of spotlar) {
       const c = spotEl(i).querySelectorAll('.nkartlar .kart')[k];
-      ses.kartAt(); await kartUcur(kasaRect(), c, 380); c.style.visibility = ''; await bekle(90);
+      ses.kartAt(); await kartUcur(kasaRect(), c, 520); c.style.visibility = ''; await bekle(160);
     }
     const d = $('n-krupiye').children[k];
-    ses.kartAt(); await kartUcur(kasaRect(), d, 380); d.style.visibility = ''; await bekle(140);
+    ses.kartAt(); await kartUcur(kasaRect(), d, 520); d.style.visibility = ''; await bekle(240);
   }
   ses.kartCevir();
   ruh('normal');
