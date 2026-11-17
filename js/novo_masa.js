@@ -177,7 +177,7 @@ function ciz() {
     const levha = document.createElement('div'); levha.className = 'nlevha';
     if (o.mola) s.classList.add('mola');
     levha.innerHTML = `<div class="ad">${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(o.fis)}</div>` +
-      (o.yuklenen ? `<div class="yuk">yüklenen ${para(o.yuklenen)}</div>` : '');
+      oyuncuHesap(g, o, p, el);
     const yig = document.createElement('div'); yig.className = 'yigin-yeri';
     if (o.fis > 0) yig.appendChild(yiginEl(o.fis, { cesitli: true, boyut: 20, enCok: 7 }));
     levha.appendChild(yig);
@@ -185,6 +185,17 @@ function ciz() {
     alan.appendChild(s);
   });
   panelCiz();
+}
+
+// Oyuncunun toplam girişi (başlangıç + yüklenen) ve ona göre artısı/eksisi.
+// El sürerken masada duran ante, bet ve sigorta da oyuncunun sayılır (express dağıtımda kapanmıştır).
+function oyuncuHesap(g, o, p, el) {
+  const giris = (g.baslangicFis || 0) + (o.yuklenen || 0);
+  const masada = p && p.katildi && el && el.faz !== 'bitti' ? (p.durum === 'pas' ? 0 : p.ante) + (p.bahis || 0) + (p.sigorta || 0) : 0;
+  const fark = o.fis + masada - giris;
+  const isaret = fark > 0 ? '+' : fark < 0 ? '−' : '±';
+  return `<div class="yuk">giriş ${para(giris)}${o.yuklenen ? ` (yüklenen ${para(o.yuklenen)})` : ''}</div>` +
+    `<div class="fark ${fark > 0 ? 'art' : fark < 0 ? 'eks' : ''}">${isaret}${para(Math.abs(fark))}</div>`;
 }
 
 // Dairede o an duran fiş

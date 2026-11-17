@@ -320,6 +320,8 @@ input, select {
 .nlevha { background: #000a; border: 2px solid #ffffff22; border-radius: 12px; padding: 4px 10px; text-align: center; min-width: 130px; }
 .nlevha .ad { font-weight: 800; } .nlevha .fis-sayi { color: var(--altin); }
 .nlevha .yuk { font-size: 11px; color: var(--soluk); }
+.nlevha .fark { font-size: 14px; font-weight: 800; color: #ffffffcc; }
+.nlevha .fark.art { color: #8ff0a3; } .nlevha .fark.eks { color: #ffb0a8; }
 .nspot.sira .nlevha { border-color: var(--vurgu); box-shadow: 0 0 20px #ffd76588; }
 .nspot.pas .nkartlar { opacity: .35; }
 .kart.secili { transform: translateY(-10px); }
