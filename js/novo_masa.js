@@ -47,7 +47,21 @@ function ekran() {
   ciz();
 }
 
+// Geri al hileye kapı açmasın: yalnız SON karar, tek adım ve o karardan sonra
+// hiç kart dağıtılmadıysa (yeni kart çekilmedi, kasa açılmadı, yeni el başlamadı) geri alınır.
+// Eller arasındaki işlemler (mola, para yükleme) kart göstermediği için geri alınabilir.
+function geriAlinabilir() {
+  if (!N.gecmis.length || N.geriAlindi) return false;
+  let p;
+  try { p = JSON.parse(N.gecmis[N.gecmis.length - 1]).el; } catch (e) { return false; }
+  const c = N.g.el;
+  if (!p || !c || p.no !== c.no) return false;
+  if (p.faz === 'bitti' && c.faz === 'bitti') return true;
+  return p.faz !== 'bitti' && c.faz !== 'bitti' && p.cek === c.cek && !c.krupiyeAcik && !p.krupiyeAcik;
+}
+
 function gecmiseAt() {
+  N.geriAlindi = false;
   N.gecmis.push(JSON.stringify(N.g));
   if (N.gecmis.length > 40) N.gecmis.shift();
 }
@@ -83,7 +97,7 @@ function ciz() {
   kn.textContent = kasaYazi(canli);
   kn.className = canli >= 0 ? 'artı' : 'eksi';
   $('n-kasatop').textContent = g.oyunNo > 1 ? `· masa açıldığından beri ${kasaYazi(g.kasaToplam)}` : '';
-  $('n-geri').disabled = !N.gecmis.length || mesgul;
+  $('n-geri').disabled = !geriAlinabilir() || mesgul;
 
   // Krupiye
   const kr = $('n-krupiye');
@@ -643,10 +657,10 @@ async function dagit() {
   for (let k = 0; k < 5; k++) {
     for (const [, i] of spotlar) {
       const c = spotEl(i).querySelectorAll('.nkartlar .kart')[k];
-      ses.kartAt(); await kartUcur(kasaRect(), c, 518); c.style.visibility = ''; await bekle(162);
+      ses.kartAt(); await kartUcur(kasaRect(), c, 466); c.style.visibility = ''; await bekle(146);
     }
     const d = $('n-krupiye').children[k];
-    ses.kartAt(); await kartUcur(kasaRect(), d, 518); d.style.visibility = ''; await bekle(243);
+    ses.kartAt(); await kartUcur(kasaRect(), d, 466); d.style.visibility = ''; await bekle(219);
   }
   ses.kartCevir();
   ruh('normal');
@@ -736,9 +750,9 @@ export function novoBagla() {
   krupiyeKur($('n-krupiye-kadin'));
   $('n-ses').onclick = () => { ses.acil(); ses.sesAyarla(!ses.sesAcikMi()); $('n-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇'; };
   $('n-geri').onclick = async () => {
-    if (!N.gecmis.length || mesgul) return;
+    if (!geriAlinabilir() || mesgul) return;
     if (!(await onayla('Son hamle geri alınsın mı?', 'Geri al'))) return;
-    N.g = JSON.parse(N.gecmis.pop()); secimModu = false; secili.clear(); hata = ''; kurpiyeAyarla(eldekiKurpiye(N.g.elNo || 1));
+    N.g = JSON.parse(N.gecmis.pop()); N.geriAlindi = true; secimModu = false; secili.clear(); hata = ''; kurpiyeAyarla(eldekiKurpiye(N.g.elNo || 1));
     kaydet(); ciz();
   };
   $('n-menu').onclick = () => {
