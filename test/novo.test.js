@@ -730,3 +730,25 @@ test('As-Papaz-Kız yanında per olsa da express 5:1 öder (A K Q 9 9)', () => {
   assert.equal(bonusOrani(K('As Kd Qh Jc Td')), 30, 'kent daha yüksek');
   assert.equal(bonusOrani(K('As Kd Qh Qc Qd')), 8, 'üçlü daha yüksek');
 });
+
+test('sahte döper: kasada düşük per ya da yalnız As-Papaz varsa döper öder; gerçek döper her zaman geçer', () => {
+  const tek = (oy, kasa, cek = '') => novoDagit(oyun(['Erman']), deste([oy], kasa, cek));
+  // Kasada yalnız As-Papaz: sahte döper 2'ye 1
+  let g = oyna0(tek('Ah Ad Kc 7s 2d', 'As Kh 9d 6s 3h'));
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kazandi');
+  assert.equal(g.el.oyuncular[0].sonuc.oran, 2);
+  // Kasada düşük per (K-K-A sahte döper, kasa 9 çifti): 2'ye 1
+  g = oyna0(tek('Kh Kd Ac 7s 2d', '9h 9c Qd 6s 3h'));
+  assert.equal(g.el.oyuncular[0].sonuc.oran, 2);
+  // Kasada gerçek döper: sahte döper (A-A-K) her zaman kaybeder, kasanın çifti 2 bile olsa
+  g = oyna0(tek('Ah Ad Kc 7s 2d', '2h 2c As Ks 3h'));
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti');
+  g = oyna0(tek('Kh Kd Ac 7s 2d', '2h 2c As Ks 3h'));
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti');
+  // 6. kartla sahte döper olan oyuncu da gerçek döpere kaybeder
+  g = tek('Ah Ad 9c 7s 2d', '2h 2c As Ks 3h', '4c Kd');
+  g = novoHamle(g, { tip: 'alti' });
+  g = oyna0(g);
+  assert.equal(g.el.oyuncular[0].kartlar.length, 6);
+  assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti');
+});
