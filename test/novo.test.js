@@ -785,7 +785,7 @@ test('yan express: komşuya hemen öder, kasaya kasa açılınca; net fiş deği
   assert.equal(q.yanKasa.odeme, 610);
   assert.equal(g.oyuncular[0].fis - once, q.net);
   assert.ok(q.odemeler.some(x => /Kasaya express Renk 60:1/.test(x.yazi) && x.tutar === 600));
-  assert.ok(q.odemeler.some(x => /Komşuya express Üçlü 8:1/.test(x.yazi) && x.tutar === 80));
+  assert.ok(q.odemeler.some(x => /Komşuya express \(Fidan\) Üçlü 8:1/.test(x.yazi) && x.tutar === 80));
   assert.equal(g.el.oyuncular[1].net, 80 - 10, 'komşunun hesabı yalnız kendi express ve antesi: yan bahis ondan bir şey almaz');
 });
 

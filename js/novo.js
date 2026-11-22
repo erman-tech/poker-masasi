@@ -208,10 +208,10 @@ export function molaAyarla(g0, i, mola) {
 
 // Yan express: oyuncu kendi express'ine ek olarak kasanın ve yanındaki oyuncunun ilk 5 kartına
 // express kadar (1 ante) oynayabilir; o ellerde express eli gelirse ödemeyi o alır.
-// Komşu: elde oturan, sıradaki (sağındaki) oyuncu. Seçim eller arasında değişir, sonraki elde geçerli.
+// Komşu: elde oturan, sıradaki (sağındaki) oyuncu. Seçim her an değişir, sonraki elde geçerli.
 export function yanAyarla(g0, i, yan) {
+  // El sürerken de seçilebilir: bahis dağıtımda alındığı için seçim bir sonraki elde geçerli olur.
   const g = klon(g0);
-  if (g.el && g.el.faz !== 'bitti') throw new Error('El bitince değiştirilebilir');
   if (!g.oyuncular[i]) throw new Error('Oyuncu yok');
   const y = { ...(g.oyuncular[i].yan || {}) };
   if ('kasa' in yan) y.kasa = !!yan.kasa;
@@ -494,7 +494,7 @@ function karsilastir(p, krupiye) {
 }
 
 // Ne ödendi / ne alındı: kalem kalem (iade edilen paralar kalem değildir). Toplamı = net.
-function odemeDokumu(p, el) {
+function odemeDokumu(p, el, g) {
   const k = [];
   const ad = a => EL_ADI[a];
   if (p.bonusOdeme) k.push({ yazi: `Bonus ödeme ${ad(bonusAnahtari(p.ilk))} ${p.bonusOran}:1`, tutar: p.bonusOdeme - p.bonus });
@@ -515,7 +515,10 @@ function odemeDokumu(p, el) {
   if (p.ucret) k.push({ yazi: p.alti ? '6. kart' : 'Kart çekme', tutar: -p.ucret });
   const yanAd = a => (a === 'SAHTE' ? 'Sahte renk' : EL_ADI[a]);
   if (p.yanKasa) k.push(p.yanKasa.odeme ? { yazi: `Kasaya express ${yanAd(bonusAnahtari(el.krupiyeIlk || el.krupiye))} ${p.yanKasa.oran}:1`, tutar: p.yanKasa.odeme - p.yanKasa.bahis } : { yazi: 'Kasaya express', tutar: -p.yanKasa.bahis });
-  if (p.yanKomsu) { const kp = el.oyuncular[p.yanKomsu.kime]; k.push(p.yanKomsu.odeme ? { yazi: `Komşuya express ${yanAd(bonusAnahtari(kp.ilk))} ${p.yanKomsu.oran}:1`, tutar: p.yanKomsu.odeme - p.yanKomsu.bahis } : { yazi: 'Komşuya express', tutar: -p.yanKomsu.bahis }); }
+  if (p.yanKomsu) {
+    const kp = el.oyuncular[p.yanKomsu.kime], kad = g && g.oyuncular[p.yanKomsu.kime] ? ` (${g.oyuncular[p.yanKomsu.kime].ad})` : '';
+    k.push(p.yanKomsu.odeme ? { yazi: `Komşuya express${kad} ${yanAd(bonusAnahtari(kp.ilk))} ${p.yanKomsu.oran}:1`, tutar: p.yanKomsu.odeme - p.yanKomsu.bahis } : { yazi: `Komşuya express${kad}`, tutar: -p.yanKomsu.bahis });
+  }
   if (p.yanAtlandi) k.push({ yazi: 'Yan express oynanmadı (para yetmedi)', tutar: 0 });
   if (p.sigorta) k.push(p.sigortaGeri ? { yazi: 'Sigorta 1:1', tutar: p.sigorta } : { yazi: 'Sigorta yandı (kasa açtı)', tutar: -p.sigorta });
   return k;
@@ -563,7 +566,7 @@ function bitir(g) {
     p.elAdi = EL_ADI[s.anahtar];
     // net: bu elde fişindeki değişim
     p.net = geri - (p.yanKasa ? p.yanKasa.odeme : 0) + (p.yanOdeme || 0) + p.bonusOdeme - (p.ante + p.bonus + p.bahis + p.ucret + (p.sigorta || 0) + (p.yanBahis || 0));
-    p.odemeler = odemeDokumu(p, el);
+    p.odemeler = odemeDokumu(p, el, g);
   });
   const ks = sinif(el.krupiye);
   el.krupiyeElAdi = EL_ADI[ks.anahtar];

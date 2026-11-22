@@ -4,6 +4,8 @@ const ANAHTAR = 'poker.konusma';
 const KLASOR = 'sesler/elif/';
 
 // Parça -> söylenecek metin (kayıt listesi de buradan üretilir)
+import { sesAcikMi } from './ses.js'; // ses kapatma tuşu seslendirmeyi de susturur
+
 export const PARCALAR = {
   kasa_bos: 'Kasa boş, ante ödeme.',
   kasa_kart_cekti: 'Kasa kart çekti,', oldu: 'oldu.', yine_bos: 'yine boş.',
@@ -20,6 +22,8 @@ export const PARCALAR = {
   el_3: 'üçlü', el_4: 'kent', el_5: 'renk', el_6: 'full house', el_7: 'kare', el_SF: 'renkli kent', el_RF: 'royal flush',
   // adlar
   ad_erman: 'Erman', ad_emrah: 'Emrah', ad_fidan: 'Fidan',
+  // koltuk numaraları (isimler her zaman okunamıyor: Erman 22 Kas)
+  no_1: 'Bir numara', no_2: 'İki numara', no_3: 'Üç numara',
   // sayılar
   n_1: 'bir', n_2: 'iki', n_3: 'üç', n_4: 'dört', n_5: 'beş', n_6: 'altı', n_7: 'yedi', n_8: 'sekiz', n_9: 'dokuz',
   n_10: 'on', n_20: 'yirmi', n_30: 'otuz', n_40: 'kırk', n_50: 'elli', n_60: 'altmış', n_70: 'yetmiş',
@@ -38,6 +42,8 @@ export function ayarla(acik) {
 const trKucuk = s => s.toLocaleLowerCase('tr').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ç/g, 'c')
   .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/[^a-z0-9]/g, '');
 export const ad = isim => ({ anahtar: 'ad_' + trKucuk(isim), metin: isim });
+// Oyuncu koltuk numarasıyla anılır: "1 numara kaybetti".
+export const oyuncu = i => 'no_' + (i + 1);
 export const el = a => 'el_' + a;
 export const kasaEl = a => 'kasa_' + a;
 
@@ -114,8 +120,9 @@ function cihazla(m) {
 
 // Bir cümle söyle. parcalar: anahtar dizisi (iç içe dizi olabilir) ya da {anahtar, metin}.
 let zincir = Promise.resolve();
+const caliyor = new Set(); // sırada/çalan kayıtlar: dur() hepsini keser
 export function soyle(...parcalar) {
-  if (!acikMi()) return;
+  if (!acikMi() || !sesAcikMi()) return;
   const liste = parcalar.flat(3);
   zincir = zincir.then(async () => {
     const k = await listeYukle();
@@ -134,6 +141,7 @@ export function soyle(...parcalar) {
       const t0 = t;
       for (const b of bufs) {
         const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(t);
+        caliyor.add(s); s.onended = () => caliyor.delete(s);
         t += b.duration + 0.04;
       }
       siraSonu = t + 0.25;
@@ -159,5 +167,7 @@ export async function bitince(azami = 8000) {
 
 export function dur() {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+  for (const s of caliyor) { try { s.stop(); } catch (e) {} }
+  caliyor.clear();
   siraSonu = 0;
 }

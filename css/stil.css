@@ -488,3 +488,7 @@ input, select {
 .geri-sayim .gs-iptal { padding: 6px 14px; font-size: 14px; }
 .mola-dugme.oto-dugme { background: #ffffff10; border-color: #ffffff44; color: #ffffffcc; }
 .mola-dugme.oto-dugme.oto-acik { background: #1f8a4c55; border-color: #3ecf6e; color: #d8ffe2; }
+
+/* Koltuk numarası ve yan express notu (Novo) */
+.nlevha .koltuk-no { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--altin); color: #1a1205; font-size: 12px; font-weight: 800; vertical-align: 2px; }
+.nlevha .yan-not { font-size: 11px; color: #ffe9a8; margin-top: 1px; }

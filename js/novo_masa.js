@@ -198,7 +198,10 @@ function ciz() {
 
     const levha = document.createElement('div'); levha.className = 'nlevha';
     if (o.mola) s.classList.add('mola');
-    levha.innerHTML = `<div class="ad">${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(gosterilenFis(o, p))}</div>` +
+    // Koltuk numarası ve bu elde kime yan express oynadığı (kasaya / komşunun adı)
+    const yanNot = p && p.katildi && (p.yanKasa || p.yanKomsu)
+      ? `<div class="yan-not">express → ${[p.yanKasa ? 'kasa' : '', p.yanKomsu && g.oyuncular[p.yanKomsu.kime] ? `${p.yanKomsu.kime + 1}. ${kacis(g.oyuncular[p.yanKomsu.kime].ad)}` : ''].filter(Boolean).join(' · ')}</div>` : '';
+    levha.innerHTML = `<div class="ad"><span class="koltuk-no">${i + 1}</span>${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(gosterilenFis(o, p))}</div>${yanNot}` +
       oyuncuHesap(g, o, p, el);
     const yig = document.createElement('div'); yig.className = 'yigin-yeri';
     if (gosterilenFis(o, p) > 0) yig.appendChild(yiginEl(gosterilenFis(o, p), { cesitli: true, boyut: 20, enCok: 7 }));
@@ -262,7 +265,7 @@ function panelCiz0() {
           <span class="toplam ${p.net >= 0 ? 'art' : 'eks'}">= ${tutar(p.net) || '$0'}</span></div>` : '').join('')}</div>`;
     }
     pn.innerHTML = `<div class="bekleme">${ozet}
-      <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme ${o.mola ? 'molada' : ''} ${otoMu(i) ? 'oto-acik' : ''}" data-ayar="${i}">${kacis(o.ad)} · ${ayarOzet(o, i)} ⚙</button>`).join('')}</div>
+      <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme ${o.mola ? 'molada' : ''} ${otoMu(i) ? 'oto-acik' : ''}" data-ayar="${i}">${i + 1}. ${kacis(o.ad)} · ${ayarOzet(o, i)} ⚙</button>`).join('')}</div>
       <div class="satir" style="width:min(640px,100%)">
         <button class="btn-ikincil" id="n-yukle">Para yükle</button>
         ${otoDagitimVar(g) ? '' : `<button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>`}
@@ -356,7 +359,7 @@ function panelCiz0() {
 // Masada otomatik açan biri varsa sonraki el 5 sn geri sayımla kendiliğinden dağıtılır ve
 // "Sonraki eli dağıt" düğmesi görünmez (İptal herkesin otomatiğini kapatır). Her kararın süresi herkes
 // için 5 sn (Erman, 22 Kas); dolunca kart çekmeden geçilir, son kararda pas, sigorta yok, kasa boşsa ante.
-const OTO = { ara: 5000, karar: 10000, sonucPayi: 4000 }; // karar 10 sn (Erman, 22 Kas: oyun hızlıydı)
+const OTO = { ara: 8000, karar: 10000, cekme: 12000, sonucPayi: 4000 }; // kart değiştirme 12 sn (Erman 22 Kas) // el arası 8 sn // karar 10 sn (Erman, 22 Kas: oyun hızlıydı)
 // Oyuncu ayarları tek düğmede (ekran dolmasın): dokununca o oyuncunun penceresi açılır —
 // oyunda / molada, otomatik oyna, kasaya express, komşuya express (express kadar, 1 ante).
 function ayarOzet(o, i) {
@@ -428,7 +431,7 @@ function otoNe() {
   if (!y) return null;
   const tip = 'sigorta' in y ? 'sigorta' : y.asama;
   return {
-    anahtar: `${el.no}:${tip}:${y.oyuncu}:${el.cek || 0}`, sure: OTO.karar, pay: 0, yazi: `${kacis(N.g.oyuncular[y.oyuncu].ad)} · karar süresi`,
+    anahtar: `${el.no}:${tip}:${y.oyuncu}:${el.cek || 0}`, sure: tip === 'cekme' ? OTO.cekme : OTO.karar, pay: 0, yazi: `${kacis(N.g.oyuncular[y.oyuncu].ad)} · karar süresi`,
     fn: () => {
       secimModu = false; secili.clear();
       if (tip === 'sigorta') return uygula(g2 => novoHamle(g2, { tip: 'sigorta', miktar: 0 }), 'sigorta');
@@ -586,7 +589,7 @@ async function topluDagit() {
     const iyi = k.ikinci != null || k.ana === 'SF' || k.ana === 'RF' || (typeof k.ana === 'number' && k.ana >= 3);
     if (!iyi) continue;
     ruh('saskin', 1800);
-    konus.soyle('tebrikler', konus.ad(N.g.oyuncular[i].ad), konus.el(k.ana), k.ikinci != null ? ['ve', konus.el(k.ikinci)] : [], konus.sayi(b.oran), 'kat_odeme');
+    konus.soyle('tebrikler', konus.oyuncu(i), konus.el(k.ana), k.ikinci != null ? ['ve', konus.el(k.ikinci)] : [], konus.sayi(b.oran), 'kat_odeme');
   }
   mesgul = false;
   ciz();
@@ -617,10 +620,10 @@ async function sonAnimasyon(once, yeni) {
     const sigortalilar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && p.sigorta > 0);
     if (el.ilkOyun) {
       konus.soyle(konus.kasaEl(sinif(el.krupiye).anahtar));
-      for (const [, i] of sigortalilar) konus.soyle(konus.ad(g.oyuncular[i].ad), 'sigortayi_kaybetti');
+      for (const [, i] of sigortalilar) konus.soyle(konus.oyuncu(i), 'sigortayi_kaybetti');
     } else {
       konus.soyle('kasa_bos');
-      for (const [p, i] of sigortalilar) konus.soyle(konus.ad(g.oyuncular[i].ad), 'sigortadan', konus.sayi(p.sigorta), 'dolar_kazanir');
+      for (const [p, i] of sigortalilar) konus.soyle(konus.oyuncu(i), 'sigortadan', konus.sayi(p.sigorta), 'dolar_kazanir');
     }
     // Kasa boş açtı: sigorta yapanlar kazandı, bunu büyük söyle
     if (!el.ilkOyun) {
@@ -678,11 +681,11 @@ async function sonAnimasyon(once, yeni) {
     if (t === 'kazandi') {
       const k = kombinasyonlar(p.kartlar);
       const odeme = p.bahis * p.sonuc.oran;
-      konus.soyle(konus.el(k.ana), k.ikinci != null ? ['ve', konus.el(k.ikinci)] : [], konus.ad(ad), konus.sayi(odeme), 'dolar_odeme',
-        odeme >= 10 * el.ante ? ['tebrikler', konus.ad(ad)] : []);
-    } else if (t === 'kaybetti') konus.soyle(konus.ad(ad), 'kaybetti');
-    else if (t === 'berabere') konus.soyle(konus.ad(ad), 'berabere');
-    else if (t === 'oyunyok' && p.satinAldi) konus.soyle(konus.ad(ad), 'berabere');
+      konus.soyle(konus.el(k.ana), k.ikinci != null ? ['ve', konus.el(k.ikinci)] : [], konus.oyuncu(i), konus.sayi(odeme), 'dolar_odeme',
+        odeme >= 10 * el.ante ? ['tebrikler', konus.oyuncu(i)] : []);
+    } else if (t === 'kaybetti') konus.soyle(konus.oyuncu(i), 'kaybetti');
+    else if (t === 'berabere') konus.soyle(konus.oyuncu(i), 'berabere');
+    else if (t === 'oyunyok' && p.satinAldi) konus.soyle(konus.oyuncu(i), 'berabere');
   }
   // Elif konuşurken ödeme yapılmaz; fişler konuşma bitince gider, çip sesi sonda bir kez çalar.
   await konus.bitince();
@@ -785,7 +788,7 @@ async function dagit() {
     if (p.bonusOdeme) {
       ruh(p.bonusOran >= 30 ? 'saskin' : 'goz', 1600);
       if (p.bonusOran >= 30 && !galaGosterildi) { galaGosterildi = true; gala(true); havaiFisek(); }
-      konus.soyle(konus.ad(g0ad(i)), 'bonus_odeme', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
+      konus.soyle(konus.oyuncu(i), 'bonus_odeme', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
     }
   }
   await konus.bitince();
@@ -863,7 +866,7 @@ function kurallarAc() {
 
 export function novoBagla() {
   krupiyeKur($('n-krupiye-kadin'));
-  $('n-ses').onclick = () => { ses.acil(); ses.sesAyarla(!ses.sesAcikMi()); $('n-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇'; };
+  $('n-ses').onclick = () => { ses.acil(); ses.sesAyarla(!ses.sesAcikMi()); if (!ses.sesAcikMi()) konus.dur(); $('n-ses').textContent = ses.sesAcikMi() ? '🔊' : '🔇'; };
   $('n-geri').onclick = async () => {
     if (!geriAlinabilir() || mesgul) return;
     if (!(await onayla('Son hamle geri alınsın mı?', 'Geri al'))) return;
