@@ -236,7 +236,7 @@ function sonucYazi(p) {
   return `${p.elAdi} · kasa kazandı · ${net}`;
 }
 
-function panelCiz() {
+function panelCiz0() {
   const g = N.g, el = g.el, pn = $('n-panel');
   if (mesgul) { pn.innerHTML = '<div class="bekleme"><div class="ne">…</div></div>'; return; }
 
@@ -256,6 +256,7 @@ function panelCiz() {
     }
     pn.innerHTML = `<div class="bekleme">${ozet}
       <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme ${o.mola ? 'molada' : ''}" data-i="${i}">${kacis(o.ad)} · ${o.mola ? 'molada (sonraki elde dön)' : 'oyunda'}</button>`).join('')}</div>
+      <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme oto-dugme ${otoMu(i) ? 'oto-acik' : ''}" data-oto="${i}">${kacis(o.ad)} · otomatik ${otoMu(i) ? 'açık' : 'kapalı'}</button>`).join('')}</div>
       <div class="satir" style="width:min(640px,100%)">
         <button class="btn-ikincil" id="n-yukle">Para yükle</button>
         <button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>
@@ -263,7 +264,14 @@ function panelCiz() {
       <div class="hata">${kacis(hata)}${kimse ? (molada ? 'Masada oynayan kimse yok: molada olanı oyuna alın ya da para yükleyin.' : 'Kimsenin parası girişe yetmiyor: para yükleyin.') : ''}</div></div>`;
     $('n-dagit').onclick = dagit;
     $('n-yukle').onclick = yukleAc;
-    pn.querySelectorAll('.mola-dugme').forEach(b => b.onclick = () => {
+    pn.querySelectorAll('[data-oto]').forEach(b => b.onclick = () => {
+      ses.acil(); konus.kilidiAc();
+      const i = Number(b.dataset.oto);
+      N.oto = { ...(N.oto || {}) };
+      if (N.oto[i]) delete N.oto[i]; else N.oto[i] = true;
+      kaydet(); panelCiz();
+    });
+    pn.querySelectorAll('.mola-dugme[data-i]').forEach(b => b.onclick = () => {
       const i = Number(b.dataset.i);
       try { const yeni = molaAyarla(N.g, i, !N.g.oyuncular[i].mola); gecmiseAt(); N.g = yeni; hata = ''; kaydet(); ciz(); }
       catch (e) { hata = e.message; panelCiz(); }
@@ -346,6 +354,76 @@ function panelCiz() {
     });
   }
 }
+
+// ---------- Otomatik oyna ve geri sayım (online masayla aynı kurallar) ----------
+// Otomatik açık oyuncu: parası yettikçe her ele girer. Masadaki herkes otomatikteyse sonraki el
+// 5 sn geri sayımla kendiliğinden dağıtılır (İptal herkesin otomatiğini kapatır). Otomatik oyuncunun
+// her kararının süresi 5 sn; dolunca kart çekmeden geçilir, son kararda pas, sigorta yok, kasa boşsa ante.
+const OTO = { ara: 5000, karar: 5000, sonucPayi: 4000 };
+const otoMu = i => !!(N && N.oto && N.oto[i]);
+let sayac = null;             // { anahtar, bitis, toplam, yazi, fn, ara }
+const bitisAni = {};          // el no -> sonucun ekrana geldiği an
+function panelCiz() {
+  panelCiz0();
+  otoSayacKur();
+}
+function otoSayacKur() {
+  const d = mesgul || !N ? null : otoNe();
+  if (!d) { sayac = null; return; }
+  if (!sayac || sayac.anahtar !== d.anahtar) sayac = { ...d, bitis: Date.now() + d.pay + d.sure, toplam: d.sure };
+  else sayac.fn = d.fn;
+  const pn = $('n-panel');
+  pn.insertAdjacentHTML('afterbegin', `<div class="geri-sayim"><div class="gs-cubuk"><i id="gs-dolgu"></i></div><span class="gs-yazi">${d.yazi}</span><b id="gs-sayi"></b>${d.ara ? '<button class="btn-tehlike gs-iptal" id="gs-iptal">İptal</button>' : ''}</div>`);
+  if ($('gs-iptal')) $('gs-iptal').onclick = () => { N.oto = {}; kaydet(); sayac = null; panelCiz(); };
+  sayacGuncelle();
+}
+// Şu an otomatik bir geri sayım gerekiyor mu?
+function otoNe() {
+  const g = N.g, el = g.el;
+  if (!N.oto || !Object.keys(N.oto).length) return null;
+  if (!el || el.faz === 'bitti') {
+    // parası yetmeyenin otomatiği kapanır
+    let degisti = false;
+    for (const k of Object.keys(N.oto)) if (!g.oyuncular[k] || g.oyuncular[k].fis < 4 * g.ante) { delete N.oto[k]; degisti = true; }
+    if (degisti) kaydet();
+    const aktif = g.oyuncular.map((o, i) => i).filter(i => katilabilir(g, i));
+    if (!aktif.length || !aktif.every(otoMu)) return null;
+    const no = el ? el.no : 0;
+    if (!(no in bitisAni)) bitisAni[no] = Date.now();
+    return { anahtar: 'ara' + no, sure: OTO.ara, pay: el ? Math.max(0, OTO.sonucPayi - (Date.now() - bitisAni[no])) : 0, yazi: 'El dağıtılıyor', ara: true, fn: () => dagit() };
+  }
+  if (el.faz === 'oyunsuz') {
+    const bekleyen = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi' && el.oyuncular[i].satinAldi === null);
+    if (!bekleyen.length || !bekleyen.every(otoMu)) return null;
+    return { anahtar: 'o' + el.no, sure: OTO.karar, pay: 0, yazi: 'Karar süresi', fn: () => uygula(g2 => oyunSatinAl(g2, Object.fromEntries(bekleyen.map(i => [i, !!oyunsuzSecim[i]])))) };
+  }
+  const y = novoYasal(g);
+  if (!y || !otoMu(y.oyuncu)) return null;
+  const tip = 'sigorta' in y ? 'sigorta' : y.asama;
+  return {
+    anahtar: `${el.no}:${tip}:${y.oyuncu}:${el.cek || 0}`, sure: OTO.karar, pay: 0, yazi: `${kacis(N.g.oyuncular[y.oyuncu].ad)} · karar süresi`,
+    fn: () => {
+      secimModu = false; secili.clear();
+      if (tip === 'sigorta') return uygula(g2 => novoHamle(g2, { tip: 'sigorta', miktar: 0 }), 'sigorta');
+      const h = tip === 'cekme' ? 'gec' : 'pas';
+      return uygula(g2 => novoHamle(g2, { tip: h }), h);
+    },
+  };
+}
+function sayacGuncelle() {
+  const d = document.getElementById('gs-dolgu'), n = document.getElementById('gs-sayi');
+  if (!sayac || !d || !n) return;
+  const kalan = Math.max(0, sayac.bitis - Date.now());
+  n.textContent = Math.ceil(Math.min(kalan, sayac.toplam) / 1000) + ' sn';
+  d.style.width = (100 * Math.min(1, kalan / sayac.toplam)) + '%';
+  d.parentElement.parentElement.classList.toggle('az', kalan < 2000);
+}
+setInterval(() => {
+  if (!sayac) return;
+  if (!document.querySelector('#e-novo.etkin')) return;
+  sayacGuncelle();
+  if (Date.now() >= sayac.bitis && !mesgul && !islemde) { const f = sayac.fn; sayac = null; f(); }
+}, 200);
 
 const g0ad = i => N.g.oyuncular[i].ad;
 let duyuruZaman = null;

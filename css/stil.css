@@ -477,3 +477,14 @@ input, select {
 .kural-sss { border-top: 1px solid #ffffff22; padding: 6px 2px; }
 .kural-sss summary { font-weight: 700; cursor: pointer; }
 .kural-sss div { padding: 4px 0 2px; opacity: .9; }
+
+/* Otomatik oyna ve geri sayım */
+.geri-sayim { display: flex; align-items: center; gap: 10px; width: min(640px, 100%); margin: 0 auto 8px; font-size: 14px; color: #f3e2c4; }
+.gs-cubuk { flex: 1; height: 8px; border-radius: 99px; background: #ffffff1f; overflow: hidden; }
+.gs-cubuk i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #e8c25a, #f3d77a); border-radius: 99px; transition: width .2s linear; }
+.geri-sayim.az .gs-cubuk i { background: linear-gradient(90deg, #c8102e, #ff5a5a); }
+.geri-sayim b { min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; color: var(--altin); }
+.geri-sayim.az b { color: #ff6b6b; }
+.geri-sayim .gs-iptal { padding: 6px 14px; font-size: 14px; }
+.mola-dugme.oto-dugme { background: #ffffff10; border-color: #ffffff44; color: #ffffffcc; }
+.mola-dugme.oto-dugme.oto-acik { background: #1f8a4c55; border-color: #3ecf6e; color: #d8ffe2; }
