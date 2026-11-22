@@ -449,14 +449,13 @@ function odemeDokumu(p, el) {
   const ad = a => EL_ADI[a];
   if (p.bonusOdeme) k.push({ yazi: `Bonus ödeme ${ad(bonusAnahtari(p.ilk))} ${p.bonusOran}:1`, tutar: p.bonusOdeme - p.bonus });
   else k.push({ yazi: 'Express', tutar: -p.bonus });
-  const anteKazanir = p.ucret === 0 && !p.satinAldi;
   if (p.durum === 'pas') k.push({ yazi: 'Ante (pas)', tutar: -p.ante });
   else if (p.sonuc) {
     const t = p.sonuc.tip;
     if (t === 'oyunyok' && p.satinAldi) k.push({ yazi: 'Kasa çektiği kartla da oyun bulamadı: ante ve bet geri (kart çektirdiği için ante 1:1 yok)', tutar: 0 });
     else if (t === 'oyunyok') k.push({ yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante }); // kart alan da alır (Erman, 22 Kas)
     if (t === 'kazandi') {
-      k.push(anteKazanir ? { yazi: 'Ante 1:1', tutar: p.ante } : { yazi: 'Ante geri', tutar: 0 });
+      k.push({ yazi: 'Ante geri (kasanın oyunu varken ante ödenmez)', tutar: 0 });
       const ek = p.sonuc.ikinciEl != null ? ` + ${EL_ADI[p.sonuc.ikinciEl]} (${ODEME[p.sonuc.ana ?? sinif(p.kartlar).anahtar]}+${ODEME[p.sonuc.ikinciEl]})` : p.sonuc.ikinciAK ? (yalanciAK(p.kartlar) || yalanciIkiPer(p.kartlar) ? ' + As-Papaz (yalancı per)' : p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
       k.push({ yazi: `Bet ${p.elAdi}${ek} ${p.sonuc.oran}:1`, tutar: p.bahis * p.sonuc.oran });
     }
@@ -479,7 +478,6 @@ function bitir(g) {
     let geri = 0, odeme = 0;
     const s = sinif(p.kartlar);
     if (p.durum === 'oynadi' && p.sonuc) {
-      const anteKazanir = p.ucret === 0 && !p.satinAldi; // kart değiştiren / kasaya kart çektiren ante kazanmaz, geri alır
       if (p.sonuc.tip === 'oyunyok') {
         // Kasanın oyunu yok: ante 1:1, bet geri. Kart değiştiren ya da 6. kartı alan da ante kazancını alır
         // (Erman, 22 Kas 2026). Yalnız kasaya kart çektiren (kasa yine boş açtıysa) ante kazancından vazgeçmiştir.
@@ -487,7 +485,8 @@ function bitir(g) {
       } else if (p.sonuc.tip === 'kazandi') {
         const b = betOrani(p.kartlar);
         odeme = p.bahis * b.oran;
-        geri = p.ante + p.bahis + odeme + (anteKazanir ? p.ante : 0);
+        // Kasanın oyunu varken ante 1:1 ödenmez, yalnız iade edilir; kazanç bet'ten gelir (Erman, 22 Kas 2026).
+        geri = p.ante + p.bahis + odeme;
         p.sonuc.oran = b.oran;
         p.sonuc.ikinciAK = !!b.ek;
         p.sonuc.ikinciEl = b.ikinci;
