@@ -187,6 +187,7 @@ export function yeniNovo({ adlar, kod, baslangicFis = 1000, ante = 25 }) {
 export function novoYenidenBaslat(g) {
   const y = yeniNovo({ adlar: g.oyuncular.map(o => o.ad), kod: g.kod, baslangicFis: g.baslangicFis, ante: g.ante });
   y.elNo = g.elNo; y.oyunNo = (g.oyunNo || 1) + 1; y.kasaToplam = g.kasaToplam || 0;
+  g.oyuncular.forEach((o, i) => { if (o.yan) y.oyuncular[i].yan = { ...o.yan }; });
   return y;
 }
 
@@ -203,6 +204,25 @@ export function molaAyarla(g0, i, mola) {
   if (!g.oyuncular[i]) throw new Error('Oyuncu yok');
   g.oyuncular[i].mola = !!mola;
   return g;
+}
+
+// Yan express: oyuncu kendi express'ine ek olarak kasanın ve yanındaki oyuncunun ilk 5 kartına
+// express kadar (1 ante) oynayabilir; o ellerde express eli gelirse ödemeyi o alır.
+// Komşu: elde oturan, sıradaki (sağındaki) oyuncu. Seçim eller arasında değişir, sonraki elde geçerli.
+export function yanAyarla(g0, i, yan) {
+  const g = klon(g0);
+  if (g.el && g.el.faz !== 'bitti') throw new Error('El bitince değiştirilebilir');
+  if (!g.oyuncular[i]) throw new Error('Oyuncu yok');
+  const y = { ...(g.oyuncular[i].yan || {}) };
+  if ('kasa' in yan) y.kasa = !!yan.kasa;
+  if ('komsu' in yan) y.komsu = !!yan.komsu;
+  g.oyuncular[i].yan = y;
+  return g;
+}
+export function komsusu(katilanlar, i) {
+  const s = katilanlar.filter(j => j !== i);
+  if (!s.length) return null;
+  return s.find(j => j > i) ?? s[0];
 }
 
 export function ayarla(g0, { ante }) {
@@ -241,6 +261,25 @@ export function novoDagit(g0, desteVerilen = null) {
     }),
     sira: null,
   };
+  // Yan express: bahis dağıtımda alınır. Komşunun kartları açık, ödeme hemen; kasanınki kasa
+  // açılınca (ilk 5 kartına göre) ödenir. Para yetmezse (oyna parası kalmalı) o elde oynanmaz.
+  el.krupiyeIlk = el.krupiye.slice();
+  el.oyuncular.forEach((p, i) => {
+    if (!p.katildi) return;
+    const o = g.oyuncular[i], y = o.yan || {};
+    p.yanBahis = 0; p.yanOdeme = 0;
+    const istenen = (y.kasa ? 1 : 0) + (y.komsu ? 1 : 0);
+    if (!istenen) return;
+    if (o.fis - istenen * A < 2 * A) { p.yanAtlandi = true; return; }
+    if (y.kasa) { o.fis -= A; p.yanBahis += A; p.yanKasa = { bahis: A, oran: 0, odeme: 0 }; }
+    const k = komsusu(katilanlar, i);
+    if (y.komsu && k != null) {
+      const oran = bonusOrani(el.oyuncular[k].ilk);
+      const odeme = oran ? A * (oran + 1) : 0;
+      o.fis += odeme - A; p.yanBahis += A; p.yanOdeme += odeme;
+      p.yanKomsu = { bahis: A, kime: k, oran, odeme };
+    }
+  });
   g.el = el;
   el.sira = sonrakiCekme(g, -1);
   if (el.sira == null) kararaGec(g);
@@ -315,8 +354,19 @@ export function novoYasal(g) {
   return { asama: 'karar', oyuncu: i, oyna: o.fis >= 2 * A, pas: true, degistir: false, alti: false, kalanKart: 0 };
 }
 
-// hamle: { tip: 'pas' | 'oyna' | 'degistir' (konumlar: [0..4]) | 'alti' }
+// hamle: { tip: 'pas' | 'oyna' | 'degistir' (konumlar: [0..4]) | 'alti' | 'gec' }
+// { tip: 'gec', oyna: true }: "kart çekmiyorum, oynuyorum" — karar sırası gelince tekrar sorulmadan
+// oynar (parası yetmezse pas). Sigorta yine sorulur.
 export function novoHamle(g0, hamle) {
+  let g = hamleUygula(g0, hamle);
+  for (let k = 0; k < 4 && g.el && g.el.faz === 'karar' && g.el.sira != null; k++) {
+    const y = novoYasal(g);
+    if (!y || 'sigorta' in y || !g.el.oyuncular[y.oyuncu].hemenOyna) break;
+    g = hamleUygula(g, { tip: y.oyna ? 'oyna' : 'pas' });
+  }
+  return g;
+}
+function hamleUygula(g0, hamle) {
   const g = klon(g0);
   const y = novoYasal(g);
   if (!y) throw new Error('Şu an karar beklenmiyor');
@@ -326,7 +376,7 @@ export function novoHamle(g0, hamle) {
   if (y.asama === 'cekme') {
     if (hamle.tip === 'oyna') throw new Error('Önce herkes kart çeksin; oyuna girme sonra sorulur');
     if (hamle.tip === 'pas') p.durum = 'pas';
-    else if (hamle.tip === 'gec') { /* kart çekmedi */ }
+    else if (hamle.tip === 'gec') { if (hamle.oyna) p.hemenOyna = true; /* kart çekmedi */ }
     else if (hamle.tip === 'degistir') {
       if (!y.degistir) throw new Error('Kart çekecek para yok');
       const konum = [...new Set(hamle.konumlar || [])].filter(k => k >= 0 && k < 5).sort();
@@ -463,6 +513,10 @@ function odemeDokumu(p, el) {
     if (t === 'kaybetti') k.push({ yazi: `Kasa kazandı (${el.krupiyeElAdi || EL_ADI[sinif(el.krupiye).anahtar]})`, tutar: -(p.ante + p.bahis) });
   }
   if (p.ucret) k.push({ yazi: p.alti ? '6. kart' : 'Kart çekme', tutar: -p.ucret });
+  const yanAd = a => (a === 'SAHTE' ? 'Sahte renk' : EL_ADI[a]);
+  if (p.yanKasa) k.push(p.yanKasa.odeme ? { yazi: `Kasaya express ${yanAd(bonusAnahtari(el.krupiyeIlk || el.krupiye))} ${p.yanKasa.oran}:1`, tutar: p.yanKasa.odeme - p.yanKasa.bahis } : { yazi: 'Kasaya express', tutar: -p.yanKasa.bahis });
+  if (p.yanKomsu) { const kp = el.oyuncular[p.yanKomsu.kime]; k.push(p.yanKomsu.odeme ? { yazi: `Komşuya express ${yanAd(bonusAnahtari(kp.ilk))} ${p.yanKomsu.oran}:1`, tutar: p.yanKomsu.odeme - p.yanKomsu.bahis } : { yazi: 'Komşuya express', tutar: -p.yanKomsu.bahis }); }
+  if (p.yanAtlandi) k.push({ yazi: 'Yan express oynanmadı (para yetmedi)', tutar: 0 });
   if (p.sigorta) k.push(p.sigortaGeri ? { yazi: 'Sigorta 1:1', tutar: p.sigorta } : { yazi: 'Sigorta yandı (kasa açtı)', tutar: -p.sigorta });
   return k;
 }
@@ -499,11 +553,16 @@ function bitir(g) {
     p.sigortaGeri = 0;
     if (p.sigorta) p.sigortaGeri = el.ilkOyun ? 0 : 2 * p.sigorta;
     geri += p.sigortaGeri;
+    if (p.yanKasa) {
+      const oran = bonusOrani(el.krupiyeIlk || el.krupiye);
+      p.yanKasa.oran = oran; p.yanKasa.odeme = oran ? p.yanKasa.bahis * (oran + 1) : 0;
+      geri += p.yanKasa.odeme; p.yanOdeme = (p.yanOdeme || 0) + p.yanKasa.odeme;
+    }
     o.fis += geri;
     p.geri = geri;
     p.elAdi = EL_ADI[s.anahtar];
     // net: bu elde fişindeki değişim
-    p.net = geri + p.bonusOdeme - (p.ante + p.bonus + p.bahis + p.ucret + (p.sigorta || 0));
+    p.net = geri - (p.yanKasa ? p.yanKasa.odeme : 0) + (p.yanOdeme || 0) + p.bonusOdeme - (p.ante + p.bonus + p.bahis + p.ucret + (p.sigorta || 0) + (p.yanBahis || 0));
     p.odemeler = odemeDokumu(p, el);
   });
   const ks = sinif(el.krupiye);

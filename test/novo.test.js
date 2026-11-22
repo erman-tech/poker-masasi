@@ -764,3 +764,48 @@ test('kart alan da kasa boşken ante 1:1 alır (Erman, 22 Kas): 6. kart + expres
   assert.equal(p.net, -10);
   assert.equal(p.odemeler.reduce((t, k) => t + k.tutar, 0), p.net, 'döküm toplamı net');
 });
+
+import { yanAyarla, komsusu } from '../js/novo.js';
+test('yan express: komşuya hemen öder, kasaya kasa açılınca; net fiş değişimine eşit', () => {
+  // Erman: zayıf el · Fidan: üçlü (express 8:1) · kasa: renk (express 60:1)
+  const d = deste(['2C 5D 9H JS KD', '7C 7D 7H 2S 4D'], 'AH 9H 6H 4H 2H');
+  let g = oyun(['Erman', 'Fidan']);
+  g = yanAyarla(g, 0, { kasa: true, komsu: true });
+  const once = g.oyuncular[0].fis;
+  g = novoDagit(g, d);
+  const p = g.el.oyuncular[0];
+  assert.equal(p.yanKomsu.kime, 1);
+  assert.equal(p.yanKomsu.odeme, 10 * 9, 'komşunun üçlüsü 8:1, bahis dahil 90');
+  assert.equal(g.oyuncular[0].fis, once - 20 - 20 + 90, 'giriş 20, yan bahis 20, komşu ödemesi 90');
+  // herkes pas
+  for (let k = 0; k < 6 && g.el.faz !== 'bitti'; k++) { const y = novoYasal(g); if (!y) break; g = novoHamleGercek(g, { tip: 'pas' }); }
+  assert.equal(g.el.faz, 'bitti');
+  const q = g.el.oyuncular[0];
+  assert.equal(q.yanKasa.oran, 60);
+  assert.equal(q.yanKasa.odeme, 610);
+  assert.equal(g.oyuncular[0].fis - once, q.net);
+  assert.ok(q.odemeler.some(x => /Kasaya express Renk 60:1/.test(x.yazi) && x.tutar === 600));
+  assert.ok(q.odemeler.some(x => /Komşuya express Üçlü 8:1/.test(x.yazi) && x.tutar === 80));
+  assert.equal(g.el.oyuncular[1].net, 80 - 10, 'komşunun hesabı yalnız kendi express ve antesi: yan bahis ondan bir şey almaz');
+});
+
+test('yan express: kazanmayan bahis kaybedilir, para yetmezse oynanmaz, komşu yoksa yalnız kasa', () => {
+  const d = deste(['2C 5D 9H JS KD'], '3S 8D TC QH 4C');
+  let g = yanAyarla(oyun(['Erman']), 0, { kasa: true, komsu: true });
+  const once = g.oyuncular[0].fis;
+  g = novoDagit(g, d);
+  assert.equal(g.el.oyuncular[0].yanKomsu, undefined);
+  g = novoHamleGercek(g, { tip: 'pas' });
+  const p = g.el.oyuncular[0];
+  assert.equal(p.yanKasa.odeme, 0);
+  assert.equal(g.oyuncular[0].fis - once, p.net);
+  assert.equal(p.net, -30, 'ante + express + kasaya express');
+  let h = yanAyarla(oyun(['Erman']), 0, { kasa: true });
+  h.oyuncular[0].fis = 40; // giriş 20 sonrası 20 kalır: oyna parası (20) dışında yan bahse para yok
+  h = novoDagit(h, d);
+  assert.equal(h.el.oyuncular[0].yanAtlandi, true);
+  assert.equal(h.oyuncular[0].fis, 20);
+  assert.equal(komsusu([0, 1, 2], 2), 0);
+  assert.equal(komsusu([0, 2], 0), 2);
+  assert.equal(komsusu([1], 1), null);
+});

@@ -1,6 +1,6 @@
 // Novo Poker masası (iPad). Kasaya karşı; oyuncu kartları açık, her şey bu ekranda.
 import {
-  yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle, molaAyarla,
+  yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle, molaAyarla, yanAyarla,
   katilabilir, ODEME, BONUS, EL_ADI, YAKILAN_ILK, sinif, bonusAnahtari, kombinasyonlar, betOrani,
 } from './novo.js';
 import { yiginEl, ustCipEl } from './fis.js';
@@ -76,6 +76,13 @@ function spotKonumu(i, n) {
 function kasaYazi(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + para(Math.abs(v || 0)); }
 
 // Görünüm maskesi: motor eli sonuçlandırmış olsa da animasyon bitene kadar ekran eski hali gösterir.
+// Dağıtım animasyonunda express (ve komşuya express) ödemesi fişler oyuncuya gidene kadar
+// bakiyede görünmez; ödeme ekranda yapılınca o oyuncunun bakiyesi güncellenir (Erman, 22 Kas).
+const odenmedi = new Set();
+function gosterilenFis(o, p) {
+  if (!p || !p.katildi || !odenmedi.has(o.koltuk ?? -1)) return o.fis;
+  return o.fis - (p.bonusOdeme || 0) - (p.yanKomsu ? p.yanKomsu.odeme : 0);
+}
 let maske = null; // { faz?, krupiyeAcik?, kasa }
 function gorunenEl(el) {
   return el && maske && maske.faz ? { ...el, faz: maske.faz, krupiyeAcik: maske.krupiyeAcik } : el;
@@ -191,10 +198,10 @@ function ciz() {
 
     const levha = document.createElement('div'); levha.className = 'nlevha';
     if (o.mola) s.classList.add('mola');
-    levha.innerHTML = `<div class="ad">${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(o.fis)}</div>` +
+    levha.innerHTML = `<div class="ad">${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(gosterilenFis(o, p))}</div>` +
       oyuncuHesap(g, o, p, el);
     const yig = document.createElement('div'); yig.className = 'yigin-yeri';
-    if (o.fis > 0) yig.appendChild(yiginEl(o.fis, { cesitli: true, boyut: 20, enCok: 7 }));
+    if (gosterilenFis(o, p) > 0) yig.appendChild(yiginEl(gosterilenFis(o, p), { cesitli: true, boyut: 20, enCok: 7 }));
     levha.appendChild(yig);
     s.append(kartlar, etiket, daireler, levha);
     alan.appendChild(s);
@@ -255,8 +262,7 @@ function panelCiz0() {
           <span class="toplam ${p.net >= 0 ? 'art' : 'eks'}">= ${tutar(p.net) || '$0'}</span></div>` : '').join('')}</div>`;
     }
     pn.innerHTML = `<div class="bekleme">${ozet}
-      <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme ${o.mola ? 'molada' : ''}" data-i="${i}">${kacis(o.ad)} · ${o.mola ? 'molada (sonraki elde dön)' : 'oyunda'}</button>`).join('')}</div>
-      <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme oto-dugme ${otoMu(i) ? 'oto-acik' : ''}" data-oto="${i}">${kacis(o.ad)} · otomatik ${otoMu(i) ? 'açık' : 'kapalı'}</button>`).join('')}</div>
+      <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme ${o.mola ? 'molada' : ''} ${otoMu(i) ? 'oto-acik' : ''}" data-ayar="${i}">${kacis(o.ad)} · ${ayarOzet(o, i)} ⚙</button>`).join('')}</div>
       <div class="satir" style="width:min(640px,100%)">
         <button class="btn-ikincil" id="n-yukle">Para yükle</button>
         ${otoDagitimVar(g) ? '' : `<button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>`}
@@ -264,18 +270,7 @@ function panelCiz0() {
       <div class="hata">${kacis(hata)}${kimse ? (molada ? 'Masada oynayan kimse yok: molada olanı oyuna alın ya da para yükleyin.' : 'Kimsenin parası girişe yetmiyor: para yükleyin.') : ''}</div></div>`;
     if ($('n-dagit')) $('n-dagit').onclick = dagit;
     $('n-yukle').onclick = yukleAc;
-    pn.querySelectorAll('[data-oto]').forEach(b => b.onclick = () => {
-      ses.acil(); konus.kilidiAc();
-      const i = Number(b.dataset.oto);
-      N.oto = { ...(N.oto || {}) };
-      if (N.oto[i]) delete N.oto[i]; else N.oto[i] = true;
-      kaydet(); panelCiz();
-    });
-    pn.querySelectorAll('.mola-dugme[data-i]').forEach(b => b.onclick = () => {
-      const i = Number(b.dataset.i);
-      try { const yeni = molaAyarla(N.g, i, !N.g.oyuncular[i].mola); gecmiseAt(); N.g = yeni; hata = ''; kaydet(); ciz(); }
-      catch (e) { hata = e.message; panelCiz(); }
-    });
+    pn.querySelectorAll('[data-ayar]').forEach(b => b.onclick = () => { ses.acil(); konus.kilidiAc(); oyuncuAyar(Number(b.dataset.ayar)); });
     return;
   }
 
@@ -319,6 +314,7 @@ function panelCiz0() {
       <div class="dugmeler">
       <button class="b-pas" data-a="pas">Pas (çekil)</button>
       <button class="b-kontrol" data-a="gec">Çekmiyorum</button>
+      <button class="b-kontrol" data-a="gecoyna" ${o.fis >= 2 * A ? '' : 'disabled'}>Çekmiyorum, oyna ${para(2 * A)}</button>
       <button class="b-yukselt" data-a="degistir" ${y.degistir ? '' : 'disabled'}>Kart çek ${para(A)}</button>
       <button class="b-allin" data-a="alti" ${y.alti ? '' : 'disabled'}>6. kart ${para(A)}</button></div>`;
   } else {
@@ -350,6 +346,7 @@ function panelCiz0() {
       const a = b.dataset.a;
       if (a === 'degistir') { secimModu = true; secili.clear(); hata = ''; ciz(); return; }
       if (a === 'alti') return altinciKart();
+      if (a === 'gecoyna') return uygula(g2 => novoHamle(g2, { tip: 'gec', oyna: true }), 'gec');
       uygula(g2 => novoHamle(g2, { tip: a }), a);
     });
   }
@@ -359,7 +356,35 @@ function panelCiz0() {
 // Masada otomatik açan biri varsa sonraki el 5 sn geri sayımla kendiliğinden dağıtılır ve
 // "Sonraki eli dağıt" düğmesi görünmez (İptal herkesin otomatiğini kapatır). Her kararın süresi herkes
 // için 5 sn (Erman, 22 Kas); dolunca kart çekmeden geçilir, son kararda pas, sigorta yok, kasa boşsa ante.
-const OTO = { ara: 5000, karar: 5000, sonucPayi: 4000 };
+const OTO = { ara: 5000, karar: 10000, sonucPayi: 4000 }; // karar 10 sn (Erman, 22 Kas: oyun hızlıydı)
+// Oyuncu ayarları tek düğmede (ekran dolmasın): dokununca o oyuncunun penceresi açılır —
+// oyunda / molada, otomatik oyna, kasaya express, komşuya express (express kadar, 1 ante).
+function ayarOzet(o, i) {
+  const y = o.yan || {}, ek = [otoMu(i) ? 'otomatik' : '', y.kasa ? 'kasaya ex' : '', y.komsu ? 'komşuya ex' : ''].filter(Boolean);
+  return (o.mola ? 'molada' : 'oyunda') + (ek.length ? ' · ' + ek.join(' · ') : '');
+}
+function oyuncuAyar(i) {
+  const ciz0 = k => {
+    const o = N.g.oyuncular[i], y = o.yan || {};
+    const d = (id, yazi, acik) => `<button class="mola-dugme oto-dugme ${acik ? 'oto-acik' : ''}" id="${id}">${yazi}: ${acik ? 'açık' : 'kapalı'}</button>`;
+    k.innerHTML = `<div style="font-size:20px;font-weight:800">${kacis(o.ad)}</div>
+      <div class="mola-satir" style="flex-direction:column">
+        <button class="mola-dugme ${o.mola ? 'molada' : ''}" id="oa-mola">${o.mola ? 'Molada · oyuna dön' : 'Oyunda · molaya çık'}</button>
+        ${d('oa-oto', 'Otomatik oyna', otoMu(i))}
+        ${d('oa-kasa', `Kasaya express (${para(N.g.ante)})`, y.kasa)}
+        ${N.g.oyuncular.length > 1 ? d('oa-komsu', `Komşuya express (${para(N.g.ante)})`, y.komsu) : ''}
+      </div>
+      <div class="hata">${kacis(hata)}</div>
+      <button class="btn-ana" id="oa-tamam">Tamam</button>`;
+    const yap = fn => { try { fn(); hata = ''; kaydet(); } catch (e) { hata = e.message; } ciz0(k); panelCiz(); };
+    k.querySelector('#oa-mola').onclick = () => yap(() => { const yeni = molaAyarla(N.g, i, !N.g.oyuncular[i].mola); gecmiseAt(); N.g = yeni; });
+    k.querySelector('#oa-oto').onclick = () => yap(() => { N.oto = { ...(N.oto || {}) }; if (N.oto[i]) delete N.oto[i]; else N.oto[i] = true; });
+    k.querySelector('#oa-kasa').onclick = () => yap(() => { N.g = yanAyarla(N.g, i, { kasa: !(N.g.oyuncular[i].yan || {}).kasa }); });
+    if (k.querySelector('#oa-komsu')) k.querySelector('#oa-komsu').onclick = () => yap(() => { N.g = yanAyarla(N.g, i, { komsu: !(N.g.oyuncular[i].yan || {}).komsu }); });
+    k.querySelector('#oa-tamam').onclick = () => { perdeKapat(); ciz(); };
+  };
+  perdeAc('', ciz0);
+}
 const otoMu = i => !!(N && N.oto && N.oto[i]);
 const otoDagitimVar = g => g.oyuncular.some((o, i) => otoMu(i) && katilabilir(g, i));
 let sayac = null;             // { anahtar, bitis, toplam, yazi, fn, ara }
@@ -697,6 +722,12 @@ async function sonAnimasyon(once, yeni) {
 let sessizOdeme = false; // toplu ödeme sırasında her fiş uçuşu ayrı ses çıkarmasın
 let expressBekliyor = false; // dağıtım animasyonu bitene kadar express dairesinde durur
 
+function bakiyeYaz(s, i) {
+  const o = N.g.oyuncular[i], f = s && s.querySelector('.nlevha .fis-sayi');
+  if (f) f.textContent = para(o.fis);
+  const y = s && s.querySelector('.nlevha .yigin-yeri');
+  if (y) { y.innerHTML = ''; if (o.fis > 0) y.appendChild(yiginEl(o.fis, { cesitli: true, boyut: 20, enCok: 7 })); }
+}
 async function dagit() {
   if (mesgul) return;
   ses.acil();
@@ -705,6 +736,7 @@ async function dagit() {
   try { yeni = novoDagit(N.g); } catch (e) { hata = e.message; panelCiz(); return; }
   gecmiseAt(); hata = ''; N.g = yeni; kaydet();
   mesgul = true; expressBekliyor = true;
+  odenmedi.clear(); (N.g.el ? N.g.el.oyuncular : []).forEach((p, i) => { if (p.katildi) odenmedi.add(N.g.oyuncular[i].koltuk ?? i); });
   if (yeni.el.krupiyeAcik) maske = { faz: 'karar', krupiyeAcik: false, kasa: kasaCanli({ ...N.g, kasaNet: (N.g.kasaNet || 0) - (yeni.el.kasaNet || 0) }) };
   const el = N.g.el;
   ciz();
@@ -765,6 +797,7 @@ async function dagit() {
       await fisUcur(kasaRect(), ex, p.bonusOdeme - p.bonus, 500);
       ex.querySelector('.yer').innerHTML = '';
       await fisUcur(ex, s.querySelector('.nlevha'), p.bonusOdeme, 450);
+      odenmedi.delete(N.g.oyuncular[i].koltuk ?? i); bakiyeYaz(s, i);
     } else {
       // bonus yok: express kasaya
       ex.querySelector('.yer').innerHTML = '';
@@ -772,6 +805,7 @@ async function dagit() {
     }
   }
   sessizOdeme = false;
+  for (const [, i] of spotlar) { if (odenmedi.delete(N.g.oyuncular[i].koltuk ?? i)) bakiyeYaz(spotEl(i), i); }
   if (spotlar.length) ses.fis(spotlar.length > 1 ? 8 : 4);
   expressBekliyor = false;
   mesgul = false;
@@ -821,6 +855,7 @@ function kurallarAc() {
     ${s('Karşılaştırma', 'Kasanın oyunu varsa eller karşılaştırılır. Oyuncu kazanırsa bet ödeme tablosuna göre ödenir; ante ödenmez, yalnız iade edilir. Beraberlikte ante ve bet geri gelir. Gerçek döper (bir çift + As + Papaz) yalancı döperi (A-A-K ya da K-K-A) yener.')}
     ${s('İki kombinasyon', '6 kartla iki ayrı el çıkarsa ikisi birlikte ödenir (ör. kent + çift As = 5 kat). İkinci el ana elin kartlarından çıkamaz. Çift ve üstü elde ayrıca As ve Papaz varsa +1 ödenir.')}
     ${s('Sigorta', 'Bet\'i en az 4 kat ödeyen el, oynadıktan sonra sigorta yapabilir: en az oyna bahsi, en çok kazanılacak bet parasının yarısı. Kasanın ilk açılışta oyunu yoksa sigorta 1:1 öder, oyunu varsa sigorta kasanındır.')}
+    ${s('Kasaya ve komşuya express', 'İstersen kendi express\'ine ek olarak kasanın ve sağındaki oyuncunun ilk 5 kartına da express kadar (1 ante) oynayabilirsin. O ellerde express eli gelirse ödemeyi sen alırsın; komşunun ödemesi hemen, kasanınki kasa açılınca yapılır. Seçim eller arasında değişir. Oyna parası kalmıyorsa o elde yan express oynanmaz.')}
     ${s('Mola ve para yükleme', 'Eller arasında oyuncu molaya çıkabilir; çipleri onda kalır ve bir sonraki dağıtımda geri döner. Para yükleme de yalnız eller arasında yapılır. Bir ele girmek için en az 4 ante gerekir.')}
     </div>
     <button class="btn-ana" id="kr-tamam">Kapat</button>`, k => { k.querySelector('#kr-tamam').onclick = perdeKapat; });
