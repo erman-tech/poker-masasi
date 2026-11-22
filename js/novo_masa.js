@@ -259,10 +259,10 @@ function panelCiz0() {
       <div class="mola-satir">${g.oyuncular.map((o, i) => `<button class="mola-dugme oto-dugme ${otoMu(i) ? 'oto-acik' : ''}" data-oto="${i}">${kacis(o.ad)} · otomatik ${otoMu(i) ? 'açık' : 'kapalı'}</button>`).join('')}</div>
       <div class="satir" style="width:min(640px,100%)">
         <button class="btn-ikincil" id="n-yukle">Para yükle</button>
-        <button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>
+        ${otoDagitimVar(g) ? '' : `<button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>`}
       </div>
       <div class="hata">${kacis(hata)}${kimse ? (molada ? 'Masada oynayan kimse yok: molada olanı oyuna alın ya da para yükleyin.' : 'Kimsenin parası girişe yetmiyor: para yükleyin.') : ''}</div></div>`;
-    $('n-dagit').onclick = dagit;
+    if ($('n-dagit')) $('n-dagit').onclick = dagit;
     $('n-yukle').onclick = yukleAc;
     pn.querySelectorAll('[data-oto]').forEach(b => b.onclick = () => {
       ses.acil(); konus.kilidiAc();
@@ -356,11 +356,12 @@ function panelCiz0() {
 }
 
 // ---------- Otomatik oyna ve geri sayım (online masayla aynı kurallar) ----------
-// Otomatik açık oyuncu: parası yettikçe her ele girer. Masadaki herkes otomatikteyse sonraki el
-// 5 sn geri sayımla kendiliğinden dağıtılır (İptal herkesin otomatiğini kapatır). Otomatik oyuncunun
-// her kararının süresi 5 sn; dolunca kart çekmeden geçilir, son kararda pas, sigorta yok, kasa boşsa ante.
+// Masada otomatik açan biri varsa sonraki el 5 sn geri sayımla kendiliğinden dağıtılır ve
+// "Sonraki eli dağıt" düğmesi görünmez (İptal herkesin otomatiğini kapatır). Her kararın süresi herkes
+// için 5 sn (Erman, 22 Kas); dolunca kart çekmeden geçilir, son kararda pas, sigorta yok, kasa boşsa ante.
 const OTO = { ara: 5000, karar: 5000, sonucPayi: 4000 };
 const otoMu = i => !!(N && N.oto && N.oto[i]);
+const otoDagitimVar = g => g.oyuncular.some((o, i) => otoMu(i) && katilabilir(g, i));
 let sayac = null;             // { anahtar, bitis, toplam, yazi, fn, ara }
 const bitisAni = {};          // el no -> sonucun ekrana geldiği an
 function panelCiz() {
@@ -380,25 +381,26 @@ function otoSayacKur() {
 // Şu an otomatik bir geri sayım gerekiyor mu?
 function otoNe() {
   const g = N.g, el = g.el;
-  if (!N.oto || !Object.keys(N.oto).length) return null;
   if (!el || el.faz === 'bitti') {
+    if (!N.oto || !Object.keys(N.oto).length) return null;
     // parası yetmeyenin otomatiği kapanır
     let degisti = false;
     for (const k of Object.keys(N.oto)) if (!g.oyuncular[k] || g.oyuncular[k].fis < 4 * g.ante) { delete N.oto[k]; degisti = true; }
     if (degisti) kaydet();
+    // Masada otomatik açan biri varsa el kendiliğinden dağıtılır; "Sonraki eli dağıt"a basılmaz.
     const aktif = g.oyuncular.map((o, i) => i).filter(i => katilabilir(g, i));
-    if (!aktif.length || !aktif.every(otoMu)) return null;
+    if (!aktif.some(otoMu)) return null;
     const no = el ? el.no : 0;
     if (!(no in bitisAni)) bitisAni[no] = Date.now();
     return { anahtar: 'ara' + no, sure: OTO.ara, pay: el ? Math.max(0, OTO.sonucPayi - (Date.now() - bitisAni[no])) : 0, yazi: 'El dağıtılıyor', ara: true, fn: () => dagit() };
   }
   if (el.faz === 'oyunsuz') {
     const bekleyen = el.oyuncular.map((p, i) => i).filter(i => el.oyuncular[i].katildi && el.oyuncular[i].durum === 'oynadi' && el.oyuncular[i].satinAldi === null);
-    if (!bekleyen.length || !bekleyen.every(otoMu)) return null;
+    if (!bekleyen.length) return null;
     return { anahtar: 'o' + el.no, sure: OTO.karar, pay: 0, yazi: 'Karar süresi', fn: () => uygula(g2 => oyunSatinAl(g2, Object.fromEntries(bekleyen.map(i => [i, !!oyunsuzSecim[i]])))) };
   }
   const y = novoYasal(g);
-  if (!y || !otoMu(y.oyuncu)) return null;
+  if (!y) return null;
   const tip = 'sigorta' in y ? 'sigorta' : y.asama;
   return {
     anahtar: `${el.no}:${tip}:${y.oyuncu}:${el.cek || 0}`, sure: OTO.karar, pay: 0, yazi: `${kacis(N.g.oyuncular[y.oyuncu].ad)} · karar süresi`,
