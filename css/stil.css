@@ -492,3 +492,14 @@ input, select {
 /* Koltuk numarası ve yan express notu (Novo) */
 .nlevha .koltuk-no { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--altin); color: #1a1205; font-size: 12px; font-weight: 800; vertical-align: 2px; }
 .nlevha .yan-not { font-size: 11px; color: #ffe9a8; margin-top: 1px; }
+
+/* Yan express fişleri (kasaya / komşuya) bahis dairelerinin altında */
+.nyanlar { display: flex; gap: 6px; justify-content: center; min-height: 0; }
+.nyanlar:empty { display: none; }
+.nyan { display: flex; align-items: center; gap: 4px; padding: 1px 7px 1px 3px; border-radius: 999px; background: #0008; border: 1px solid #ffd76566; font-size: 11px; color: #ffe9a8; white-space: nowrap; }
+.nyan b { color: #fff; }
+.nyan.kazandi { border-color: #3ecf6e; box-shadow: 0 0 10px #3ecf6e66; }
+.nyan.kazandi b { color: #8ff0a3; }
+.nyan.kaybetti { opacity: .45; }
+#e-novo.ytel .nyanlar { gap: 3px; }
+#e-novo.ytel .nyan { font-size: 9px; padding: 0 5px 0 2px; gap: 2px; }

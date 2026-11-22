@@ -201,12 +201,27 @@ function ciz() {
     // Koltuk numarası ve bu elde kime yan express oynadığı (kasaya / komşunun adı)
     const yanNot = p && p.katildi && (p.yanKasa || p.yanKomsu)
       ? `<div class="yan-not">express → ${[p.yanKasa ? 'kasa' : '', p.yanKomsu && g.oyuncular[p.yanKomsu.kime] ? `${p.yanKomsu.kime + 1}. ${kacis(g.oyuncular[p.yanKomsu.kime].ad)}` : ''].filter(Boolean).join(' · ')}</div>` : '';
-    levha.innerHTML = `<div class="ad"><span class="koltuk-no">${i + 1}</span>${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(gosterilenFis(o, p))}</div>${yanNot}` +
+    levha.innerHTML = `<div class="ad"><span class="koltuk-no">${i + 1}</span>${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(gosterilenFis(o, p))}</div>` +
       oyuncuHesap(g, o, p, el);
     const yig = document.createElement('div'); yig.className = 'yigin-yeri';
     if (gosterilenFis(o, p) > 0) yig.appendChild(yiginEl(gosterilenFis(o, p), { cesitli: true, boyut: 20, enCok: 7 }));
     levha.appendChild(yig);
-    s.append(kartlar, etiket, daireler, levha);
+    // Yan express masada fişle görünür: "kasaya $25", "2 numaraya $25" (Erman 22 Kas).
+    const yanlar = document.createElement('div'); yanlar.className = 'nyanlar';
+    if (p && p.katildi) {
+      const yanKalem = (y, yazi) => {
+        if (!y || !(y.bahis > 0)) return;
+        const k = document.createElement('div'); k.className = 'nyan';
+        const bitti = el.faz === 'bitti';
+        if (bitti) k.classList.add(y.odeme > 0 ? 'kazandi' : 'kaybetti');
+        k.appendChild(yiginEl(y.bahis, { boyut: 14, enCok: 2 }));
+        k.insertAdjacentHTML('beforeend', `<span>${yazi}</span><b>${bitti && y.odeme > 0 ? '+' + para(y.odeme) : para(y.bahis)}</b>`);
+        yanlar.appendChild(k);
+      };
+      yanKalem(p.yanKasa, 'Kasaya');
+      if (p.yanKomsu) yanKalem(p.yanKomsu, `${p.yanKomsu.kime + 1} no'ya`);
+    }
+    s.append(kartlar, etiket, daireler, yanlar, levha);
     alan.appendChild(s);
   });
   panelCiz();
@@ -687,6 +702,10 @@ async function sonAnimasyon(once, yeni) {
     else if (t === 'berabere') konus.soyle(konus.oyuncu(i), 'berabere');
     else if (t === 'oyunyok' && p.satinAldi) konus.soyle(konus.oyuncu(i), 'berabere');
   }
+  // Kasaya express kazananı (kasanın ilk 5 kartına göre, el sonunda ödenir)
+  for (const [p, i] of spotlar) {
+    if (p.yanKasa && p.yanKasa.odeme > 0) konus.soyle(konus.oyuncu(i), 'kasa_expressten', konus.sayi(p.yanKasa.odeme - p.yanKasa.bahis), 'dolar_kazanir');
+  }
   // Elif konuşurken ödeme yapılmaz; fişler konuşma bitince gider, çip sesi sonda bir kez çalar.
   await konus.bitince();
   sessizOdeme = true;
@@ -790,6 +809,10 @@ async function dagit() {
       if (p.bonusOran >= 30 && !galaGosterildi) { galaGosterildi = true; gala(true); havaiFisek(); }
       konus.soyle(konus.oyuncu(i), 'bonus_odeme', konus.el(bonusAnahtari(p.ilk)), konus.sayi(p.bonusOdeme - p.bonus), 'dolar');
     }
+  }
+  // Komşuya express kazananı: "Bir numara komşu express'ten 75 dolar kazanır" (Erman 22 Kas)
+  for (const [p, i] of spotlar) {
+    if (p.yanKomsu && p.yanKomsu.odeme > 0) konus.soyle(konus.oyuncu(i), 'komsu_expressten', konus.sayi(p.yanKomsu.odeme - p.yanKomsu.bahis), 'dolar_kazanir');
   }
   await konus.bitince();
   sessizOdeme = true;
