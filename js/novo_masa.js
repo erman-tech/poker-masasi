@@ -734,7 +734,7 @@ function kurallarAc() {
     <div class="kural-liste">
     ${s('Oyun nasıl başlar?', 'Herkes ante ve ante kadar express koyar. Herkese 5 açık kart, kasaya 5 kart (1 tanesi açık) dağıtılır. Dağıtımdan önce desteden 3 kart yakılır.')}
     ${s('Express ne zaman öder?', 'İlk 5 karta göre hemen öder; sonra ne olursa olsun geri alınmaz. As-Papaz-Kız elde çift olsa da öder. Daha yüksek bir express eli varsa yalnız o ödenir.')}
-    ${s('Kart değiştirme ve 6. kart', 'Herkes sırayla karar verir: bir ya da birden çok kartı değiştirebilir ya da 6. kartı alabilir; bedeli 1 ante. Kartlar herkes karar verince sırayla dağıtılır, dağıtımdan önce 1 kart gömülür. Kart alan, kasanın oyunu olmazsa ante kazancını almaz, antesini geri alır.')}
+    ${s('Kart değiştirme ve 6. kart', 'Herkes sırayla karar verir: bir ya da birden çok kartı değiştirebilir ya da 6. kartı alabilir; bedeli 1 ante. Kartlar herkes karar verince sırayla dağıtılır, dağıtımdan önce 1 kart gömülür. Kart alan da kasanın oyunu olmazsa ante 1:1 alır.')}
     ${s('Oyna ya da pas', 'Oyna bahsi 2 ante. Pas diyen ante ve express\'i bırakır (express ödemesi zaten yapılmıştır).')}
     ${s('Kasanın oyunu', 'Kasa As-Papaz ya da daha iyi ele sahipse oyunu var. Oyunu yoksa oynayan oyuncu antesini 1:1 kazanır, bet\'i geri alır.')}
     ${s('Kasaya kart çektirmek', 'Kasanın oyunu yokken üçlü ve üstü eli olan oyuncuya sorulur: ante mi alırsın, kasaya kart mı çektirirsin? Çektirmenin bedeli yalnız ante kazancından vazgeçmektir. Kasa en yüksek kartını atar, bir kart gömer, sıradakini alır. Kasa yine boşsa ante ve bet geri gelir.')}

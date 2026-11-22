@@ -752,3 +752,15 @@ test('sahte döper: kasada düşük per ya da yalnız As-Papaz varsa döper öde
   assert.equal(g.el.oyuncular[0].kartlar.length, 6);
   assert.equal(g.el.oyuncular[0].sonuc.tip, 'kaybetti');
 });
+
+test('kart alan da kasa boşken ante 1:1 alır (Erman, 22 Kas): 6. kart + express kayıp = −ante', () => {
+  let g = novoDagit(oyun(['Erman']), deste(['3d 3c Ks 4s 5d'], 'Jh 9d 7c 5s 2d', 'As'));
+  g = novoHamle(g, { tip: 'alti' });
+  g = oyna0(g);
+  const p = g.el.oyuncular[0];
+  assert.equal(p.sonuc.tip, 'oyunyok');
+  // 10 ante + 10 express + 10 kart + 20 bet = 50 harcanır; ante 10 + ante kazancı 10 + bet 20 = 40 döner
+  assert.equal(fis(g)[0], 1000 - 50 + 40);
+  assert.equal(p.net, -10);
+  assert.equal(p.odemeler.reduce((t, k) => t + k.tutar, 0), p.net, 'döküm toplamı net');
+});

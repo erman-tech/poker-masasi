@@ -454,7 +454,7 @@ function odemeDokumu(p, el) {
   else if (p.sonuc) {
     const t = p.sonuc.tip;
     if (t === 'oyunyok' && p.satinAldi) k.push({ yazi: 'Kasa çektiği kartla da oyun bulamadı: ante ve bet geri (kart çektirdiği için ante 1:1 yok)', tutar: 0 });
-    else if (t === 'oyunyok') k.push(anteKazanir ? { yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante } : { yazi: 'Ante geri (kasanın oyunu yok)', tutar: 0 });
+    else if (t === 'oyunyok') k.push({ yazi: 'Ante 1:1 (kasanın oyunu yok)', tutar: p.ante }); // kart alan da alır (Erman, 22 Kas)
     if (t === 'kazandi') {
       k.push(anteKazanir ? { yazi: 'Ante 1:1', tutar: p.ante } : { yazi: 'Ante geri', tutar: 0 });
       const ek = p.sonuc.ikinciEl != null ? ` + ${EL_ADI[p.sonuc.ikinciEl]} (${ODEME[p.sonuc.ana ?? sinif(p.kartlar).anahtar]}+${ODEME[p.sonuc.ikinciEl]})` : p.sonuc.ikinciAK ? (yalanciAK(p.kartlar) || yalanciIkiPer(p.kartlar) ? ' + As-Papaz (yalancı per)' : p.sonuc.doper === 'yalanci' ? ' (yalancı döper)' : p.sonuc.doper === 'gercek' ? ' (döper)' : ' + As-Papaz') : '';
@@ -481,8 +481,9 @@ function bitir(g) {
     if (p.durum === 'oynadi' && p.sonuc) {
       const anteKazanir = p.ucret === 0 && !p.satinAldi; // kart değiştiren / kasaya kart çektiren ante kazanmaz, geri alır
       if (p.sonuc.tip === 'oyunyok') {
-        // Kasaya kart çektirdi ama kasa yine oyun bulamadı: ante ve bet geri gelir (ante kazancı alınmaz).
-        geri = p.ante + p.bahis + (anteKazanir ? p.ante : 0);
+        // Kasanın oyunu yok: ante 1:1, bet geri. Kart değiştiren ya da 6. kartı alan da ante kazancını alır
+        // (Erman, 22 Kas 2026). Yalnız kasaya kart çektiren (kasa yine boş açtıysa) ante kazancından vazgeçmiştir.
+        geri = p.ante + p.bahis + (p.satinAldi ? 0 : p.ante);
       } else if (p.sonuc.tip === 'kazandi') {
         const b = betOrani(p.kartlar);
         odeme = p.bahis * b.oran;
