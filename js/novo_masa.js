@@ -75,9 +75,10 @@ function koltukKutusu(g, el, p, i, n) {
     if (tutar > 0) yer.appendChild(ustCipEl(tutar, k === 'express' ? 26 : 30));
     d.appendChild(yer);
     if (tutar > 0) { const tt = document.createElement('b'); tt.className = 'ntutar'; tt.textContent = para(tutar); d.appendChild(tt); }
-    else if (k === 'express' && p && p.katildi && !bitti && !expressBekliyor) {
+    // Express kazandıysa kazancı yazar; kaybettiyse yazı yok (çip kasaya gitti, 'kasaya' yazısı kafa karıştırıyordu)
+    else if (k === 'express' && p && p.katildi && !bitti && !expressBekliyor && p.bonusOdeme) {
       const tt = document.createElement('b'); tt.className = 'ntutar';
-      tt.textContent = p.bonusOdeme ? '+' + para(p.bonusOdeme - p.bonus) : 'kasaya';
+      tt.textContent = '+' + para(p.bonusOdeme - p.bonus);
       d.appendChild(tt);
     }
     kutu.appendChild(d);
