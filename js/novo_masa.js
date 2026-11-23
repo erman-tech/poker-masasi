@@ -20,6 +20,15 @@ let secimModu = false;
 let oyunsuzSecim = {};  // oyuncu -> true (oyun satın al) / false (ante al)
 let hata = '';
 
+// Yan express dairesi: bahis çipi, etiket ve tutar; el bitince kazanan yeşil, kaybeden soluk.
+function yanDaire(y, etiket, bitti) {
+  const d = document.createElement('div');
+  d.className = 'ndaire yan' + (bitti ? (y.odeme > 0 ? ' kazandi' : ' kaybetti') : '');
+  d.innerHTML = `<span>${etiket}</span>`;
+  const yer = document.createElement('div'); yer.className = 'yer'; yer.appendChild(ustCipEl(y.bahis, 26)); d.appendChild(yer);
+  const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = bitti && y.odeme > 0 ? '+' + para(y.odeme) : para(y.bahis); d.appendChild(b);
+  return d;
+}
 function kaydet() {
   try { localStorage.setItem(ANAHTAR, JSON.stringify(N)); }
   catch (e) { N.gecmis = N.gecmis.slice(-5); try { localStorage.setItem(ANAHTAR, JSON.stringify(N)); } catch (e2) {} }
@@ -181,6 +190,12 @@ function ciz() {
         d.appendChild(tt);
       }
       daireler.appendChild(d);
+      // Yan express (Erman 23 Kas): kasaya express ante'nin yanında, oyuncuya express ante'nin
+      // üstünde; ikisi de ante dairesinden %25 küçük, üstünde çip.
+      if (k === 'ante' && p && p.katildi) {
+        if (p.yanKasa && p.yanKasa.bahis > 0) { const u = yanDaire(p.yanKasa, 'KASA', el.faz === 'bitti'); u.classList.add('sag'); daireler.appendChild(u); }
+        if (p.yanKomsu && p.yanKomsu.bahis > 0) { const u = yanDaire(p.yanKomsu, `${p.yanKomsu.kime + 1}. OYUNCU`, el.faz === 'bitti'); u.classList.add('ust'); d.appendChild(u); }
+      }
     }
     const cek = document.createElement('div'); cek.className = 'ncekme';
     cek.innerHTML = '<span>ÇEKME</span>';
@@ -206,23 +221,17 @@ function ciz() {
     const yig = document.createElement('div'); yig.className = 'yigin-yeri';
     if (gosterilenFis(o, p) > 0) yig.appendChild(yiginEl(gosterilenFis(o, p), { cesitli: true, boyut: 20, enCok: 7 }));
     levha.appendChild(yig);
-    // Yan express masada fişle görünür: "kasaya $25", "2 numaraya $25" (Erman 22 Kas).
-    const yanlar = document.createElement('div'); yanlar.className = 'nyanlar';
-    if (p && p.katildi) {
-      const yanKalem = (y, yazi) => {
-        if (!y || !(y.bahis > 0)) return;
-        const k = document.createElement('div'); k.className = 'nyan';
-        const bitti = el.faz === 'bitti';
-        if (bitti) k.classList.add(y.odeme > 0 ? 'kazandi' : 'kaybetti');
-        k.appendChild(yiginEl(y.bahis, { boyut: 14, enCok: 2 }));
-        k.insertAdjacentHTML('beforeend', `<span>${yazi}</span><b>${bitti && y.odeme > 0 ? '+' + para(y.odeme) : para(y.bahis)}</b>`);
-        yanlar.appendChild(k);
-      };
-      yanKalem(p.yanKasa, 'Kasaya');
-      if (p.yanKomsu) yanKalem(p.yanKomsu, `${p.yanKomsu.kime + 1} no'ya`);
-    }
-    s.append(kartlar, etiket, daireler, yanlar, levha);
+    s.append(kartlar, etiket, daireler, levha);
     alan.appendChild(s);
+  });
+  // Kenardaki oyuncunun bahis sırası (yan express daireleriyle) masadan taşmasın: içeri kaydır
+  const ar = alan.getBoundingClientRect();
+  if (ar.width) alan.querySelectorAll('.nspot').forEach(s => {
+    const r = [...s.querySelectorAll('.ndaireler > *, .nkartlar')].map(e => e.getBoundingClientRect()).filter(b => b.width);
+    if (!r.length) return;
+    const sol = Math.min(...r.map(b => b.left)) - ar.left - 6, sag = ar.right - Math.max(...r.map(b => b.right)) - 6;
+    const kay = sol < 0 ? -sol : sag < 0 ? sag : 0;
+    if (kay) s.style.left = `calc(${s.style.left} + ${Math.round(kay)}px)`;
   });
   panelCiz();
 }

@@ -503,3 +503,39 @@ input, select {
 .nyan.kaybetti { opacity: .45; }
 #e-novo.ytel .nyanlar { gap: 3px; }
 #e-novo.ytel .nyan { font-size: 9px; padding: 0 5px 0 2px; gap: 2px; }
+
+/* Yan express daireleri: ante'den %25 küçük; kasaya olan ante'nin yanında, oyuncuya olan ante'nin üstünde */
+#e-novo .ndaire.yan { width: 48px; height: 48px; border: 2px dashed #ffd76599; flex: none; }
+#e-novo .ndaire.yan span { top: 3px; font-size: 6.5px; letter-spacing: .5px; color: #ffd765; white-space: nowrap; }
+#e-novo .ndaire.yan .yer { margin-top: 8px; }
+#e-novo .ndaire.yan .ntutar { bottom: -13px; font-size: 10px; color: #ffd765; }
+#e-novo .ndaire.yan.ust { position: absolute; left: 50%; bottom: calc(100% + 14px); transform: translateX(-50%); }
+#e-novo .ndaire.yan.kazandi { border-style: solid; border-color: #3ecf6e; box-shadow: 0 0 12px #3ecf6e88; }
+#e-novo .ndaire.yan.kazandi .ntutar { color: #8ff0a3; }
+#e-novo .ndaire.yan.kaybetti { opacity: .4; }
+#e-novo.ytel .nspot .ndaire.yan { width: 24px; height: 24px; border-width: 1px; }
+#e-novo.ytel .nspot .ndaire.yan .yer { transform: scale(.55); }
+#e-novo.ytel .nspot .ndaire.yan.ust { bottom: calc(100% + 4px); }
+#e-novo.ytel .nspot .ndaire.yan .ntutar { display: none; }
+#e-novo .ndaire.yan.sol { position: absolute; right: calc(100% - 4px); top: 50%; transform: translateY(-50%); z-index: 1; }
+#e-novo .ndaire.yan.ust { bottom: calc(100% + 6px); z-index: 1; }
+#e-novo.ytel .nspot .ndaire.yan.sol { right: calc(100% - 2px); }
+/* Kasaya express ante'nin sağında (Erman 23 Kas: solunda değil); sıra fazla genişlemesin diye iki yana biner */
+#e-novo .ndaire.yan.sag { margin: 0 -12px; z-index: 1; align-self: flex-end; }
+#e-novo.ytel .nspot .ndaire.yan.sag { margin: 0 -5px; }
+
+/* Bahis alanları daha küçük ve derli toplu (Erman 23 Kas): daireler 64 → 50 px, kutular 40 → 32 px,
+   yan express daireleri ante'nin %75'i; etiketleri dairenin üstünde, taşmaz. */
+#e-novo .ndaireler { gap: 4px; }
+#e-novo .ndaire { width: 50px; height: 50px; }
+#e-novo .ndaire span { top: 3px; font-size: 7px; letter-spacing: .5px; }
+#e-novo .ndaire .yer { margin-top: 6px; transform: scale(.8); }
+#e-novo .ndaire .ntutar { bottom: -13px; font-size: 10px; }
+#e-novo .ncekme { width: 32px; height: 32px; }
+#e-novo .ncekme span { font-size: 6px; }
+#e-novo .ndaire.yan { width: 38px; height: 38px; }
+#e-novo .ndaire.yan span { top: -11px; font-size: 7px; letter-spacing: .3px; text-shadow: 0 1px 2px #000; }
+#e-novo .ndaire.yan .yer { margin-top: 0; transform: scale(.62); }
+#e-novo .ndaire.yan .ntutar { bottom: -12px; font-size: 9px; }
+#e-novo .ndaire.yan.sag { margin: 0 -6px; align-self: center; }
+#e-novo .ndaire.yan.ust { bottom: calc(100% + 12px); }
