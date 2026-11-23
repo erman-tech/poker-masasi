@@ -296,9 +296,11 @@ function panelCiz0() {
     // El sonu tablosu (Erman 23 Kas): her oyuncu tek satır — numara, ad, kalemler, ayar ve net aynı satırda.
     const satirlar = durum => `<div class="dk-tablo">${g.oyuncular.map((o, i) => {
       const p = el && el.oyuncular[i];
-      const kalem = p && p.katildi ? (p.odemeler || []).map(k => `<span class="dk-kalem ${k.tutar > 0 ? 'art' : k.tutar < 0 ? 'eks' : ''}">${kacis(k.yazi)}${k.tutar ? ' <b>' + tutar(k.tutar) + '</b>' : ''}</span>`).join('') : `<span class="dk-bos">${el ? 'bu elde yoktu' : ''}</span>`;
+      // Kısa etiket (EX, ANTE, BET 3:1, K.EX …); uzun açıklama title'da ve satıra dokununca açılır. Sıfır kalemler gösterilmez.
+      const ks = (p && p.katildi ? p.odemeler || [] : []).filter(k => k.tutar);
+      const kalem = p && p.katildi ? (ks.map(k => `<span class="dk-kalem ${k.tutar > 0 ? 'art' : 'eks'}" title="${kacis(k.yazi)}"><i>${kacis(kisaKalem(k.yazi))}</i><b>${tutar(k.tutar)}</b><em>${kacis(k.yazi)}</em></span>`).join('') || '<span class="dk-bos">ödeme yok</span>') : `<span class="dk-bos">${el ? 'yoktu' : ''}</span>`;
       const net = p && p.katildi ? `<span class="dk-net ${p.net > 0 ? 'art' : p.net < 0 ? 'eks' : ''}">${tutar(p.net) || '$0'}</span>` : '<span class="dk-net"></span>';
-      return `<div class="dk-satir"><span class="dk-no">${i + 1}</span><span class="dk-ad">${kacis(o.ad)}</span><span class="dk-kalemler">${kalem}</span>${net}<span class="dk-durum-yer">${durum(o, i)}</span></div>`;
+      return `<div class="dk-satir" data-dk="${i}"><span class="dk-no">${i + 1}</span><span class="dk-ad">${kacis(o.ad)}</span><span class="dk-kalemler">${kalem}</span>${net}<span class="dk-durum-yer">${durum(o, i)}</span></div>`;
     }).join('')}</div>`;
     let baslik = '';
     if (el) {
@@ -307,7 +309,7 @@ function panelCiz0() {
       baslik = `<div class="dk-baslik"><span class="dk-elno">${el.no}. el</span><span>Kasa: <b>${kacis(el.krupiyeOyunu ? el.krupiyeElAdi : 'oyun yok')}</b></span><span class="dk-kasa ${kn > 0 ? 'art' : kn < 0 ? 'eks' : ''}">kasa ${kasaYazi(kn)}</span>${cekti}</div>`;
     }
     pn.innerHTML = `<div class="bekleme sonuc-panel">${baslik}
-      ${satirlar((o, i) => `<button class="dk-durum dk-ayar ${o.mola ? 'kapali' : ''} ${otoMu(i) ? 'hazir' : ''}" data-ayar="${i}" title="Ayarlar">${ayarOzet(o, i)} ⚙</button>`)}
+      ${satirlar((o, i) => `<button class="dk-durum dk-ayar ${o.mola ? 'kapali' : ''} ${otoMu(i) ? 'hazir' : ''}" data-ayar="${i}" title="${kacis(ayarOzet(o, i))}">${o.mola ? 'mola ' : otoMu(i) ? 'oto ' : ''}⚙</button>`)}
       <div class="satir" style="width:min(640px,100%)">
         <button class="btn-ikincil" id="n-yukle">Para yükle</button>
         ${otoDagitimVar(g) ? '' : `<button class="btn-ana" id="n-dagit" ${kimse ? 'disabled' : ''}>${el ? 'Sonraki eli dağıt' : 'İlk eli dağıt'}</button>`}
@@ -315,7 +317,8 @@ function panelCiz0() {
       <div class="hata">${kacis(hata)}${kimse ? (molada ? 'Masada oynayan kimse yok: molada olanı oyuna alın ya da para yükleyin.' : 'Kimsenin parası girişe yetmiyor: para yükleyin.') : ''}</div></div>`;
     if ($('n-dagit')) $('n-dagit').onclick = dagit;
     $('n-yukle').onclick = yukleAc;
-    pn.querySelectorAll('[data-ayar]').forEach(b => b.onclick = () => { ses.acil(); konus.kilidiAc(); oyuncuAyar(Number(b.dataset.ayar)); });
+    pn.querySelectorAll('[data-ayar]').forEach(b => b.onclick = e => { e.stopPropagation(); ses.acil(); konus.kilidiAc(); oyuncuAyar(Number(b.dataset.ayar)); });
+    dkAcilir(pn);
     return;
   }
 
@@ -404,6 +407,24 @@ function panelCiz0() {
 const OTO = { ara: 8000, karar: 10000, cekme: 12000, sonucPayi: 4000 }; // kart değiştirme 12 sn (Erman 22 Kas) // el arası 8 sn // karar 10 sn (Erman, 22 Kas: oyun hızlıydı)
 // Oyuncu ayarları tek düğmede (ekran dolmasın): dokununca o oyuncunun penceresi açılır —
 // oyunda / molada, otomatik oyna, kasaya express, komşuya express (express kadar, 1 ante).
+// El sonu tablosunda kalemlerin kısa adı (uzun metin motordan gelir, değişmez)
+function kisaKalem(y) {
+  const oran = (y.match(/(\d+):1/) || [])[1];
+  const o = oran ? ' ' + oran + ':1' : '';
+  if (/^Kasaya express/.test(y)) return 'K.EX' + o;
+  if (/^Komşuya express/.test(y)) return 'KOM.EX' + o;
+  if (/^Bonus ödeme/.test(y)) return 'EX' + o;
+  if (/^Express/.test(y)) return 'EX';
+  if (/^Ante \(pas\)/.test(y)) return 'PAS';
+  if (/^Ante/.test(y)) return 'ANTE';
+  if (/^Bet/.test(y)) return 'BET' + o;
+  if (/^Kasa kazandı/.test(y)) return 'KASA';
+  if (/^6\. kart/.test(y)) return '6. KART';
+  if (/^Kart çekme/.test(y)) return 'ÇEKME';
+  if (/^Sigorta/.test(y)) return 'SİG' + o;
+  return y.length > 12 ? y.slice(0, 11) + '…' : y;
+}
+function dkAcilir(pn) { pn.querySelectorAll('.dk-satir').forEach(r => r.onclick = () => r.classList.toggle('acik')); }
 function ayarOzet(o, i) {
   const y = o.yan || {}, ek = [otoMu(i) ? 'otomatik' : '', y.kasa ? 'kasaya ex' : '', y.komsu ? 'komşuya ex' : ''].filter(Boolean);
   return (o.mola ? 'molada' : 'oyunda') + (ek.length ? ' · ' + ek.join(' · ') : '');

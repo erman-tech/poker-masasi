@@ -1,10 +1,10 @@
 // Kasadaki kurpiye: üç hayali kurpiye (gerçek kişiler değil), 10 elde bir değişir ("dealer change").
 // Durağan halde fotoğraf, dağıtırken kısa video döngüsü (img/kurpiye/<n>.jpg / .mp4, offline önbellekte).
 // Ruh halleri: normal · dagit (kart dağıtıyor: video) · gulen (kasa kazandı) · saskin (oyuncu büyük kazandı) · goz (express ödedi)
-export const KURPIYE_SAYISI = 3;
+export const KURPIYE_SAYISI = 5;
 export const DEGISIM_EL = 10;
 
-let kok = null, img = null, vid = null, kvid = null, gvid = null, simdiki = -1, vidUrl = null, kvidUrl = null, gvidUrl = null;
+let kok = null, tepe = null, img = null, vid = null, kvid = null, gvid = null, simdiki = -1, vidUrl = null, kvidUrl = null, gvidUrl = null;
 let galaAcik = false;
 let zaman = null;
 
@@ -25,6 +25,21 @@ export function krupiyeKur(yer) {
   vid = yer.querySelector('.kr-dagit');
   kvid = yer.querySelector('.kr-konus');
   gvid = yer.querySelector('.kr-gala');
+  // Masa alanında iki katman: tepeden kurpiye (masanın girintisinde, elleri keçede) ve köşede yüz kamerası
+  const alan = yer.closest('.masa-alan');
+  tepe = null;
+  if (alan) {
+    if (yer.parentElement !== alan) alan.appendChild(yer);
+    yer.classList.add('kr-kamera');
+    let t = alan.querySelector('.kr-tepe');
+    if (!t) {
+      t = document.createElement('div');
+      t.className = 'kr-tepe';
+      t.innerHTML = '<div class="kr-girinti"></div><img alt="">';
+      alan.insertBefore(t, alan.children[1] || null);
+    }
+    tepe = t;
+  }
   simdiki = -1;
   ruh('normal');
 }
@@ -35,6 +50,7 @@ function yukle(i) {
   galaAcik = false;
   if (kok) kok.classList.remove('kr-gala');
   img.src = `img/kurpiye/${i + 1}.jpg`;
+  if (tepe) tepe.querySelector('img').src = `img/kurpiye/${i + 1}t.png`;
   // iPad Safari önbellekten (service worker) gelen videoyu parça parça isteyemez; videoyu
   // bir kez belleğe alıp oradan oynatırız, internetsiz de çalışır.
   const istenen = i;
@@ -83,12 +99,15 @@ export function gala(acik) {
 export async function kurpiyeDegistir(i) {
   if (!kok) return;
   kok.classList.add('kr-cikis');
+  if (tepe) tepe.classList.add('kr-cikis');
   await new Promise(r => setTimeout(r, 700));
   yukle(i);
   kok.classList.remove('kr-cikis');
   kok.classList.add('kr-giris');
+  if (tepe) { tepe.classList.remove('kr-cikis'); tepe.classList.add('kr-giris'); }
   await new Promise(r => setTimeout(r, 700));
   kok.classList.remove('kr-giris');
+  if (tepe) tepe.classList.remove('kr-giris');
 }
 
 // Elif konuşurken ağız hareketi (dağıtım sürerken araya girmez)
@@ -101,6 +120,7 @@ export function konusuyor(sure) {
 export function ruh(ad, sure = 0) {
   if (!kok) return;
   kok.dataset.ruh = ad;
+  if (tepe) tepe.dataset.ruh = ad;
   const oynat = (v, evet) => {
     if (!v) return;
     if (evet) { v.currentTime = 0; const p = v.play(); if (p && p.catch) p.catch(() => {}); } else v.pause();

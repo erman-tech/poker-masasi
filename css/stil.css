@@ -597,3 +597,33 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 #e-novo.ytel .dk-ad { font-size: 12px; } #e-novo.ytel .dk-net { font-size: 13px; min-width: 0; }
 #e-novo.ytel .dk-kalem { font-size: 9px; padding: 0 5px; } #e-novo.ytel .dk-durum { font-size: 9px; padding: 1px 6px; }
 #e-novo.ytel .dk-baslik { font-size: 11px; gap: 3px 8px; } #e-novo.ytel .dk-elno { font-size: 10px; }
+
+/* Kurpiye: masanın üst kenarındaki girintide, tepeden görünür; elleri keçeye uzanır. Yüzü köşedeki kamerada. */
+.kr-tepe { --kt-gen: 330px; --kt-derin: 128px; position: absolute; left: 50%; top: 0; width: var(--kt-gen); transform: translateX(-50%); pointer-events: none; z-index: 0; }
+.kr-tepe img { position: relative; display: block; width: 100%; margin-top: -62px; filter: drop-shadow(0 12px 14px #000b); transition: opacity .7s, transform .7s; }
+.kr-tepe img:not([src]) { visibility: hidden; }
+.kr-girinti { position: absolute; left: 50%; top: calc(var(--kt-derin) * -1); width: calc(var(--kt-gen) * .88); height: calc(var(--kt-derin) * 2); transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 35%, #1e1813, #07080a 78%); box-shadow: 0 0 0 9px var(--ahsap, #5a3418), 0 0 0 12px #0009, 0 8px 18px #000a, inset 0 -12px 26px #000d; }
+.kr-tepe[data-ruh="dagit"] img { animation: kt-dagit .8s ease-in-out infinite; }
+@keyframes kt-dagit { 50% { transform: translateY(6px); } }
+.kr-tepe.kr-cikis img { opacity: 0; transform: translateY(-50px); }
+.kr-tepe.kr-giris img { animation: kt-gir .7s ease-out; }
+@keyframes kt-gir { from { opacity: 0; transform: translateY(-50px); } }
+#e-novo .n-krupiye-alan, #e-ultimate .n-krupiye-alan { top: 166px; }
+.masa-alan > .krupiye.kr-kamera { position: absolute; top: calc(54px + env(safe-area-inset-top)); right: 14px; width: clamp(110px, 10vw, 140px); margin: 0; z-index: 12; }
+.krupiye.kr-kamera::after { content: '● CANLI'; position: absolute; top: 7px; left: 7px; font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #fff; background: #c62828d9; border-radius: 4px; padding: 1px 5px; }
+#e-novo.ytel .kr-tepe, #e-ultimate.ytel .kr-tepe { display: none; }
+#e-novo.ytel .n-krupiye-alan, #e-ultimate.ytel .n-krupiye-alan { top: calc(38px + env(safe-area-inset-top)); }
+#e-novo.ytel .masa-alan > .krupiye.kr-kamera, #e-ultimate.ytel .masa-alan > .krupiye.kr-kamera { top: calc(40px + env(safe-area-inset-top)); right: 8px; width: 56px; }
+#e-novo.ytel .krupiye.kr-kamera::after, #e-ultimate.ytel .krupiye.kr-kamera::after { content: '●'; top: 2px; left: 4px; padding: 0 3px; font-size: 8px; }
+/* El sonu tablosu sade: kısa etiket + tutar; satıra dokununca uzun açıklama */
+.dk-satir { cursor: pointer; }
+.dk-kalem { display: inline-flex; align-items: baseline; gap: 4px; font-size: 11px; padding: 2px 8px; }
+.dk-kalem i { font-style: normal; font-weight: 800; letter-spacing: .5px; opacity: .8; font-size: 10px; }
+.dk-kalem em { display: none; font-style: normal; }
+.dk-satir.acik .dk-kalemler { flex-direction: column; align-items: flex-start; }
+.dk-satir.acik .dk-kalem { white-space: normal; border-radius: 8px; }
+.dk-satir.acik .dk-kalem i { display: none; } .dk-satir.acik .dk-kalem em { display: inline; }
+.dk-durum { min-width: 26px; text-align: center; }
+.dk-net { font-size: 17px; }
+.dk-satir.acik .dk-kalem em { order: -1; }
