@@ -25,13 +25,13 @@ const goster = e => { if (e) e.classList.remove('bos'); return e; };
 // Masa görünümü (Erman 23 Kas): masayı açan seçer. Online'da sunucuya gider ve herkeste aynı görünür;
 // tek cihazda bu cihazda saklanır.
 const MASA_AD = { klasik: 'Klasik', lacivert: 'Lacivert', yesil: 'Yeşil', antrasit: 'Antrasit' };
-const masaSimdi = () => document.documentElement.dataset.masa || 'klasik';
+const masaSimdi = () => document.documentElement.dataset.masa || 'yesil';
 function masaSec(m) {
   if (online) { online.gonder({ tip: 'ayar', masa: m }); return; }
   document.documentElement.dataset.masa = m;
   try { localStorage.setItem('novo.masa', m); } catch (e) { /* özel pencere */ }
 }
-try { if (!document.documentElement.dataset.masa) document.documentElement.dataset.masa = localStorage.getItem('novo.masa') || 'klasik'; } catch (e) { /* özel pencere */ }
+try { if (!document.documentElement.dataset.masa) document.documentElement.dataset.masa = localStorage.getItem('novo.masa') || 'yesil'; } catch (e) { /* özel pencere */ }
 // Yan express dairesi: bahis çipi, etiket ve tutar; el bitince kazanan yeşil, kaybeden soluk.
 function koltukKutusu(g, el, p, i, n) {
   const bitti = el && el.faz === 'bitti';
