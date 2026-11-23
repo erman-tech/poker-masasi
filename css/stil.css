@@ -560,3 +560,11 @@ input, select {
 #e-novo.ytel .nspot .ndaire .ntutar { bottom: -10px; font-size: 8px; padding: 0 3px; }
 /* Telefonda boş çekme/sigorta kutusu yer kaplamasın; çip konunca görünür (Erman 23 Kas) */
 #e-novo.ytel .nspot .ncekme.bos { display: none; }
+html[data-masa="lacivert"] #e-novo .novo-kece, html[data-masa="lacivert"] #e-ultimate .novo-kece { background: url(../img/masa/lacivert.jpg) center / 100% 100% no-repeat !important; }
+html[data-masa="yesil"] #e-novo .novo-kece, html[data-masa="yesil"] #e-ultimate .novo-kece { background: url(../img/masa/yesil.jpg) center / 100% 100% no-repeat !important; }
+html[data-masa="antrasit"] #e-novo .novo-kece, html[data-masa="antrasit"] #e-ultimate .novo-kece { background: url(../img/masa/antrasit.jpg) center / 100% 100% no-repeat !important; }
+/* Gerçek masa görselleri kendi kenarını ve zeminini taşır: çizilen kenar ve oval kalkar, görsel tüm alanı kaplar */
+html:not([data-masa="klasik"]) #e-novo .novo-kece, html:not([data-masa="klasik"]) #e-ultimate .novo-kece { inset: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+html:not([data-masa="klasik"]) #e-novo, html:not([data-masa="klasik"]) #e-ultimate { background: #120c08; }
+/* Gerçek masada "NOVO POKER" alt kavisde basılı; kural yazısı onun üstüne binmesin (kurallar menüde) */
+html:not([data-masa="klasik"]) #e-novo #n-yazi, html:not([data-masa="klasik"]) #e-ultimate #n-yazi { display: none; }

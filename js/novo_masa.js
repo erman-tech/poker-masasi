@@ -22,6 +22,16 @@ let hata = '';
 
 // Telefonda gizli boş kutu, çip uçmadan önce görünür olur (uçuşun hedefi kaybolmasın)
 const goster = e => { if (e) e.classList.remove('bos'); return e; };
+// Masa görünümü (Erman 23 Kas): masayı açan seçer. Online'da sunucuya gider ve herkeste aynı görünür;
+// tek cihazda bu cihazda saklanır.
+const MASA_AD = { klasik: 'Klasik', lacivert: 'Lacivert', yesil: 'Yeşil', antrasit: 'Antrasit' };
+const masaSimdi = () => document.documentElement.dataset.masa || 'klasik';
+function masaSec(m) {
+  if (online) { online.gonder({ tip: 'ayar', masa: m }); return; }
+  document.documentElement.dataset.masa = m;
+  try { localStorage.setItem('novo.masa', m); } catch (e) { /* özel pencere */ }
+}
+try { if (!document.documentElement.dataset.masa) document.documentElement.dataset.masa = localStorage.getItem('novo.masa') || 'klasik'; } catch (e) { /* özel pencere */ }
 // Yan express dairesi: bahis çipi, etiket ve tutar; el bitince kazanan yeşil, kaybeden soluk.
 function yanDaire(y, etiket, bitti) {
   const d = document.createElement('div');
@@ -913,6 +923,7 @@ export function novoBagla() {
     perdeAc(`<div style="font-size:20px;font-weight:800">Novo masası</div>
       <button class="btn-ikincil" id="nm-yukle">Para yükle</button>
       <button class="btn-ikincil" id="nm-konus">Seslendirme: ${konus.acikMi() ? 'Açık' : 'Kapalı'}</button>
+      ${online && !online.sahipMi ? '' : `<button class="btn-ikincil" id="nm-masa">Masa: ${MASA_AD[masaSimdi()]} (değiştir)</button>`}
       <button class="btn-ikincil" id="nm-ortam">Casino uğultusu: ${ses.ortamAcikMi() ? 'Açık' : 'Kapalı'}</button>
       <button class="btn-ikincil" id="nm-kurallar">Kurallar ve ödeme tablosu</button>
       <button class="btn-ikincil" id="nm-cekmeler">Kasanın çektiği kartlar</button>
@@ -921,6 +932,10 @@ export function novoBagla() {
       <button class="btn-tehlike" id="nm-kapat">Masayı kapat</button>
       <button class="btn-ana" id="nm-tamam">Kapat</button>`, k => {
       k.querySelector('#nm-tamam').onclick = perdeKapat;
+      if (k.querySelector('#nm-masa')) k.querySelector('#nm-masa').onclick = e => {
+        const sira = Object.keys(MASA_AD), yeni = sira[(sira.indexOf(masaSimdi()) + 1) % sira.length];
+        masaSec(yeni); e.target.textContent = `Masa: ${MASA_AD[yeni]} (değiştir)`;
+      };
       k.querySelector('#nm-ortam').onclick = e => { ses.acil(); ses.ortamAyarla(!ses.ortamAcikMi()); e.target.textContent = 'Casino uğultusu: ' + (ses.ortamAcikMi() ? 'Açık' : 'Kapalı'); };
       k.querySelector('#nm-konus').onclick = e => { konus.ayarla(!konus.acikMi()); e.target.textContent = 'Seslendirme: ' + (konus.acikMi() ? 'Açık' : 'Kapalı'); if (konus.acikMi()) { konus.kilidiAc(); konus.soyle('seslendirme_acik'); } };
       k.querySelector('#nm-kurallar').onclick = kurallarAc;
