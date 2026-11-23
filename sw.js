@@ -1,6 +1,6 @@
 // Offline önbellek: ilk açılışta tüm dosyalar cihaza kaydedilir.
 // Dosya değişince SURUM artırılır.
-const SURUM = 'poker-v78';
+const SURUM = 'poker-v79';
 const DOSYALAR = [
   './', 'index.html', 'css/stil.css', 'manifest.webmanifest',
   'js/uygulama.js', 'js/arayuz.js', 'js/masa.js', 'js/oyuncu.js', 'js/motor.js', 'js/kart.js', 'js/ses.js', 'js/fis.js', 'js/novo.js', 'js/novo_masa.js', 'js/krupiye.js', 'js/havai.js', 'js/konus.js',
@@ -8,15 +8,17 @@ const DOSYALAR = [
   'ikon-180.png', 'ikon-192.png', 'ikon-512.png',
 ];
 self.addEventListener('install', e => {
-  // Elif'in ses kayıtları da offline kaydedilir (liste.json'daki parçalar).
+  // Kurpiyelerin (Elif + 4 ses) kayıtları da offline kaydedilir (liste.json'daki parçalar).
   e.waitUntil(caches.open(SURUM).then(async c => {
     await c.addAll(DOSYALAR.map(u => new Request(u, { cache: 'reload' })));
-    try {
-      const r = await fetch('sesler/elif/liste.json', { cache: 'no-store' });
-      const liste = r.ok ? await r.json() : [];
-      await c.put('sesler/elif/liste.json', new Response(JSON.stringify(liste), { headers: { 'content-type': 'application/json' } }));
-      await c.addAll(liste.map(k => new Request('sesler/elif/' + k + '.mp3', { cache: 'reload' })));
-    } catch (err) { /* kayıt yoksa cihaz sesi kullanılır */ }
+    for (const kl of ['elif', 'k2', 'k3', 'k4', 'k5']) {
+      try {
+        const r = await fetch(`sesler/${kl}/liste.json`, { cache: 'no-store' });
+        const liste = r.ok ? await r.json() : [];
+        await c.put(`sesler/${kl}/liste.json`, new Response(JSON.stringify(liste), { headers: { 'content-type': 'application/json' } }));
+        await c.addAll(liste.map(k => new Request(`sesler/${kl}/` + k + '.mp3', { cache: 'reload' })));
+      } catch (err) { /* kayıt yoksa cihaz sesi kullanılır */ }
+    }
   }).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {

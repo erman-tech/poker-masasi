@@ -33,6 +33,71 @@ function masaSec(m) {
 }
 try { if (!document.documentElement.dataset.masa) document.documentElement.dataset.masa = localStorage.getItem('novo.masa') || 'klasik'; } catch (e) { /* özel pencere */ }
 // Yan express dairesi: bahis çipi, etiket ve tutar; el bitince kazanan yeşil, kaybeden soluk.
+function koltukKutusu(g, el, p, i, n) {
+  const bitti = el && el.faz === 'bitti';
+  const kutu = document.createElement('div'); kutu.className = 'ndaireler nkutu';
+  // Üst sıra: öteki koltukların numaraları; komşuya express oynandıysa çip o numaranın üstünde
+  const komsu = document.createElement('div'); komsu.className = 'nkomsu';
+  for (let j = 0; j < n; j++) {
+    if (j === i) continue;
+    const k = document.createElement('div'); k.className = 'nk'; k.dataset.j = j;
+    k.innerHTML = `<i>${j + 1}</i>`;
+    const yk = p && p.katildi && p.yanKomsu && p.yanKomsu.bahis > 0 && p.yanKomsu.kime === j ? p.yanKomsu : null;
+    if (yk) {
+      k.classList.add('dolu');
+      if (bitti) k.classList.add(yk.odeme > 0 ? 'kazandi' : 'kaybetti');
+      k.title = `${j + 1}. oyuncuya express`;
+      const yer = document.createElement('div'); yer.className = 'yer'; yer.appendChild(ustCipEl(yk.bahis, 22)); k.appendChild(yer);
+      const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = bitti && yk.odeme > 0 ? '+' + para(yk.odeme) : para(yk.bahis); k.appendChild(b);
+    }
+    komsu.appendChild(k);
+  }
+  kutu.appendChild(komsu);
+  // D: kasaya express
+  const yd = p && p.katildi && p.yanKasa && p.yanKasa.bahis > 0 ? p.yanKasa : null;
+  const dk = document.createElement('div');
+  dk.className = 'ndaire yan dkasa' + (yd ? ' dolu' : '') + (yd && bitti ? (yd.odeme > 0 ? ' kazandi' : ' kaybetti') : '');
+  dk.title = 'Kasaya express';
+  dk.innerHTML = '<span>D</span>';
+  if (yd) {
+    const yer = document.createElement('div'); yer.className = 'yer'; yer.appendChild(ustCipEl(yd.bahis, 26)); dk.appendChild(yer);
+    const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = bitti && yd.odeme > 0 ? '+' + para(yd.odeme) : para(yd.bahis); dk.appendChild(b);
+  }
+  kutu.appendChild(dk);
+  for (const [k, ad] of [['ante', 'ANTE'], ['express', String(i + 1)], ['bet', 'BET']]) {
+    const d = document.createElement('div');
+    d.className = 'ndaire ' + k; d.dataset.k = k;
+    d.innerHTML = `<span>${ad}</span>`;
+    if (k === 'express') d.title = 'Express (ilk 5 kart)';
+    if (k === 'express' && p && p.katildi && !bitti) d.classList.add(p.bonusOdeme ? 'ex-kazanc' : 'ex-kayip');
+    const yer = document.createElement('div'); yer.className = 'yer';
+    const tutar = daireTutari(p, k);
+    if (tutar > 0) yer.appendChild(ustCipEl(tutar, k === 'express' ? 26 : 30));
+    d.appendChild(yer);
+    if (tutar > 0) { const tt = document.createElement('b'); tt.className = 'ntutar'; tt.textContent = para(tutar); d.appendChild(tt); }
+    else if (k === 'express' && p && p.katildi && !bitti && !expressBekliyor) {
+      const tt = document.createElement('b'); tt.className = 'ntutar';
+      tt.textContent = p.bonusOdeme ? '+' + para(p.bonusOdeme - p.bonus) : 'kasaya';
+      d.appendChild(tt);
+    }
+    kutu.appendChild(d);
+  }
+  const cek = document.createElement('div'); cek.className = 'ncekme';
+  cek.innerHTML = '<span>ÇEKME</span>';
+  if (p && p.ucret > 0 && !bitti) cek.appendChild(yiginEl(p.ucret, { boyut: 16, enCok: 4 }));
+  else cek.classList.add('bos');
+  kutu.appendChild(cek);
+  const sig = document.createElement('div'); sig.className = 'ncekme nsigorta';
+  sig.innerHTML = '<span>SİGORTA</span>';
+  if (p && p.sigorta > 0 && !bitti) sig.appendChild(yiginEl(p.sigorta, { boyut: 16, enCok: 4 }));
+  else if (!(p && p.sigorta > 0)) sig.classList.add('bos');
+  if (p && p.sigorta > 0 && el.krupiyeAcik && el.ilkOyun === false) {
+    sig.classList.add('kazandi');
+    sig.insertAdjacentHTML('beforeend', `<b class="sig-kazanc">+${para(p.sigorta)}</b>`);
+  }
+  kutu.appendChild(sig);
+  return kutu;
+}
 function yanDaire(y, etiket, bitti) {
   const d = document.createElement('div');
   d.className = 'ndaire yan' + (bitti ? (y.odeme > 0 ? ' kazandi' : ' kaybetti') : '');
@@ -90,7 +155,7 @@ function gecmiseAt() {
 // ---------------- Çizim ----------------
 function spotKonumu(i, n) {
   const x = n === 1 ? [50] : n === 2 ? [32, 68] : n === 3 ? [15, 50, 85] : [14, 38, 62, 86];
-  const y = n <= 2 ? [57, 57] : n === 3 ? [55, 60, 55] : [54, 60, 60, 54];
+  const y = n <= 2 ? [60, 60] : n === 3 ? [58, 63, 58] : [57, 63, 63, 57];
   return { x: x[i], y: y[i] };
 }
 
@@ -185,45 +250,10 @@ function ciz() {
       if (el.faz === 'bitti') etiket.classList.add(p.net > 0 ? 'kazanc' : p.net < 0 ? 'kayip' : 'notr');
     } else if (el) etiket.textContent = katilabilir(g, i) ? '' : 'Bu elde oturuyor';
 
-    const daireler = document.createElement('div'); daireler.className = 'ndaireler';
-    for (const [k, ad] of [['ante', 'ANTE'], ['express', 'EXPRESS'], ['bet', 'BET']]) {
-      const d = document.createElement('div');
-      d.className = 'ndaire ' + k; d.dataset.k = k;
-      d.innerHTML = `<span>${ad}</span>`;
-      if (k === 'express' && p && p.katildi && el.faz !== 'bitti') d.classList.add(p.bonusOdeme ? 'ex-kazanc' : 'ex-kayip');
-      const yer = document.createElement('div'); yer.className = 'yer';
-      const tutar = daireTutari(p, k);
-      if (tutar > 0) yer.appendChild(ustCipEl(tutar, 34));
-      d.appendChild(yer);
-      if (tutar > 0) { const tt = document.createElement('b'); tt.className = 'ntutar'; tt.textContent = para(tutar); d.appendChild(tt); }
-      else if (k === 'express' && p && p.katildi && el.faz !== 'bitti' && !expressBekliyor) {
-        const tt = document.createElement('b'); tt.className = 'ntutar';
-        tt.textContent = p.bonusOdeme ? '+' + para(p.bonusOdeme - p.bonus) : 'kasaya';
-        d.appendChild(tt);
-      }
-      daireler.appendChild(d);
-      // Yan express (Erman 23 Kas): kasaya express ante'nin yanında, oyuncuya express ante'nin
-      // üstünde; ikisi de ante dairesinden %25 küçük, üstünde çip.
-      if (k === 'ante' && p && p.katildi) {
-        if (p.yanKasa && p.yanKasa.bahis > 0) { const u = yanDaire(p.yanKasa, 'KASA', el.faz === 'bitti'); u.classList.add('sag'); daireler.appendChild(u); }
-        if (p.yanKomsu && p.yanKomsu.bahis > 0) { const u = yanDaire(p.yanKomsu, `${p.yanKomsu.kime + 1}. OYUNCU`, el.faz === 'bitti'); u.classList.add('ust'); d.appendChild(u); }
-      }
-    }
-    const cek = document.createElement('div'); cek.className = 'ncekme';
-    cek.innerHTML = '<span>ÇEKME</span>';
-    if (p && p.ucret > 0 && el.faz !== 'bitti') cek.appendChild(yiginEl(p.ucret, { boyut: 16, enCok: 4 }));
-    else cek.classList.add('bos');
-    daireler.appendChild(cek);
-    const sig = document.createElement('div'); sig.className = 'ncekme nsigorta';
-    sig.innerHTML = '<span>SİGORTA</span>';
-    if (p && p.sigorta > 0 && el.faz !== 'bitti') sig.appendChild(yiginEl(p.sigorta, { boyut: 16, enCok: 4 }));
-    else if (!(p && p.sigorta > 0)) sig.classList.add('bos');
-    // Kasa boş açtıysa sigorta kesinleşti: kutu altın renginde ve kazancı yazar
-    if (p && p.sigorta > 0 && el.krupiyeAcik && el.ilkOyun === false) {
-      sig.classList.add('kazandi');
-      sig.insertAdjacentHTML('beforeend', `<b class="sig-kazanc">+${para(p.sigorta)}</b>`);
-    }
-    daireler.appendChild(sig);
+    // Koltuk kutusu (Erman 23 Kas, gerçek Novo masası örneği): solda D (kasaya express), ortada
+    // ANTE / koltuk numaralı EXPRESS / BET, sağda ÇEKME ve SİGORTA, üstte öteki koltukların
+    // numara halkaları (komşuya express). Kartlar kutunun önünde dizilir.
+    const daireler = koltukKutusu(g, el, p, i, n);
 
     const levha = document.createElement('div'); levha.className = 'nlevha';
     if (o.mola) s.classList.add('mola');
@@ -235,7 +265,7 @@ function ciz() {
     const yig = document.createElement('div'); yig.className = 'yigin-yeri';
     if (gosterilenFis(o, p) > 0) yig.appendChild(yiginEl(gosterilenFis(o, p), { cesitli: true, boyut: 20, enCok: 7 }));
     levha.appendChild(yig);
-    s.append(kartlar, etiket, daireler, levha);
+    s.append(daireler, kartlar, etiket, levha);
     alan.appendChild(s);
   });
   // Kenardaki oyuncunun bahis sırası (yan express daireleriyle) masadan taşmasın: içeri kaydır

@@ -2,7 +2,7 @@
 // Kayıtlar varsa yalnız Elif konuşur (kaydı olmayan parça atlanır); hiç kayıt yoksa cihazın Türkçe sesi. Kayıtlar offline önbellekte durur; internet gerekmez.
 const ANAHTAR = 'poker.konusma';
 // Her kurpiyenin kendi sesi (Erman 23 Kas): 1. kurpiye hep Elif, 2-5 hazır profesyonel sesler.
-const KLASORLER = ['sesler/elif/']; // k2..k5 sesleri hazır olunca eklenecek
+const KLASORLER = ['sesler/elif/', 'sesler/k2/', 'sesler/k3/', 'sesler/k4/', 'sesler/k5/'];
 let KLASOR = KLASORLER[0];
 export function kurpiyeSesi(i) { KLASOR = KLASORLER[i] || KLASORLER[0]; }
 
