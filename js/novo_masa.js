@@ -250,7 +250,7 @@ function ciz() {
       if (el.faz === 'bitti') etiket.classList.add(p.net > 0 ? 'kazanc' : p.net < 0 ? 'kayip' : 'notr');
     } else if (el) etiket.textContent = katilabilir(g, i) ? '' : 'Bu elde oturuyor';
 
-    // Koltuk kutusu (Erman 23 Kas, gerçek Novo masası örneği): solda D (kasaya express), ortada
+    // Koltuk kutusu (Erman 23 Kas, gerçek Novo masası örneği): solda D (kasaya express), ortada ANTE/BET, ANTE'nin sağında koltuk numaralı EXPRESS,
     // ANTE / koltuk numaralı EXPRESS / BET, sağda ÇEKME ve SİGORTA, üstte öteki koltukların
     // numara halkaları (komşuya express). Kartlar kutunun önünde dizilir.
     const daireler = koltukKutusu(g, el, p, i, n);

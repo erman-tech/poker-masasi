@@ -660,8 +660,8 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 
 /* Koltuk kutusu — gerçek Novo masasındaki baskı düzeni (Erman 23 Kas): D · ANTE/no/BET · ÇEKME/SİGORTA,
    üstte komşu numaraları, kartlar kutunun önünde. Çizgiler keçeye basılmış gibi ince ve yarı saydam. */
-#e-novo .nkutu { --baski: #f1d27fb3; display: grid; grid-template-columns: 46px 92px 46px; grid-template-rows: 24px 40px 34px 40px; gap: 2px 7px; align-items: center; justify-items: center; margin-bottom: 12px; }
-#e-novo .nkutu .nkomsu { grid-column: 1 / 4; grid-row: 1; display: flex; gap: 8px; justify-content: center; }
+#e-novo .nkutu { --baski: #f1d27fb3; display: grid; grid-template-columns: 42px 92px 38px 44px; grid-template-rows: 24px 40px 40px; gap: 4px 7px; align-items: center; justify-items: center; margin-bottom: 12px; }
+#e-novo .nkutu .nkomsu { grid-column: 1 / 5; grid-row: 1; display: flex; gap: 8px; justify-content: center; }
 #e-novo .nkutu .nk { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--baski); display: grid; place-items: center; position: relative; }
 #e-novo .nkutu .nk i { font-style: normal; font-size: 11px; font-weight: 800; color: var(--baski); }
 #e-novo .nkutu .nk.dolu i { display: none; }
@@ -671,27 +671,27 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 #e-novo .nkutu .nk.kaybetti { opacity: .4; }
 #e-novo .nkutu .ndaire { border: 1.5px solid var(--baski); box-shadow: none; }
 #e-novo .nkutu .ndaire span { color: var(--baski); }
-#e-novo .nkutu .ndaire.dkasa { grid-column: 1; grid-row: 2 / 5; width: 42px; height: 42px; border-style: solid; flex: none; position: relative; left: auto; bottom: auto; transform: none; }
+#e-novo .nkutu .ndaire.dkasa { grid-column: 1; grid-row: 2 / 4; width: 42px; height: 42px; border-style: solid; flex: none; position: relative; left: auto; bottom: auto; transform: none; }
 #e-novo .nkutu .ndaire.dkasa span { position: static; font-size: 17px; font-weight: 900; letter-spacing: 0; font-family: Georgia, serif; }
 #e-novo .nkutu .ndaire.dkasa.dolu span { position: absolute; top: -14px; font-size: 11px; }
 #e-novo .nkutu .ndaire.dkasa .yer { margin-top: 0; }
 #e-novo .nkutu .ndaire.dkasa .ntutar { bottom: -15px; color: #ffd765; }
 #e-novo .nkutu .ndaire.ante, #e-novo .nkutu .ndaire.bet { grid-column: 2; width: 92px; height: 40px; border-radius: 10px; }
-#e-novo .nkutu .ndaire.ante { grid-row: 2; } #e-novo .nkutu .ndaire.bet { grid-row: 4; }
+#e-novo .nkutu .ndaire.ante { grid-row: 2; } #e-novo .nkutu .ndaire.bet { grid-row: 3; }
 #e-novo .nkutu .ndaire.ante span, #e-novo .nkutu .ndaire.bet span { top: auto; left: 7px; font-size: 9px; letter-spacing: 1.5px; font-family: Georgia, serif; }
 #e-novo .nkutu .ndaire.ante .yer, #e-novo .nkutu .ndaire.bet .yer { margin: 0 0 0 26px; }
 #e-novo .nkutu .ndaire.ante .ntutar, #e-novo .nkutu .ndaire.bet .ntutar { bottom: auto; right: -2px; top: -9px; }
-#e-novo .nkutu .ndaire.express { grid-column: 2; grid-row: 3; width: 34px; height: 34px; border-color: #ffd765cc; }
+#e-novo .nkutu .ndaire.express { grid-column: 3; grid-row: 2; width: 34px; height: 34px; border-color: #ffd765cc; }
 #e-novo .nkutu .ndaire.express span { position: static; font-size: 15px; font-weight: 900; color: #ffd765; letter-spacing: 0; font-family: Georgia, serif; }
 #e-novo .nkutu .ndaire.express:has(.yer:not(:empty)) span { display: none; }
 #e-novo .nkutu .ndaire.express .yer { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
-#e-novo .nkutu .ndaire.express .ntutar { bottom: auto; left: calc(100% + 4px); font-size: 10px; }
-#e-novo .nkutu .ncekme { grid-column: 3; width: 44px; height: 36px; border: 1.5px dashed var(--baski); }
+#e-novo .nkutu .ndaire.express .ntutar { bottom: -14px; font-size: 10px; }
+#e-novo .nkutu .ncekme { grid-column: 4; width: 44px; height: 36px; border: 1.5px dashed var(--baski); }
 #e-novo .nkutu .ncekme span { color: var(--baski); }
-#e-novo .nkutu .ncekme:not(.nsigorta) { grid-row: 2; } #e-novo .nkutu .nsigorta { grid-row: 4; }
+#e-novo .nkutu .ncekme:not(.nsigorta) { grid-row: 2; } #e-novo .nkutu .nsigorta { grid-row: 3; }
 #e-novo .nkutu .nsigorta { border-color: #8fd3ffaa; } #e-novo .nkutu .nsigorta span { color: #8fd3ff; }
 /* Telefon (yatay): kutu küçülür, yazılar gizlenir, komşu numaraları kalır */
-#e-novo.ytel .nkutu { grid-template-columns: 22px 46px 22px; grid-template-rows: 14px 22px 20px 22px; gap: 1px 3px; margin-bottom: 4px; }
+#e-novo.ytel .nkutu { grid-template-columns: 20px 46px 20px 22px; grid-template-rows: 14px 22px 22px; gap: 1px 3px; margin-bottom: 4px; }
 #e-novo.ytel .nkutu .nk { width: 13px; height: 13px; border-width: 1px; } #e-novo.ytel .nkutu .nk i { font-size: 8px; }
 #e-novo.ytel .nkutu .nk .yer { transform: scale(.55); } #e-novo.ytel .nkutu .nk .ntutar { display: none; }
 #e-novo.ytel .nkutu .ndaire.dkasa { width: 22px; height: 22px; } #e-novo.ytel .nkutu .ndaire.dkasa span { font-size: 11px; display: block; }
