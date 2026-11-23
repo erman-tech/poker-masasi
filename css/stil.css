@@ -568,3 +568,32 @@ html:not([data-masa="klasik"]) #e-novo .novo-kece, html:not([data-masa="klasik"]
 html:not([data-masa="klasik"]) #e-novo, html:not([data-masa="klasik"]) #e-ultimate { background: #120c08; }
 /* Gerçek masada "NOVO POKER" alt kavisde basılı; kural yazısı onun üstüne binmesin (kurallar menüde) */
 html:not([data-masa="klasik"]) #e-novo #n-yazi, html:not([data-masa="klasik"]) #e-ultimate #n-yazi { display: none; }
+
+/* El sonu paneli: oyuncu başına tek satır (Erman 23 Kas) */
+.sonuc-panel { gap: 8px; }
+.dk-baslik { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; font-size: 14px; color: #e8f1ea; }
+.dk-elno { background: #ffd765; color: #1b1b1b; font-weight: 900; border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+.dk-kasa { font-weight: 800; }
+.dk-not { color: #ffffff99; font-size: 12px; }
+.dk-tablo { display: grid; gap: 4px; width: min(760px, 100%); }
+.dk-satir { display: grid; grid-template-columns: 22px minmax(56px, auto) 1fr auto auto; align-items: center; gap: 8px; background: #ffffff0d; border: 1px solid #ffffff14; border-radius: 10px; padding: 5px 8px; text-align: left; }
+.dk-no { width: 22px; height: 22px; border-radius: 50%; background: var(--altin); color: #1b1b1b; font-weight: 900; font-size: 12px; display: grid; place-items: center; }
+.dk-ad { font-weight: 800; color: #fff; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dk-kalemler { display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
+.dk-kalem { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #ffffff10; color: #d9e2dc; white-space: nowrap; }
+.dk-kalem.art { background: #1f8a4c40; color: #b9f5c9; } .dk-kalem.eks { background: #e5484d2b; color: #ffc4c6; }
+.dk-kalem b { font-weight: 800; }
+.dk-bos { font-size: 11px; color: #ffffff66; }
+.dk-net { font-size: 17px; font-weight: 900; min-width: 64px; text-align: right; color: #fff; }
+.dk-net.art, .dk-kasa.art { color: #8ff0a3; } .dk-net.eks, .dk-kasa.eks { color: #ff8a8d; }
+.dk-durum { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #ffffff14; border: 1px solid #ffffff22; color: #e8f1ea; white-space: nowrap; }
+.dk-durum.hazir { background: #1f8a4c55; border-color: #3ecf6e; }
+.dk-durum.kapali { opacity: .6; }
+button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
+#e-novo.ytel .dk-satir, #e-ultimate.ytel .dk-satir { grid-template-columns: 18px auto 1fr auto; gap: 4px 6px; padding: 3px 5px; }
+#e-novo.ytel .dk-kalemler { grid-column: 1 / -1; order: 5; }
+#e-novo.ytel .dk-durum-yer { order: 4; }
+#e-novo.ytel .dk-no { width: 18px; height: 18px; font-size: 10px; }
+#e-novo.ytel .dk-ad { font-size: 12px; } #e-novo.ytel .dk-net { font-size: 13px; min-width: 0; }
+#e-novo.ytel .dk-kalem { font-size: 9px; padding: 0 5px; } #e-novo.ytel .dk-durum { font-size: 9px; padding: 1px 6px; }
+#e-novo.ytel .dk-baslik { font-size: 11px; gap: 3px 8px; } #e-novo.ytel .dk-elno { font-size: 10px; }
