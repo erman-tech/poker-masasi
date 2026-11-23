@@ -539,3 +539,22 @@ input, select {
 #e-novo .ndaire.yan .ntutar { bottom: -12px; font-size: 9px; }
 #e-novo .ndaire.yan.sag { margin: 0 -6px; align-self: center; }
 #e-novo .ndaire.yan.ust { bottom: calc(100% + 12px); }
+
+/* Çip halkaları daha da küçük (Erman 23 Kas): masaüstünde ante/express/bet 50 → 42 px */
+#e-novo .ndaire { width: 42px; height: 42px; }
+#e-novo .ndaire span { top: 2px; font-size: 6px; }
+#e-novo .ndaire .yer { margin-top: 5px; transform: scale(.68); }
+#e-novo .ncekme { width: 28px; height: 28px; }
+#e-novo .ndaire.yan { width: 32px; height: 32px; }
+#e-novo .ndaire.yan .yer { margin-top: 0; transform: scale(.52); }
+#e-novo .ndaire.yan.sag { margin: 0 -5px; }
+/* Telefonda bir oyuncunun sırası ~150 px'e sığsın (üç oyuncu yan yana): 32 → 24 px */
+#e-novo.ytel .nspot .ndaireler { gap: 1px; }
+#e-novo.ytel .nspot .ndaire { width: 24px; height: 24px; }
+#e-novo.ytel .nspot .ndaire .yer { transform: scale(.52); }
+#e-novo.ytel .nspot .ncekme { width: 18px; height: 18px; }
+#e-novo.ytel .nspot .ndaire.yan { width: 18px; height: 18px; }
+#e-novo.ytel .nspot .ndaire.yan .yer { transform: scale(.4); }
+#e-novo.ytel .nspot .ndaire.yan.sag { margin: 0 -3px; }
+#e-novo.ytel .nspot .ndaire.yan.ust { bottom: calc(100% + 2px); }
+#e-novo.ytel .nspot .ndaire .ntutar { bottom: -10px; font-size: 8px; padding: 0 3px; }
