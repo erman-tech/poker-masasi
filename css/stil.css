@@ -558,3 +558,5 @@ input, select {
 #e-novo.ytel .nspot .ndaire.yan.sag { margin: 0 -3px; }
 #e-novo.ytel .nspot .ndaire.yan.ust { bottom: calc(100% + 2px); }
 #e-novo.ytel .nspot .ndaire .ntutar { bottom: -10px; font-size: 8px; padding: 0 3px; }
+/* Telefonda boş çekme/sigorta kutusu yer kaplamasın; çip konunca görünür (Erman 23 Kas) */
+#e-novo.ytel .nspot .ncekme.bos { display: none; }

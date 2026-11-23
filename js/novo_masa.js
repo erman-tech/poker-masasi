@@ -20,6 +20,8 @@ let secimModu = false;
 let oyunsuzSecim = {};  // oyuncu -> true (oyun satın al) / false (ante al)
 let hata = '';
 
+// Telefonda gizli boş kutu, çip uçmadan önce görünür olur (uçuşun hedefi kaybolmasın)
+const goster = e => { if (e) e.classList.remove('bos'); return e; };
 // Yan express dairesi: bahis çipi, etiket ve tutar; el bitince kazanan yeşil, kaybeden soluk.
 function yanDaire(y, etiket, bitti) {
   const d = document.createElement('div');
@@ -200,10 +202,12 @@ function ciz() {
     const cek = document.createElement('div'); cek.className = 'ncekme';
     cek.innerHTML = '<span>ÇEKME</span>';
     if (p && p.ucret > 0 && el.faz !== 'bitti') cek.appendChild(yiginEl(p.ucret, { boyut: 16, enCok: 4 }));
+    else cek.classList.add('bos');
     daireler.appendChild(cek);
     const sig = document.createElement('div'); sig.className = 'ncekme nsigorta';
     sig.innerHTML = '<span>SİGORTA</span>';
     if (p && p.sigorta > 0 && el.faz !== 'bitti') sig.appendChild(yiginEl(p.sigorta, { boyut: 16, enCok: 4 }));
+    else if (!(p && p.sigorta > 0)) sig.classList.add('bos');
     // Kasa boş açtıysa sigorta kesinleşti: kutu altın renginde ve kazancı yazar
     if (p && p.sigorta > 0 && el.krupiyeAcik && el.ilkOyun === false) {
       sig.classList.add('kazandi');
@@ -545,7 +549,7 @@ async function uygula0(fn, tip) {
     const i = once.el.sira;
     const m = yeni.el.oyuncular[i].sigorta;
     ciz();
-    if (m) await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.nsigorta'), m);
+    if (m) await fisUcur(spotEl(i).querySelector('.nlevha'), goster(spotEl(i).querySelector('.nsigorta')), m);
   }
   if (tip === 'pas') {
     const i = once.el.sira;
@@ -554,7 +558,7 @@ async function uygula0(fn, tip) {
   if (tip === 'degistir' || tip === 'alti') {
     const i = once.el.sira;
     if (yeni.el.faz === 'cekme') ciz(); // karar işaretli görünsün (kart henüz gelmez)
-    await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ncekme'), once.el.ante, 350);
+    await fisUcur(spotEl(i).querySelector('.nlevha'), goster(spotEl(i).querySelector('.ncekme')), once.el.ante, 350);
   }
   if (once.el.faz === 'cekme' && yeni.el.faz !== 'cekme') await topluDagit();
   oyunsuzSecim = {};
