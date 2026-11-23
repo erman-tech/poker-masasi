@@ -682,7 +682,7 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 #e-novo .nkutu .ndaire.ante .yer, #e-novo .nkutu .ndaire.bet .yer { margin: 0 0 0 26px; }
 #e-novo .nkutu .ndaire.ante .ntutar, #e-novo .nkutu .ndaire.bet .ntutar { bottom: auto; right: -2px; top: -9px; }
 #e-novo .nkutu .ndaire.express { grid-column: 3; grid-row: 2; width: 34px; height: 34px; border-color: #ffd765cc; }
-#e-novo .nkutu .ndaire.express span { position: static; font-size: 15px; font-weight: 900; color: #ffd765; letter-spacing: 0; font-family: Georgia, serif; }
+#e-novo .nkutu .ndaire.express span { position: static; font-size: 6.5px; font-weight: 800; color: #ffd765; letter-spacing: .3px; }
 #e-novo .nkutu .ndaire.express:has(.yer:not(:empty)) span { display: none; }
 #e-novo .nkutu .ndaire.express .yer { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; }
 #e-novo .nkutu .ndaire.express .ntutar { bottom: -14px; font-size: 10px; }
@@ -698,6 +698,6 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 #e-novo.ytel .nkutu .ndaire.dkasa .yer { transform: scale(.55); }
 #e-novo.ytel .nkutu .ndaire.ante, #e-novo.ytel .nkutu .ndaire.bet { width: 46px; height: 22px; border-radius: 6px; }
 #e-novo.ytel .nkutu .ndaire.ante .yer, #e-novo.ytel .nkutu .ndaire.bet .yer { margin: 0; transform: scale(.55); }
-#e-novo.ytel .nkutu .ndaire.express { width: 20px; height: 20px; } #e-novo.ytel .nkutu .ndaire.express span { display: block; font-size: 10px; }
+#e-novo.ytel .nkutu .ndaire.express { width: 20px; height: 20px; } #e-novo.ytel .nkutu .ndaire.express span { display: none; }
 #e-novo.ytel .nkutu .ndaire.express .yer { transform: scale(.55); }
 #e-novo.ytel .nkutu .ncekme { width: 22px; height: 20px; }

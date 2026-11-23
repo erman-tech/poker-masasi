@@ -38,6 +38,7 @@ function koltukKutusu(g, el, p, i, n) {
   const kutu = document.createElement('div'); kutu.className = 'ndaireler nkutu';
   // Üst sıra: öteki koltukların numaraları; komşuya express oynandıysa çip o numaranın üstünde
   const komsu = document.createElement('div'); komsu.className = 'nkomsu';
+  // Üst sıra yalnız öteki oyuncuların numaraları (komşuya express); kendi numarası levhada
   for (let j = 0; j < n; j++) {
     if (j === i) continue;
     const k = document.createElement('div'); k.className = 'nk'; k.dataset.j = j;
@@ -64,7 +65,7 @@ function koltukKutusu(g, el, p, i, n) {
     const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = bitti && yd.odeme > 0 ? '+' + para(yd.odeme) : para(yd.bahis); dk.appendChild(b);
   }
   kutu.appendChild(dk);
-  for (const [k, ad] of [['ante', 'ANTE'], ['express', String(i + 1)], ['bet', 'BET']]) {
+  for (const [k, ad] of [['ante', 'ANTE'], ['express', 'EXPRESS'], ['bet', 'BET']]) {
     const d = document.createElement('div');
     d.className = 'ndaire ' + k; d.dataset.k = k;
     d.innerHTML = `<span>${ad}</span>`;
