@@ -5,6 +5,7 @@ export const KURPIYE_SAYISI = 5;
 export const DEGISIM_EL = 10;
 
 let kok = null, tepe = null, img = null, vid = null, kvid = null, gvid = null, simdiki = -1, vidUrl = null, kvidUrl = null, gvidUrl = null;
+import { kurpiyeSesi } from './konus.js';
 let galaAcik = false;
 let zaman = null;
 
@@ -47,6 +48,7 @@ export function krupiyeKur(yer) {
 function yukle(i) {
   if (!img) return;
   simdiki = i;
+  kurpiyeSesi(i);
   galaAcik = false;
   if (kok) kok.classList.remove('kr-gala');
   img.src = `img/kurpiye/${i + 1}.jpg`;

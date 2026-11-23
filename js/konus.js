@@ -1,7 +1,10 @@
 // Kasanın sesi: Elif (kurpiye görselleri hayali; ses Elif'in onayıyla). Cümleler kısa parçalardan kurulur (sesler/elif/<parça>.mp3).
 // Kayıtlar varsa yalnız Elif konuşur (kaydı olmayan parça atlanır); hiç kayıt yoksa cihazın Türkçe sesi. Kayıtlar offline önbellekte durur; internet gerekmez.
 const ANAHTAR = 'poker.konusma';
-const KLASOR = 'sesler/elif/';
+// Her kurpiyenin kendi sesi (Erman 23 Kas): 1. kurpiye hep Elif, 2-5 hazır profesyonel sesler.
+const KLASORLER = ['sesler/elif/']; // k2..k5 sesleri hazır olunca eklenecek
+let KLASOR = KLASORLER[0];
+export function kurpiyeSesi(i) { KLASOR = KLASORLER[i] || KLASORLER[0]; }
 
 // Parça -> söylenecek metin (kayıt listesi de buradan üretilir)
 import { sesAcikMi } from './ses.js'; // ses kapatma tuşu seslendirmeyi de susturur
@@ -13,6 +16,7 @@ export const PARCALAR = {
   dolar_odeme: 'dolar ödeme.', kat_odeme: 'kat ödeme.', tebrikler: 'Tebrikler', ve: 've',
   kaybetti: 'kaybetti.', berabere: 'berabere.', ante_yandi: 'ante yandı.',
   komsu_expressten: "komşu express'ten", kasa_expressten: "kasa express'ten",
+  hosgeldiniz: 'Hoş geldiniz, bol şans.',
   bonus_odeme: 'bonus ödeme,', dealer_change: 'Dealer change.', dolar: 'dolar.', seslendirme_acik: 'Seslendirme açık.',
   // kasanın açtığı el
   kasa_AK: 'Kasa as papaz.', kasa_1: 'Kasa per.', kasa_2: 'Kasa iki per.', kasa_3: 'Kasa üçlü.',
@@ -69,26 +73,29 @@ export function metin(parcalar) { return parcalar.flat().map(metinOf).join(' ').
 
 // --- Elif'in kayıtları ---
 let ctx = null;
-let kayitli = null;          // Set: liste.json'daki parçalar
+const listeler = new Map();   // klasör -> Set: liste.json'daki parçalar
 const tampon = new Map();     // parça -> AudioBuffer
 let siraSonu = 0;
 let konusmaDinleyici = null;
 // Konuşma başlayınca (ms cinsinden süre) haber ver: kurpiyenin ağzı oynasın
 export function konusmaDinle(fn) { konusmaDinleyici = fn; }
 
-async function listeYukle() {
-  if (kayitli) return kayitli;
+async function listeYukle(klasor = KLASOR) {
+  if (listeler.has(klasor)) return listeler.get(klasor);
+  let k;
   try {
-    const r = await fetch(KLASOR + 'liste.json');
-    kayitli = new Set(r.ok ? await r.json() : []);
-  } catch (e) { kayitli = new Set(); }
-  return kayitli;
+    const r = await fetch(klasor + 'liste.json');
+    k = new Set(r.ok ? await r.json() : []);
+  } catch (e) { k = new Set(); }
+  listeler.set(klasor, k);
+  return k;
 }
-async function tamponAl(k) {
-  if (tampon.has(k)) return tampon.get(k);
-  const r = await fetch(KLASOR + k + '.mp3');
+async function tamponAl(klasor, k) {
+  const ad = klasor + k;
+  if (tampon.has(ad)) return tampon.get(ad);
+  const r = await fetch(ad + '.mp3');
   const b = await ctx.decodeAudioData(await r.arrayBuffer());
-  tampon.set(k, b);
+  tampon.set(ad, b);
   return b;
 }
 
@@ -120,13 +127,16 @@ function cihazla(m) {
 }
 
 // Bir cümle söyle. parcalar: anahtar dizisi (iç içe dizi olabilir) ya da {anahtar, metin}.
+// Masadan çıkınca sürmekte olan animasyonlar konuşmasın
+let suskun = false;
+export function sus(v) { suskun = !!v; if (suskun) dur(); }
 let zincir = Promise.resolve();
 const caliyor = new Set(); // sırada/çalan kayıtlar: dur() hepsini keser
 export function soyle(...parcalar) {
-  if (!acikMi() || !sesAcikMi()) return;
-  const liste = parcalar.flat(3);
+  if (!acikMi() || !sesAcikMi() || suskun) return;
+  const liste = parcalar.flat(3), klasor = KLASOR; // söylendiği andaki kurpiyenin sesi
   zincir = zincir.then(async () => {
-    const k = await listeYukle();
+    const k = await listeYukle(klasor);
     // Tek ses: Elif'in kayıtları varsa cihazın sesi hiç kullanılmaz. Kaydı olmayan parça
     // (ör. listede olmayan bir oyuncu adı) atlanır; iki sesi aynı masada karıştırmayız.
     if (!k.size) { cihazla(metin(liste)); return; }
@@ -137,7 +147,7 @@ export function soyle(...parcalar) {
     if (!parcalar.length) return;
     try {
       const bufs = [];
-      for (const x of parcalar) bufs.push(await tamponAl(anahtarOf(x)));
+      for (const x of parcalar) bufs.push(await tamponAl(klasor, anahtarOf(x)));
       let t = Math.max(ctx.currentTime + 0.05, siraSonu);
       const t0 = t;
       for (const b of bufs) {

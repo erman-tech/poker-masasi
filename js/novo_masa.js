@@ -342,12 +342,17 @@ function panelCiz0() {
   const y = novoYasal(g);
   const i = y.oyuncu, p = el.oyuncular[i], o = g.oyuncular[i];
   const A = el.ante;
-  let html = `<div class="eylem-baslik"><span class="kim">${y.asama === 'cekme' ? 'Kart çekme' : 'Oyuna giriş'}: ${kacis(o.ad)}</span>
-    <span class="ne">${(k => EL_ADI[k.ana] + (k.ikinci != null ? ' + ' + EL_ADI[k.ikinci] : ''))(kombinasyonlar(p.kartlar))} · elinde ${para(o.fis)}</span></div>`;
+  // Karar başlığı (Erman 23 Kas): ad + aşama + el + bakiye kısa rozetler; açıklama ⓘ'de
+  const asamaAd = 'sigorta' in y ? 'SİGORTA' : y.asama === 'cekme' ? 'KART ÇEKME' : 'OYUNA GİRİŞ';
+  const ipucu = 'sigorta' in y ? 'Kasa açmazsa sigorta 1:1 öder. Yapmazsan kasa açmadığında yalnız ante\'yi alırsın; kasaya kart çektirirsen ve yine açmazsa ante ve bet geri gelir.'
+    : y.asama === 'cekme' ? 'Önce herkes kart çeker; oyuna girme kararı herkes kartını aldıktan sonra sorulur.' : 'Oynarsan bet koyarsın (2 ante); pas dersen ante yanar.';
+  let html = `<div class="eylem-baslik karar-bas"><span class="kim">${kacis(o.ad)}</span><span class="asama">${asamaAd}</span>
+    <span class="el-pill">${(k => EL_ADI[k.ana] + (k.ikinci != null ? ' + ' + EL_ADI[k.ikinci] : ''))(kombinasyonlar(p.kartlar))}</span>
+    <span class="bakiye">${para(o.fis)}</span><button class="bilgi-i" title="${kacis(ipucu)}" aria-label="Bilgi" onclick="this.classList.toggle('acik')">ⓘ<span>${kacis(ipucu)}</span></button></div>`;
+  const dg = (cls, a, ust, alt, acik = true) => `<button class="${cls}" data-a="${a}" ${acik ? '' : 'disabled'}><b>${ust}</b><small>${alt}</small></button>`;
   if ('sigorta' in y) {
     const s = y.sigorta;
-    html += `<div class="ne" style="text-align:center;font-size:17px">Sigorta yapıyor musun? Kasa açmazsa sigorta 1'e 1 öder. Yapmazsan kasa açmadığında yalnız ante'yi alırsın; kasaya kart çektirirsen ve yine açmazsa ante ve bet geri gelir.</div>
-      <div class="dugmeler" style="grid-template-columns:repeat(${s.enAz === s.enCok ? 2 : 3},1fr)">
+    html += `<div class="dugmeler d2" style="grid-template-columns:repeat(${s.enAz === s.enCok ? 2 : 3},1fr)">
         <button class="btn-ikincil" data-s="0">Sigorta yok</button>
         ${s.enAz === s.enCok ? '' : `<button class="b-kontrol" data-s="${s.enAz}">Min ${para(s.enAz)}</button>`}
         <button class="b-yukselt" data-s="${s.enCok}">${s.enAz === s.enCok ? '' : 'Max '}${para(s.enCok)}</button>
@@ -358,18 +363,16 @@ function panelCiz0() {
       <div class="satir"><button class="btn-ikincil" id="n-vazgec">Vazgeç</button>
       <button class="b-yukselt" id="n-degis" ${secili.size ? '' : 'disabled'}>${secili.size || ''} kartı değiştir · ${para(A)}</button></div>`;
   } else if (y.asama === 'cekme') {
-    html += `<div class="ne" style="text-align:center;font-size:16px">Önce herkes kart çeksin; oyuna girme kararı herkes kartını aldıktan sonra sorulacak.</div>
-      <div class="dugmeler">
-      <button class="b-pas" data-a="pas">Pas (çekil)</button>
-      <button class="b-kontrol" data-a="gec">Çekmiyorum</button>
-      <button class="b-kontrol" data-a="gecoyna" ${o.fis >= 2 * A ? '' : 'disabled'}>Çekmiyorum, oyna ${para(2 * A)}</button>
-      <button class="b-yukselt" data-a="degistir" ${y.degistir ? '' : 'disabled'}>Kart çek ${para(A)}</button>
-      <button class="b-allin" data-a="alti" ${y.alti ? '' : 'disabled'}>6. kart ${para(A)}</button></div>`;
+    html += `<div class="dugmeler d2 d5">
+      ${dg('b-yukselt ana', 'degistir', 'Kart çek', para(A), y.degistir)}
+      ${dg('b-allin', 'alti', '6. kart', para(A), y.alti)}
+      ${dg('b-kontrol', 'gecoyna', 'Çekmeden oyna', para(2 * A), o.fis >= 2 * A)}
+      ${dg('b-kontrol koyu', 'gec', 'Çekmiyorum', 'sonra karar')}
+      ${dg('b-pas ince', 'pas', 'Pas', 'çekil')}</div>`;
   } else {
-    html += `<div class="ne" style="text-align:center;font-size:16px">Oyuna giriyor musun?</div>
-      <div class="dugmeler" style="grid-template-columns:repeat(2,1fr)">
-      <button class="b-pas" data-a="pas">Pas</button>
-      <button class="b-kontrol" data-a="oyna" ${y.oyna ? '' : 'disabled'}>Oyna ${para(2 * A)}</button></div>`;
+    html += `<div class="dugmeler d2" style="grid-template-columns:2fr 1fr">
+      ${dg('b-kontrol ana', 'oyna', 'Oyna', 'bet ' + para(2 * A), y.oyna)}
+      ${dg('b-pas ince', 'pas', 'Pas', 'ante yanar')}</div>`;
   }
   html += `<div class="hata">${kacis(hata)}</div>`;
   pn.innerHTML = html;
@@ -798,6 +801,9 @@ function bakiyeYaz(s, i) {
   const y = s && s.querySelector('.nlevha .yigin-yeri');
   if (y) { y.innerHTML = ''; if (o.fis > 0) y.appendChild(yiginEl(o.fis, { cesitli: true, boyut: 20, enCok: 7 })); }
 }
+// Her kurpiye masaya gelince bir kez: "Hoş geldiniz, bol şans" (Erman 23 Kas)
+let karsilanan = -1;
+function karsila(d) { if (d === karsilanan) return; karsilanan = d; konus.soyle('hosgeldiniz'); }
 async function dagit() {
   if (mesgul) return;
   ses.acil();
@@ -819,9 +825,11 @@ async function dagit() {
   if (degisimEli(el.no)) {
     duyuru('<div class="no" style="font-size:clamp(34px,6vw,64px)">DEALER CHANGE</div><div class="kk">Yeni kurpiye masaya geliyor</div>');
     konus.soyle('dealer_change');
+    await konus.bitince(3000);
     await kurpiyeDegistir(eldekiKurpiye(el.no));
+    karsila(eldekiKurpiye(el.no));
     await bekle(400);
-  } else kurpiyeAyarla(eldekiKurpiye(el.no));
+  } else { kurpiyeAyarla(eldekiKurpiye(el.no)); karsila(eldekiKurpiye(el.no)); }
   // Girişler daireye
   for (const [p, i] of spotlar) {
     const s = spotEl(i);

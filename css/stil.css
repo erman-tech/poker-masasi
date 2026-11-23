@@ -627,3 +627,33 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 .dk-durum { min-width: 26px; text-align: center; }
 .dk-net { font-size: 17px; }
 .dk-satir.acik .dk-kalem em { order: -1; }
+
+/* Karar paneli (Erman 23 Kas): rozetli başlık, iki satırlı düğmeler, açıklama ⓘ'de */
+.karar-bas { align-items: center; gap: 8px; position: relative; }
+.karar-bas .kim { font-size: 22px; }
+.karar-bas .asama { font-size: 10px; letter-spacing: 2px; font-weight: 900; color: #ffd765; background: #ffd7651f; border: 1px solid #ffd76555; border-radius: 999px; padding: 3px 9px; }
+.karar-bas .el-pill { font-size: 13px; font-weight: 800; color: #fff; background: #ffffff17; border-radius: 999px; padding: 3px 10px; }
+.karar-bas .bakiye { font-size: 13px; color: var(--soluk); font-weight: 700; }
+.karar-bas .bilgi-i { margin-left: auto; width: 26px; height: 26px; padding: 0; border-radius: 50%; background: #ffffff12; border: 1px solid #ffffff2a; color: #e8f1ea; font-size: 14px; line-height: 1; cursor: help; position: relative; }
+.karar-bas .bilgi-i span { display: none; position: absolute; right: 0; bottom: 34px; width: min(320px, 70vw); text-align: left; font-size: 13px; font-weight: 500; line-height: 1.4; background: #0b1424f2; border: 1px solid #ffd76555; border-radius: 10px; padding: 9px 11px; z-index: 40; box-shadow: 0 8px 24px #000a; }
+.karar-bas .bilgi-i:hover span, .karar-bas .bilgi-i.acik span { display: block; }
+.dugmeler.d2 button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; line-height: 1.1; border-radius: 14px; transition: transform .12s, filter .12s; }
+.dugmeler.d2 button:not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.12); }
+.dugmeler.d2 button b { font-size: 17px; font-weight: 800; }
+.dugmeler.d2 button small { font-size: 12px; font-weight: 700; opacity: .78; letter-spacing: .3px; }
+.dugmeler.d2 button:disabled { opacity: .35; }
+.dugmeler.d5 { grid-template-columns: 1.35fr 1fr 1fr 1fr .8fr !important; }
+.dugmeler .ana { box-shadow: 0 0 0 2px #ffd76599, 0 6px 18px #0007; }
+.dugmeler .b-kontrol.koyu { background: #24463a; }
+.dugmeler .b-pas.ince { background: transparent; border: 2px solid #d9615c88; color: #ffb3ad; }
+#e-novo.ytel .karar-bas .kim, #e-ultimate.ytel .karar-bas .kim { font-size: 15px; }
+#e-novo.ytel .karar-bas .asama { font-size: 8px; padding: 2px 6px; letter-spacing: 1px; }
+#e-novo.ytel .karar-bas .el-pill, #e-novo.ytel .karar-bas .bakiye { font-size: 11px; }
+#e-novo.ytel .karar-bas .bilgi-i { width: 22px; height: 22px; font-size: 12px; }
+#e-novo.ytel .karar-bas .bilgi-i span { bottom: auto; top: 28px; }
+#e-novo.ytel .eylem-paneli .dugmeler.d5 { grid-template-columns: repeat(6, 1fr) !important; }
+#e-novo.ytel .eylem-paneli .dugmeler.d5 button { grid-column: span 2; }
+#e-novo.ytel .eylem-paneli .dugmeler.d5 button:nth-child(4), #e-novo.ytel .eylem-paneli .dugmeler.d5 button:nth-child(5) { grid-column: span 3; }
+#e-novo.ytel .eylem-paneli .dugmeler.d2 button b { font-size: 13px; }
+#e-novo.ytel .eylem-paneli .dugmeler.d2 button small { font-size: 10px; }
+#e-novo.ytel .eylem-paneli .dugmeler.d2 button { padding: 7px 4px; overflow-wrap: normal; }
