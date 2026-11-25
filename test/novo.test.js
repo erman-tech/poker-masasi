@@ -774,8 +774,8 @@ test('yan express: komşuya hemen öder, kasaya kasa açılınca; net fiş deği
   const once = g.oyuncular[0].fis;
   g = novoDagit(g, d);
   const p = g.el.oyuncular[0];
-  assert.equal(p.yanKomsu.kime, 1);
-  assert.equal(p.yanKomsu.odeme, 10 * 9, 'komşunun üçlüsü 8:1, bahis dahil 90');
+  assert.equal(p.yanKomsular[0].kime, 1);
+  assert.equal(p.yanKomsular[0].odeme, 10 * 9, 'komşunun üçlüsü 8:1, bahis dahil 90');
   assert.equal(g.oyuncular[0].fis, once - 20 - 20 + 90, 'giriş 20, yan bahis 20, komşu ödemesi 90');
   // herkes pas
   for (let k = 0; k < 6 && g.el.faz !== 'bitti'; k++) { const y = novoYasal(g); if (!y) break; g = novoHamleGercek(g, { tip: 'pas' }); }
@@ -794,7 +794,7 @@ test('yan express: kazanmayan bahis kaybedilir, para yetmezse oynanmaz, komşu y
   let g = yanAyarla(oyun(['Erman']), 0, { kasa: true, komsu: true });
   const once = g.oyuncular[0].fis;
   g = novoDagit(g, d);
-  assert.equal(g.el.oyuncular[0].yanKomsu, undefined);
+  assert.equal(g.el.oyuncular[0].yanKomsular, undefined);
   g = novoHamleGercek(g, { tip: 'pas' });
   const p = g.el.oyuncular[0];
   assert.equal(p.yanKasa.odeme, 0);
@@ -818,7 +818,7 @@ test('double: kendi ante, express, çekme ve oyna 2 kat; kasaya ve komşuya expr
   const p0 = g.el.oyuncular[0], p1 = g.el.oyuncular[1];
   assert.equal(p0.ante, 20); assert.equal(p0.bonus, 20); assert.equal(p0.kat, 2);
   assert.equal(p1.ante, 10); assert.equal(p1.bonus, 10);
-  assert.equal(p0.yanKasa.bahis, 10); assert.equal(p0.yanKomsu.bahis, 10);
+  assert.equal(p0.yanKasa.bahis, 10); assert.equal(p0.yanKomsular[0].bahis, 10);
   assert.deepEqual(fis(g), [1000 - 20 - 20 - 10 - 10, 1000 - 20]);
   g = novoHamleGercek(g, { tip: 'degistir', konumlar: [0] });
   assert.equal(g.el.oyuncular[0].ucret, 20, 'kart çekme kendi ante kadar');
@@ -856,4 +856,23 @@ test('kasa anonsu: per ise perin değeri, per + As + Papaz ise döper, iki per d
   assert.equal(an('Ah Kd 7c 3s 2d'), 'kasa_AK');
   const a = kasaAnons(1, 5, false);
   assert.equal(a.yedek, 'kasa_1', 'kaydı yoksa "Kasa per"');
+});
+
+test('komşulara express: 3 kişilik masada iki komşuya ayrı ayrı oynanır (Erman 25 Kas)', () => {
+  // Erman: zayıf · Fidan: üçlü (8:1) · Can: zayıf
+  const d = deste(['2C 5D 9H JS KD', '7C 7D 7H 2S 4D', '3C 6D TH QS 8D'], 'AH 9H 6H 4H 2H');
+  let g = oyun(['Erman', 'Fidan', 'Can']);
+  g = yanAyarla(g, 0, { komsu: true });
+  const once = g.oyuncular[0].fis;
+  g = novoDagit(g, d);
+  const p = g.el.oyuncular[0];
+  assert.deepEqual(p.yanKomsular.map(x => x.kime), [1, 2]);
+  assert.deepEqual(p.yanKomsular.map(x => x.bahis), [10, 10]);
+  assert.deepEqual(p.yanKomsular.map(x => x.odeme), [90, 0]);
+  assert.equal(p.yanBahis, 20);
+  assert.equal(g.oyuncular[0].fis, once - 20 - 20 + 90, 'giriş 20, iki komşuya 20, Fidan ödemesi 90');
+  // 3. oyuncu komşusu olarak 1 ve 2'ye oynar (kendinden sonrakinden başlayıp dönerek)
+  let h = yanAyarla(oyun(['Erman', 'Fidan', 'Can']), 2, { komsu: true });
+  h = novoDagit(h, d);
+  assert.deepEqual(h.el.oyuncular[2].yanKomsular.map(x => x.kime), [0, 1]);
 });

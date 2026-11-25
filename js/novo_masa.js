@@ -2,7 +2,7 @@
 import {
   yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle, molaAyarla, yanAyarla,
   katilabilir, ODEME, BONUS, EL_ADI, YAKILAN_ILK, sinif, bonusAnahtari, kombinasyonlar, betOrani,
-  perDegeri, doperTuru,
+  perDegeri, doperTuru, komsuBahisleri
 } from './novo.js';
 import { yiginEl, ustCipEl } from './fis.js';
 import { DEGER_AD, RENK_SIMGE } from './kart.js';
@@ -44,7 +44,7 @@ function koltukKutusu(g, el, p, i, n) {
     if (j === i) continue;
     const k = document.createElement('div'); k.className = 'nk'; k.dataset.j = j;
     k.innerHTML = `<i>${j + 1}</i>`;
-    const yk = p && p.katildi && p.yanKomsu && p.yanKomsu.bahis > 0 && p.yanKomsu.kime === j ? p.yanKomsu : null;
+    const yk = p && p.katildi ? komsuBahisleri(p).find(x => x.bahis > 0 && x.kime === j) || null : null;
     if (yk) {
       k.classList.add('dolu');
       if (bitti) k.classList.add(yk.odeme > 0 ? 'kazandi' : 'kaybetti');
@@ -170,7 +170,7 @@ function kasaYazi(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + para(Math.abs
 const odenmedi = new Set();
 function gosterilenFis(o, p) {
   if (!p || !p.katildi || !odenmedi.has(o.koltuk ?? -1)) return o.fis;
-  return o.fis - (p.bonusOdeme || 0) - (p.yanKomsu ? p.yanKomsu.odeme : 0);
+  return o.fis - (p.bonusOdeme || 0) - komsuBahisleri(p).reduce((t, x) => t + (x.odeme || 0), 0);
 }
 let maske = null; // { faz?, krupiyeAcik?, kasa }
 function gorunenEl(el) {
@@ -261,8 +261,8 @@ function ciz() {
     const levha = document.createElement('div'); levha.className = 'nlevha';
     if (o.mola) s.classList.add('mola');
     // Koltuk numarası ve bu elde kime yan express oynadığı (kasaya / komşunun adı)
-    const yanNot = p && p.katildi && (p.yanKasa || p.yanKomsu)
-      ? `<div class="yan-not">express → ${[p.yanKasa ? 'kasa' : '', p.yanKomsu && g.oyuncular[p.yanKomsu.kime] ? `${p.yanKomsu.kime + 1}. ${kacis(g.oyuncular[p.yanKomsu.kime].ad)}` : ''].filter(Boolean).join(' · ')}</div>` : '';
+    const yanNot = p && p.katildi && (p.yanKasa || komsuBahisleri(p).length)
+      ? `<div class="yan-not">express → ${[p.yanKasa ? 'kasa' : '', ...komsuBahisleri(p).filter(x => g.oyuncular[x.kime]).map(x => `${x.kime + 1}. ${kacis(g.oyuncular[x.kime].ad)}`)].filter(Boolean).join(' · ')}</div>` : '';
     levha.innerHTML = `<div class="ad"><span class="koltuk-no">${i + 1}</span>${kacis(o.ad)}${o.mola ? ' <span class="mola-etiket">MOLADA</span>' : ''}</div><div class="fis-sayi">${para(gosterilenFis(o, p))}</div>` +
       oyuncuHesap(g, o, p, el);
     const yig = document.createElement('div'); yig.className = 'yigin-yeri';
@@ -474,7 +474,7 @@ function oyuncuAyar(i) {
         <button class="mola-dugme ${o.mola ? 'molada' : ''}" id="oa-mola">${o.mola ? 'Molada · oyuna dön' : 'Oyunda · molaya çık'}</button>
         ${d('oa-oto', 'Otomatik oyna', otoMu(i))}
         ${d('oa-kasa', `Kasaya express (${para(N.g.ante)})`, y.kasa)}
-        ${N.g.oyuncular.length > 1 ? d('oa-komsu', `Komşuya express (${para(N.g.ante)})`, y.komsu) : ''}
+        ${N.g.oyuncular.length > 1 ? d('oa-komsu', `Komşulara express (her birine ${para(N.g.ante)})`, y.komsu) : ''}
         ${d('oa-cift', `Kendime double (ante ${para(2 * N.g.ante)}, express ${para(2 * N.g.ante)})`, y.cift)}
       </div>
       <div class="hata">${kacis(hata)}</div>
@@ -905,7 +905,8 @@ async function dagit() {
   }
   // Komşuya express kazananı: "Bir numara komşu express'ten 75 dolar kazanır" (Erman 22 Kas)
   for (const [p, i] of spotlar) {
-    if (p.yanKomsu && p.yanKomsu.odeme > 0) konus.soyle(konus.oyuncu(i), 'komsu_expressten', konus.sayi(p.yanKomsu.odeme - p.yanKomsu.bahis), 'dolar_kazanir');
+    const kazanc = komsuBahisleri(p).reduce((t, x) => t + (x.odeme > 0 ? x.odeme - x.bahis : 0), 0);
+    if (kazanc > 0) konus.soyle(konus.oyuncu(i), 'komsu_expressten', konus.sayi(kazanc), 'dolar_kazanir');
   }
   await konus.bitince();
   sessizOdeme = true;

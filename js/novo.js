@@ -240,6 +240,18 @@ export function komsusu(katilanlar, i) {
   if (!s.length) return null;
   return s.find(j => j > i) ?? s[0];
 }
+// Komşulara express masadaki her öteki oyuncuya ayrı ayrı oynanır (Erman 25 Kas: 3 kişide ikisine de).
+// Sıra: kendinden sonraki koltuktan başlar, dönerek gelir.
+export function komsulari(katilanlar, i) {
+  const s = katilanlar.filter(j => j !== i);
+  return [...s.filter(j => j > i), ...s.filter(j => j < i)];
+}
+// Eski eller tek komşu (yanKomsu) taşır; yenileri liste (yanKomsular).
+export function komsuBahisleri(p) {
+  if (!p) return [];
+  if (Array.isArray(p.yanKomsular)) return p.yanKomsular;
+  return p.yanKomsu ? [p.yanKomsu] : [];
+}
 
 export function ayarla(g0, { ante }) {
   const g = klon(g0);
@@ -287,16 +299,17 @@ export function novoDagit(g0, desteVerilen = null) {
     if (!p.katildi) return;
     const o = g.oyuncular[i], y = o.yan || {};
     p.yanBahis = 0; p.yanOdeme = 0;
-    const istenen = (y.kasa ? 1 : 0) + (y.komsu ? 1 : 0);
+    const komsular = y.komsu ? komsulari(katilanlar, i) : [];
+    const istenen = (y.kasa ? 1 : 0) + komsular.length;
     if (!istenen) return;
     if (o.fis - istenen * A < 2 * p.ante) { p.yanAtlandi = true; return; }
     if (y.kasa) { o.fis -= A; p.yanBahis += A; p.yanKasa = { bahis: A, oran: 0, odeme: 0 }; }
-    const k = komsusu(katilanlar, i);
-    if (y.komsu && k != null) {
+    if (komsular.length) p.yanKomsular = [];
+    for (const k of komsular) {
       const oran = bonusOrani(el.oyuncular[k].ilk);
       const odeme = oran ? A * (oran + 1) : 0;
       o.fis += odeme - A; p.yanBahis += A; p.yanOdeme += odeme;
-      p.yanKomsu = { bahis: A, kime: k, oran, odeme };
+      p.yanKomsular.push({ bahis: A, kime: k, oran, odeme });
     }
   });
   g.el = el;
@@ -534,9 +547,9 @@ function odemeDokumu(p, el, g) {
   if (p.ucret) k.push({ yazi: p.alti ? '6. kart' : 'Kart çekme', tutar: -p.ucret });
   const yanAd = a => (a === 'SAHTE' ? 'Sahte renk' : EL_ADI[a]);
   if (p.yanKasa) k.push(p.yanKasa.odeme ? { yazi: `Kasaya express ${yanAd(bonusAnahtari(el.krupiyeIlk || el.krupiye))} ${p.yanKasa.oran}:1`, tutar: p.yanKasa.odeme - p.yanKasa.bahis } : { yazi: 'Kasaya express', tutar: -p.yanKasa.bahis });
-  if (p.yanKomsu) {
-    const kp = el.oyuncular[p.yanKomsu.kime], kad = g && g.oyuncular[p.yanKomsu.kime] ? ` (${g.oyuncular[p.yanKomsu.kime].ad})` : '';
-    k.push(p.yanKomsu.odeme ? { yazi: `Komşuya express${kad} ${yanAd(bonusAnahtari(kp.ilk))} ${p.yanKomsu.oran}:1`, tutar: p.yanKomsu.odeme - p.yanKomsu.bahis } : { yazi: `Komşuya express${kad}`, tutar: -p.yanKomsu.bahis });
+  for (const yk of komsuBahisleri(p)) {
+    const kp = el.oyuncular[yk.kime], kad = g && g.oyuncular[yk.kime] ? ` (${g.oyuncular[yk.kime].ad})` : '';
+    k.push(yk.odeme ? { yazi: `Komşuya express${kad} ${yanAd(bonusAnahtari(kp.ilk))} ${yk.oran}:1`, tutar: yk.odeme - yk.bahis } : { yazi: `Komşuya express${kad}`, tutar: -yk.bahis });
   }
   if (p.ciftAtlandi) k.push({ yazi: 'Double oynanmadı (para yetmedi)', tutar: 0 });
   if (p.yanAtlandi) k.push({ yazi: 'Yan express oynanmadı (para yetmedi)', tutar: 0 });
