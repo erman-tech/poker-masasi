@@ -461,7 +461,7 @@ function kisaKalem(y) {
 }
 function dkAcilir(pn) { pn.querySelectorAll('.dk-satir').forEach(r => r.onclick = () => r.classList.toggle('acik')); }
 function ayarOzet(o, i) {
-  const y = o.yan || {}, ek = [otoMu(i) ? 'otomatik' : '', y.kasa ? 'kasaya ex' : '', y.komsu ? 'komşuya ex' : ''].filter(Boolean);
+  const y = o.yan || {}, ek = [otoMu(i) ? 'otomatik' : '', y.kasa ? 'kasaya ex' : '', y.komsu ? 'komşuya ex' : '', y.cift ? 'double' : ''].filter(Boolean);
   return (o.mola ? 'molada' : 'oyunda') + (ek.length ? ' · ' + ek.join(' · ') : '');
 }
 function oyuncuAyar(i) {
@@ -474,6 +474,7 @@ function oyuncuAyar(i) {
         ${d('oa-oto', 'Otomatik oyna', otoMu(i))}
         ${d('oa-kasa', `Kasaya express (${para(N.g.ante)})`, y.kasa)}
         ${N.g.oyuncular.length > 1 ? d('oa-komsu', `Komşuya express (${para(N.g.ante)})`, y.komsu) : ''}
+        ${d('oa-cift', `Kendime double (ante ${para(2 * N.g.ante)}, express ${para(2 * N.g.ante)})`, y.cift)}
       </div>
       <div class="hata">${kacis(hata)}</div>
       <button class="btn-ana" id="oa-tamam">Tamam</button>`;
@@ -482,6 +483,7 @@ function oyuncuAyar(i) {
     k.querySelector('#oa-oto').onclick = () => yap(() => { N.oto = { ...(N.oto || {}) }; if (N.oto[i]) delete N.oto[i]; else N.oto[i] = true; });
     k.querySelector('#oa-kasa').onclick = () => yap(() => { N.g = yanAyarla(N.g, i, { kasa: !(N.g.oyuncular[i].yan || {}).kasa }); });
     if (k.querySelector('#oa-komsu')) k.querySelector('#oa-komsu').onclick = () => yap(() => { N.g = yanAyarla(N.g, i, { komsu: !(N.g.oyuncular[i].yan || {}).komsu }); });
+    k.querySelector('#oa-cift').onclick = () => yap(() => { N.g = yanAyarla(N.g, i, { cift: !(N.g.oyuncular[i].yan || {}).cift }); });
     k.querySelector('#oa-tamam').onclick = () => { perdeKapat(); ciz(); };
   };
   perdeAc('', ciz0);
@@ -613,7 +615,7 @@ async function uygula0(fn, tip) {
   if (tip === 'oyna') {
     const i = once.el.sira;
     ciz();
-    await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ndaire.bet'), 2 * once.el.ante);
+    await fisUcur(spotEl(i).querySelector('.nlevha'), spotEl(i).querySelector('.ndaire.bet'), 2 * once.el.oyuncular[i].ante);
   }
   if (tip === 'sigorta') {
     const i = once.el.sira;
@@ -623,12 +625,12 @@ async function uygula0(fn, tip) {
   }
   if (tip === 'pas') {
     const i = once.el.sira;
-    await fisUcur(spotEl(i).querySelector('.ndaire.ante'), kasaRect(), once.el.ante);
+    await fisUcur(spotEl(i).querySelector('.ndaire.ante'), kasaRect(), once.el.oyuncular[i].ante);
   }
   if (tip === 'degistir' || tip === 'alti') {
     const i = once.el.sira;
     if (yeni.el.faz === 'cekme') ciz(); // karar işaretli görünsün (kart henüz gelmez)
-    await fisUcur(spotEl(i).querySelector('.nlevha'), goster(spotEl(i).querySelector('.ncekme')), once.el.ante, 350);
+    await fisUcur(spotEl(i).querySelector('.nlevha'), goster(spotEl(i).querySelector('.ncekme')), once.el.oyuncular[i].ante, 350);
   }
   if (once.el.faz === 'cekme' && yeni.el.faz !== 'cekme') await topluDagit();
   oyunsuzSecim = {};

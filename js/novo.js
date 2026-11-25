@@ -206,6 +206,11 @@ export function molaAyarla(g0, i, mola) {
   return g;
 }
 
+// Double (Erman 25 Kas): oyuncu kendi ante'sini ve express'ini 2 katı oynar (kart çekme ve oyna da
+// kendi ante'sine göre: 2 kat). Kasaya ve komşuya express masa antesinde kalır. Seçim eller arasında
+// değişir, sonraki elde geçerli; para 2 katına yetmezse o el normal oynanır.
+export const CIFT_KAT = 2;
+
 // Yan express: oyuncu kendi express'ine ek olarak kasanın ve yanındaki oyuncunun ilk 5 kartına
 // express kadar (1 ante) oynayabilir; o ellerde express eli gelirse ödemeyi o alır.
 // Komşu: elde oturan, sıradaki (sağındaki) oyuncu. Seçim her an değişir, sonraki elde geçerli.
@@ -216,6 +221,7 @@ export function yanAyarla(g0, i, yan) {
   const y = { ...(g.oyuncular[i].yan || {}) };
   if ('kasa' in yan) y.kasa = !!yan.kasa;
   if ('komsu' in yan) y.komsu = !!yan.komsu;
+  if ('cift' in yan) y.cift = !!yan.cift;
   g.oyuncular[i].yan = y;
   return g;
 }
@@ -248,14 +254,17 @@ export function novoDagit(g0, desteVerilen = null) {
     krupiyeAcik: false, krupiyeOyunu: null, krupiyeDegisim: 0,
     oyuncular: g.oyuncular.map((o, i) => {
       if (!katilanlar.includes(i)) return { katildi: false };
-      const B = A; // express bonus zorunlu, ante kadar
-      o.fis -= A + B;
+      const ciftIstek = !!(o.yan && o.yan.cift);
+      const kat = ciftIstek && o.fis >= 4 * CIFT_KAT * A ? CIFT_KAT : 1;
+      const Ap = A * kat; // oyuncunun kendi ante'si
+      const B = Ap; // express bonus zorunlu, kendi ante'si kadar
+      o.fis -= Ap + B;
       const kartlar = ilkEl(deste, i);
       const oran = bonusOrani(kartlar);
       const bonusOdeme = oran ? B * (oran + 1) : 0;
       o.fis += bonusOdeme;
       return {
-        katildi: true, kartlar, ilk: kartlar, ante: A, bonus: B, bonusOran: oran, bonusOdeme,
+        katildi: true, kartlar, ilk: kartlar, ante: Ap, kat, ciftAtlandi: ciftIstek && kat === 1, bonus: B, bonusOran: oran, bonusOdeme,
         ucret: 0, bahis: 0, durum: 'bekliyor', cekti: false, degisti: false, alti: false, satinAldi: null, sonuc: null,
       };
     }),
@@ -270,7 +279,7 @@ export function novoDagit(g0, desteVerilen = null) {
     p.yanBahis = 0; p.yanOdeme = 0;
     const istenen = (y.kasa ? 1 : 0) + (y.komsu ? 1 : 0);
     if (!istenen) return;
-    if (o.fis - istenen * A < 2 * A) { p.yanAtlandi = true; return; }
+    if (o.fis - istenen * A < 2 * p.ante) { p.yanAtlandi = true; return; }
     if (y.kasa) { o.fis -= A; p.yanBahis += A; p.yanKasa = { bahis: A, oran: 0, odeme: 0 }; }
     const k = komsusu(katilanlar, i);
     if (y.komsu && k != null) {
@@ -343,7 +352,7 @@ export function novoYasal(g) {
   const el = g.el;
   if (!el || (el.faz !== 'karar' && el.faz !== 'cekme') || el.sira == null) return null;
   const i = el.sira, p = el.oyuncular[i], o = g.oyuncular[i];
-  const A = el.ante;
+  const A = p.ante || el.ante; // oyuncunun kendi ante'si (double ise 2 kat)
   if (el.faz === 'cekme') {
     const ek = o.fis >= A + 2 * A; // ücret + sonra oyna
     return { asama: 'cekme', oyuncu: i, oyna: false, gec: true, pas: true, degistir: ek, alti: ek, kalanKart: 52 - el.cek - bekleyenCekme(el) - 7 };
@@ -371,7 +380,7 @@ function hamleUygula(g0, hamle) {
   const y = novoYasal(g);
   if (!y) throw new Error('Şu an karar beklenmiyor');
   const el = g.el, i = y.oyuncu, p = el.oyuncular[i], o = g.oyuncular[i];
-  const A = el.ante;
+  const A = p.ante || el.ante; // oyuncunun kendi ante'si (double ise 2 kat)
   if ('sigorta' in y && hamle.tip !== 'sigorta') throw new Error('Önce sigorta sorusunu yanıtla');
   if (y.asama === 'cekme') {
     if (hamle.tip === 'oyna') throw new Error('Önce herkes kart çeksin; oyuna girme sonra sorulur');
@@ -519,6 +528,7 @@ function odemeDokumu(p, el, g) {
     const kp = el.oyuncular[p.yanKomsu.kime], kad = g && g.oyuncular[p.yanKomsu.kime] ? ` (${g.oyuncular[p.yanKomsu.kime].ad})` : '';
     k.push(p.yanKomsu.odeme ? { yazi: `Komşuya express${kad} ${yanAd(bonusAnahtari(kp.ilk))} ${p.yanKomsu.oran}:1`, tutar: p.yanKomsu.odeme - p.yanKomsu.bahis } : { yazi: `Komşuya express${kad}`, tutar: -p.yanKomsu.bahis });
   }
+  if (p.ciftAtlandi) k.push({ yazi: 'Double oynanmadı (para yetmedi)', tutar: 0 });
   if (p.yanAtlandi) k.push({ yazi: 'Yan express oynanmadı (para yetmedi)', tutar: 0 });
   if (p.sigorta) k.push(p.sigortaGeri ? { yazi: 'Sigorta 1:1', tutar: p.sigorta } : { yazi: 'Sigorta yandı (kasa açtı)', tutar: -p.sigorta });
   return k;

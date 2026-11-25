@@ -809,3 +809,35 @@ test('yan express: kazanmayan bahis kaybedilir, para yetmezse oynanmaz, komşu y
   assert.equal(komsusu([0, 2], 0), 2);
   assert.equal(komsusu([1], 1), null);
 });
+
+test('double: kendi ante, express, çekme ve oyna 2 kat; kasaya ve komşuya express masa antesinde', () => {
+  let g = oyun(['Erman', 'Fidan']);
+  g = yanAyarla(g, 0, { cift: true, kasa: true, komsu: true });
+  // bonussuz eller; kasa As-Papaz ile açar
+  g = novoDagit(g, deste(['2h 5d 8c Js Kd', '3h 6d 9c Qs 4d'], 'Ah Kc 7d 6s 2c', '3s'));
+  const p0 = g.el.oyuncular[0], p1 = g.el.oyuncular[1];
+  assert.equal(p0.ante, 20); assert.equal(p0.bonus, 20); assert.equal(p0.kat, 2);
+  assert.equal(p1.ante, 10); assert.equal(p1.bonus, 10);
+  assert.equal(p0.yanKasa.bahis, 10); assert.equal(p0.yanKomsu.bahis, 10);
+  assert.deepEqual(fis(g), [1000 - 20 - 20 - 10 - 10, 1000 - 20]);
+  g = novoHamleGercek(g, { tip: 'degistir', konumlar: [0] });
+  assert.equal(g.el.oyuncular[0].ucret, 20, 'kart çekme kendi ante kadar');
+  g = novoHamleGercek(g, { tip: 'gec' });
+  g = novoHamle(g, { tip: 'oyna' });
+  if (g.el.sira === 0 && 'sigorta' in novoYasal(g)) g = novoHamle(g, { tip: 'sigorta', miktar: 0 });
+  assert.equal(g.el.oyuncular[0].bahis, 40, 'oyna 2 x kendi ante');
+});
+
+test('double: para 2 katına yetmezse o el normal oynanır ve söylenir', () => {
+  let g = yeniNovo({ adlar: ['Erman'], kod: 'N1', ante: 10, baslangicFis: 60 });
+  g = yanAyarla(g, 0, { cift: true });
+  g = novoDagit(g, deste(['2h 5d 8c Js Kd'], 'Ah Kc 7d 6s 2c'));
+  assert.equal(g.el.oyuncular[0].ante, 10);
+  assert.equal(g.el.oyuncular[0].ciftAtlandi, true);
+  assert.equal(g.oyuncular[0].fis, 40);
+});
+
+test('double ayarı yeni oyuna taşınır', () => {
+  let g = yanAyarla(oyun(['Erman']), 0, { cift: true });
+  assert.equal(novoYenidenBaslat(g).oyuncular[0].yan.cift, true);
+});
