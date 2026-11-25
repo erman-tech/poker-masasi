@@ -20,7 +20,7 @@ export const PARCALAR = {
   hosgeldiniz: 'Hoş geldiniz, bol şans.',
   bonus_odeme: 'bonus ödeme,', dealer_change: 'Dealer change.', dolar: 'dolar.', seslendirme_acik: 'Seslendirme açık.',
   // kasanın açtığı el
-  kasa_AK: 'Kasa as papaz.', kasa_1: 'Kasa per.', kasa_2: 'Kasa iki per.', kasa_3: 'Kasa üçlü.',
+  kasa_AK: 'Kasa as papaz.', kasa_1: 'Kasa per.', kasa_2: 'Kasa döper.', kasa_3: 'Kasa üçlü.',
   kasa_4: 'Kasa kent.', kasa_5: 'Kasa renk.', kasa_6: 'Kasa full house.', kasa_7: 'Kasa kare.',
   kasa_SF: 'Kasa renkli kent.', kasa_RF: 'Kasa royal flush.',
   // kasa per: perin değeri söylenir; per + As + Papaz ise döper (Erman 25 Kas)
@@ -30,7 +30,7 @@ export const PARCALAR = {
   kasa_cift_10: 'Kasa iki on.', kasa_cift_11: 'Kasa iki jack.', kasa_cift_12: 'Kasa iki kız.', kasa_cift_13: 'Kasa iki papaz.',
   kasa_cift_14: 'Kasa iki as.',
   // el adları
-  el_AK: 'as papaz', el_AKQ: 'as papaz kız', el_SAHTE: 'sahte renk', el_SURAT: 'beş surat', el_1: 'per', el_2: 'iki per',
+  el_AK: 'as papaz', el_AKQ: 'as papaz kız', el_SAHTE: 'sahte renk', el_SURAT: 'beş surat', el_1: 'per', el_2: 'döper', // iki per sesli "döper" diye okunur (Erman 25 Kas)
   el_3: 'üçlü', el_4: 'kent', el_5: 'renk', el_6: 'full house', el_7: 'kare', el_SF: 'renkli kent', el_RF: 'royal flush',
   // adlar
   ad_erman: 'Erman', ad_emrah: 'Emrah', ad_fidan: 'Fidan',
