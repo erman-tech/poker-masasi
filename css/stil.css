@@ -602,6 +602,13 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 .kr-tepe { --kt-gen: 330px; --kt-derin: 128px; position: absolute; left: 50%; top: 0; width: var(--kt-gen); transform: translateX(-50%); pointer-events: none; z-index: 0; }
 .kr-tepe img { position: relative; display: block; width: 100%; margin-top: -62px; filter: drop-shadow(0 12px 14px #000b); transition: opacity .7s, transform .7s; }
 .kr-tepe img:not([src]) { visibility: hidden; }
+/* Dağıtma hareketi: 41 karelik yatay şerit, dağıtırken durgun görselin yerine oynar (Erman 25 Kas). */
+.kt-anim { display: none; position: absolute; left: 0; top: -62px; width: 100%; aspect-ratio: 560 / 584; background: var(--kt-serit) 0 0 / 4100% 100% no-repeat; filter: drop-shadow(0 12px 14px #000b);
+  /* Kart oyunculara doğru çerçeveden çıkarken kesik görünmesin: alt kenar yumuşar. */
+  -webkit-mask-image: linear-gradient(#000 78%, transparent 98%); mask-image: linear-gradient(#000 78%, transparent 98%); }
+.kr-tepe[data-serit][data-ruh="dagit"] .kt-anim { display: block; animation: kt-kare 4s steps(41, jump-none) infinite; }
+.kr-tepe[data-serit][data-ruh="dagit"] img { opacity: 0; transition: none; }
+@keyframes kt-kare { to { background-position: 100% 0; } }
 .kr-girinti { position: absolute; left: 50%; top: calc(var(--kt-derin) * -1); width: calc(var(--kt-gen) * .88); height: calc(var(--kt-derin) * 2); transform: translateX(-50%); border-radius: 50%;
   background: radial-gradient(ellipse at 50% 35%, #1e1813, #07080a 78%); box-shadow: 0 0 0 9px var(--ahsap, #5a3418), 0 0 0 12px #0009, 0 8px 18px #000a, inset 0 -12px 26px #000d; }
 .kr-tepe.kr-cikis img { opacity: 0; transform: translateY(-50px); }

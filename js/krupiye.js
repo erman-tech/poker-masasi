@@ -36,7 +36,7 @@ export function krupiyeKur(yer) {
     if (!t) {
       t = document.createElement('div');
       t.className = 'kr-tepe';
-      t.innerHTML = '<div class="kr-girinti"></div><img alt="">';
+      t.innerHTML = '<div class="kr-girinti"></div><img alt=""><div class="kt-anim"></div>';
       alan.insertBefore(t, alan.children[1] || null);
     }
     tepe = t;
@@ -52,7 +52,13 @@ function yukle(i) {
   galaAcik = false;
   if (kok) kok.classList.remove('kr-gala');
   img.src = `img/kurpiye/${i + 1}.jpg`;
-  if (tepe) tepe.querySelector('img').src = `img/kurpiye/${i + 1}t.png`;
+  if (tepe) {
+    tepe.querySelector('img').src = `img/kurpiye/${i + 1}t.png`;
+    // Kart dağıtırken eliyle dağıtma hareketi: videodan çıkarılmış kare şeridi (Erman 25 Kas).
+    // Şeridi olmayan kurpiye dağıtırken sabit durur.
+    if (SERITLI.has(i)) { tepe.style.setProperty('--kt-serit', `url("${new URL(`img/kurpiye/${i + 1}s.png`, document.baseURI).href}")`); tepe.dataset.serit = '1'; }
+    else { tepe.style.removeProperty('--kt-serit'); delete tepe.dataset.serit; }
+  }
   // iPad Safari önbellekten (service worker) gelen videoyu parça parça isteyemez; videoyu
   // bir kez belleğe alıp oradan oynatırız, internetsiz de çalışır.
   const istenen = i;
@@ -119,6 +125,8 @@ export function konusuyor(sure) {
 }
 
 // sure (ms) verilirse sonra normale döner
+// Dağıtma hareketi şeridi olan kurpiyeler (0 = 1. kurpiye)
+export const SERITLI = new Set([0]);
 export function ruh(ad, sure = 0) {
   if (!kok) return;
   kok.dataset.ruh = ad;
