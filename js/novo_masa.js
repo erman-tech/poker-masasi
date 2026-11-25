@@ -45,12 +45,16 @@ function koltukKutusu(g, el, p, i, n) {
     const k = document.createElement('div'); k.className = 'nk'; k.dataset.j = j;
     k.innerHTML = `<i>${j + 1}</i>`;
     const yk = p && p.katildi ? komsuBahisleri(p).find(x => x.bahis > 0 && x.kime === j) || null : null;
-    if (yk) {
+    // Komşu express kartlar açılınca sonuçlanır: çip yalnız o ana kadar halkada durur
+    if (yk && !bitti && expressBekliyor) {
       k.classList.add('dolu');
-      if (bitti) k.classList.add(yk.odeme > 0 ? 'kazandi' : 'kaybetti');
       k.title = `${j + 1}. oyuncuya express`;
       const yer = document.createElement('div'); yer.className = 'yer'; yer.appendChild(ustCipEl(yk.bahis, 22)); k.appendChild(yer);
-      const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = bitti && yk.odeme > 0 ? '+' + para(yk.odeme) : para(yk.bahis); k.appendChild(b);
+      const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = para(yk.bahis); k.appendChild(b);
+    } else if (yk && yk.odeme > 0) {
+      // El bitti: çip oyuncuya gitti, yalnız kazanç yazar (Erman 25 Kas)
+      k.classList.add('kazandi');
+      const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = '+' + para(yk.odeme - yk.bahis); k.appendChild(b);
     }
     komsu.appendChild(k);
   }
@@ -58,12 +62,15 @@ function koltukKutusu(g, el, p, i, n) {
   // D: kasaya express
   const yd = p && p.katildi && p.yanKasa && p.yanKasa.bahis > 0 ? p.yanKasa : null;
   const dk = document.createElement('div');
-  dk.className = 'ndaire yan dkasa' + (yd ? ' dolu' : '') + (yd && bitti ? (yd.odeme > 0 ? ' kazandi' : ' kaybetti') : '');
+  dk.className = 'ndaire yan dkasa' + (yd && !bitti ? ' dolu' : '') + (yd && bitti && yd.odeme > 0 ? ' kazandi' : '');
   dk.title = 'Kasaya express';
   dk.innerHTML = '<span>D</span>';
-  if (yd) {
+  // Kasaya express: el bitince çip D'de kalmaz; kaybettiyse kasaya, kazandıysa oyuncuya gider (Erman 25 Kas)
+  if (yd && !bitti) {
     const yer = document.createElement('div'); yer.className = 'yer'; yer.appendChild(ustCipEl(yd.bahis, 26)); dk.appendChild(yer);
-    const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = bitti && yd.odeme > 0 ? '+' + para(yd.odeme) : para(yd.bahis); dk.appendChild(b);
+    const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = para(yd.bahis); dk.appendChild(b);
+  } else if (yd && yd.odeme > 0) {
+    const b = document.createElement('b'); b.className = 'ntutar'; b.textContent = '+' + para(yd.odeme - yd.bahis); dk.appendChild(b);
   }
   kutu.appendChild(dk);
   for (const [k, ad] of [['ante', 'ANTE'], ['express', 'EXPRESS'], ['bet', 'BET']]) {
@@ -803,6 +810,13 @@ async function sonAnimasyon(once, yeni) {
     const s = spotEl(i);
     const ante = s.querySelector('.ndaire.ante'), bet = s.querySelector('.ndaire.bet'), levha = s.querySelector('.nlevha');
     const t = p.sonuc.tip;
+    // Yan expressler: kasaya express (D) ve komşu halkaları; kaybeden çip kasaya, kazanan oyuncuya
+    const dk = s.querySelector('.dkasa');
+    if (p.yanKasa && p.yanKasa.bahis > 0 && dk) {
+      const y = dk.querySelector('.yer'); if (y) y.innerHTML = '';
+      if (p.yanKasa.odeme > 0) { await fisUcur(kasaRect(), dk, p.yanKasa.odeme - p.yanKasa.bahis, 400); await fisUcur(dk, levha, p.yanKasa.odeme, 400); }
+      else await fisUcur(dk, kasaRect(), p.yanKasa.bahis, 350);
+    }
     if (t === 'kaybetti') {
       ante.querySelector('.yer').innerHTML = ''; bet.querySelector('.yer').innerHTML = '';
       await fisUcur(bet, kasaRect(), p.ante + p.bahis);
@@ -873,6 +887,8 @@ async function dagit() {
     const levha = s.querySelector('.nlevha');
     await fisUcur(levha, s.querySelector('.ndaire.ante'), p.ante, 300);
     await fisUcur(levha, s.querySelector('.ndaire.express'), p.bonus, 300);
+    if (p.yanKasa && p.yanKasa.bahis > 0 && s.querySelector('.dkasa')) await fisUcur(levha, s.querySelector('.dkasa'), p.yanKasa.bahis, 250);
+    for (const yk of komsuBahisleri(p)) { const h = s.querySelector(`.nk[data-j="${yk.kime}"]`); if (h && yk.bahis > 0) await fisUcur(levha, h, yk.bahis, 250); }
   }
   ruh('dagit');
   const sure = ses.karistir() || 0;
@@ -922,6 +938,14 @@ async function dagit() {
       // bonus yok: express kasaya
       ex.querySelector('.yer').innerHTML = '';
       await fisUcur(ex, kasaRect(), p.bonus, 350);
+    }
+    // Komşulara express: kaybeden çip kasaya, kazanana kasa öder ve çip oyuncuya döner (Erman 25 Kas)
+    for (const yk of komsuBahisleri(p)) {
+      const h = s.querySelector(`.nk[data-j="${yk.kime}"]`);
+      if (!h || !(yk.bahis > 0)) continue;
+      const y = h.querySelector('.yer'); if (y) y.innerHTML = '';
+      if (yk.odeme > 0) { await fisUcur(kasaRect(), h, yk.odeme - yk.bahis, 400); await fisUcur(h, s.querySelector('.nlevha'), yk.odeme, 400); }
+      else await fisUcur(h, kasaRect(), yk.bahis, 300);
     }
   }
   sessizOdeme = false;
