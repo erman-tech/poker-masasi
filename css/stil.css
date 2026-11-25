@@ -604,8 +604,6 @@ button.dk-durum { cursor: pointer; font: inherit; font-size: 11px; }
 .kr-tepe img:not([src]) { visibility: hidden; }
 .kr-girinti { position: absolute; left: 50%; top: calc(var(--kt-derin) * -1); width: calc(var(--kt-gen) * .88); height: calc(var(--kt-derin) * 2); transform: translateX(-50%); border-radius: 50%;
   background: radial-gradient(ellipse at 50% 35%, #1e1813, #07080a 78%); box-shadow: 0 0 0 9px var(--ahsap, #5a3418), 0 0 0 12px #0009, 0 8px 18px #000a, inset 0 -12px 26px #000d; }
-.kr-tepe[data-ruh="dagit"] img { animation: kt-dagit .8s ease-in-out infinite; }
-@keyframes kt-dagit { 50% { transform: translateY(6px); } }
 .kr-tepe.kr-cikis img { opacity: 0; transform: translateY(-50px); }
 .kr-tepe.kr-giris img { animation: kt-gir .7s ease-out; }
 @keyframes kt-gir { from { opacity: 0; transform: translateY(-50px); } }
