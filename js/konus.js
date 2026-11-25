@@ -1,7 +1,7 @@
 // Kasanın sesi: Elif (kurpiye görselleri hayali; ses Elif'in onayıyla). Cümleler kısa parçalardan kurulur (sesler/elif/<parça>.mp3).
 // Kayıtlar varsa yalnız Elif konuşur (kaydı olmayan parça atlanır); hiç kayıt yoksa cihazın Türkçe sesi. Kayıtlar offline önbellekte durur; internet gerekmez.
 const ANAHTAR = 'poker.konusma';
-// Her kurpiyenin kendi sesi (Erman 23 Kas): 1. kurpiye hep Elif, 2-5 hazır profesyonel sesler.
+// Her kurpiyenin kendi sesi: 1 Elif, 2 Mahidevran, 3 ikinci Türkçe ses, 4 Mia (ElevenLabs Türkçe, Erman 25 Kas), 5 Vera.
 const KLASORLER = ['sesler/elif/', 'sesler/k2/', 'sesler/k3/', 'sesler/k4/', 'sesler/k5/'];
 let KLASOR = KLASORLER[0];
 export function kurpiyeSesi(i) { KLASOR = KLASORLER[i] || KLASORLER[0]; }
