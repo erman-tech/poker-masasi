@@ -841,3 +841,19 @@ test('double ayarı yeni oyuna taşınır', () => {
   let g = yanAyarla(oyun(['Erman']), 0, { cift: true });
   assert.equal(novoYenidenBaslat(g).oyuncular[0].yan.cift, true);
 });
+
+test('kasa anonsu: per ise perin değeri, per + As + Papaz ise döper, iki per değişmez', async () => {
+  const { perDegeri, doperTuru, sinif } = await import('../js/novo.js');
+  const { kasaAnons } = await import('../js/konus.js');
+  const an = e => { const k = K(e); const a = kasaAnons(sinif(k).anahtar, perDegeri(k), !!doperTuru(k)); return typeof a === 'string' ? a : a.anahtar; };
+  assert.equal(an('5h 5d 9c Js 2d'), 'kasa_cift_5');
+  assert.equal(an('Th Td 2c 3s 7d'), 'kasa_cift_10');
+  assert.equal(an('Jh Jd 2c 3s 7d'), 'kasa_cift_11');
+  assert.equal(an('Ah Ad 7c 3s 2d'), 'kasa_cift_14');
+  assert.equal(an('4h 4d Ac Ks 2d'), 'kasa_doper', 'gerçek döper');
+  assert.equal(an('Ah Ad Kc 3s 2d'), 'kasa_doper', 'yalancı döper');
+  assert.equal(an('7h 7d 2c 2s 9d'), 'kasa_2', 'iki per aynı');
+  assert.equal(an('Ah Kd 7c 3s 2d'), 'kasa_AK');
+  const a = kasaAnons(1, 5, false);
+  assert.equal(a.yedek, 'kasa_1', 'kaydı yoksa "Kasa per"');
+});

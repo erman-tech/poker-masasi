@@ -147,6 +147,16 @@ export function doperTuru(kartlar) {
   return null;
 }
 
+// Tek per elde perin değeri (2..14, As 14); per değilse null. Kasanın anonsu için (Erman 25 Kas).
+export function perDegeri(kartlar) {
+  const s = sinif(kartlar);
+  if (s.anahtar !== 1) return null;
+  const say = new Map();
+  for (const k of s.el.kartlar) say.set(k.d, (say.get(k.d) || 0) + 1);
+  const c = [...say.entries()].find(([, n]) => n === 2);
+  return c ? c[0] : null;
+}
+
 // Express ilk 5 karta göre. As-Papaz-Kız (yüksek kart) 5'e 1 öder ama oyunda per sayılmaz
 // (oyunda yalnız As-Papaz olarak kalır).
 // Sahte renk (same colour): ilk 5 kartın hepsi kırmızı (kupa/karo) ya da hepsi siyah (maça/sinek),

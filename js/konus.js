@@ -23,6 +23,12 @@ export const PARCALAR = {
   kasa_AK: 'Kasa as papaz.', kasa_1: 'Kasa per.', kasa_2: 'Kasa iki per.', kasa_3: 'Kasa üçlü.',
   kasa_4: 'Kasa kent.', kasa_5: 'Kasa renk.', kasa_6: 'Kasa full house.', kasa_7: 'Kasa kare.',
   kasa_SF: 'Kasa renkli kent.', kasa_RF: 'Kasa royal flush.',
+  // kasa per: perin değeri söylenir; per + As + Papaz ise döper (Erman 25 Kas)
+  kasa_doper: 'Kasa döper.',
+  kasa_cift_2: 'Kasa iki iki.', kasa_cift_3: 'Kasa iki üç.', kasa_cift_4: 'Kasa iki dört.', kasa_cift_5: 'Kasa iki beş.',
+  kasa_cift_6: 'Kasa iki altı.', kasa_cift_7: 'Kasa iki yedi.', kasa_cift_8: 'Kasa iki sekiz.', kasa_cift_9: 'Kasa iki dokuz.',
+  kasa_cift_10: 'Kasa iki on.', kasa_cift_11: 'Kasa iki jack.', kasa_cift_12: 'Kasa iki kız.', kasa_cift_13: 'Kasa iki papaz.',
+  kasa_cift_14: 'Kasa iki as.',
   // el adları
   el_AK: 'as papaz', el_AKQ: 'as papaz kız', el_SAHTE: 'sahte renk', el_SURAT: 'beş surat', el_1: 'per', el_2: 'iki per',
   el_3: 'üçlü', el_4: 'kent', el_5: 'renk', el_6: 'full house', el_7: 'kare', el_SF: 'renkli kent', el_RF: 'royal flush',
@@ -52,6 +58,12 @@ export const ad = isim => ({ anahtar: 'ad_' + trKucuk(isim), metin: isim });
 export const oyuncu = i => 'no_' + (i + 1);
 export const el = a => 'el_' + a;
 export const kasaEl = a => 'kasa_' + a;
+// Kasanın açtığı el: per ise perin değeri ya da döper; kaydı yoksa genel "Kasa per." söylenir.
+export function kasaAnons(anahtar, perDeger, doper) {
+  if (anahtar !== 1) return kasaEl(anahtar);
+  const ozel = doper ? 'kasa_doper' : perDeger ? 'kasa_cift_' + perDeger : null;
+  return ozel ? { anahtar: ozel, metin: PARCALAR[ozel], yedek: kasaEl(1) } : kasaEl(1);
+}
 
 // 1250 -> bin iki yüz elli
 export function sayi(n) {
@@ -144,7 +156,8 @@ export function soyle(...parcalar) {
     if (!ctx) kilidiAc();
     if (!ctx) return;
     if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
-    const parcalar = liste.filter(x => k.has(anahtarOf(x)));
+    // Kaydı olmayan parçanın yedeği varsa o söylenir (ör. "Kasa iki beş" yoksa "Kasa per")
+    const parcalar = liste.map(x => (k.has(anahtarOf(x)) ? x : x && x.yedek && k.has(x.yedek) ? x.yedek : null)).filter(Boolean);
     if (!parcalar.length) return;
     try {
       const bufs = [];

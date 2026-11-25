@@ -2,6 +2,7 @@
 import {
   yeniNovo, novoDagit, novoHamle, novoYasal, oyunSatinAl, novoYenidenBaslat, paraYukle, molaAyarla, yanAyarla,
   katilabilir, ODEME, BONUS, EL_ADI, YAKILAN_ILK, sinif, bonusAnahtari, kombinasyonlar, betOrani,
+  perDegeri, doperTuru,
 } from './novo.js';
 import { yiginEl, ustCipEl } from './fis.js';
 import { DEGER_AD, RENK_SIMGE } from './kart.js';
@@ -719,7 +720,8 @@ async function sonAnimasyon(once, yeni) {
     await bekle(300);
     const sigortalilar = el.oyuncular.map((p, i) => [p, i]).filter(([p]) => p.katildi && p.sigorta > 0);
     if (el.ilkOyun) {
-      konus.soyle(konus.kasaEl(sinif(el.krupiye).anahtar));
+      // Per ise perin değeri ("Kasa iki beş"), per + As + Papaz ise "Kasa döper" (Erman 25 Kas)
+      konus.soyle(konus.kasaAnons(sinif(el.krupiye).anahtar, perDegeri(el.krupiye), !!doperTuru(el.krupiye)));
       for (const [, i] of sigortalilar) konus.soyle(konus.oyuncu(i), 'sigortayi_kaybetti');
     } else {
       // Kimse oyunda değilse kasa ante ödemez: yalnız "Kasa boş" (Erman, 25 Kas 2026)
