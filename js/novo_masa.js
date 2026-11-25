@@ -720,7 +720,8 @@ async function sonAnimasyon(once, yeni) {
       konus.soyle(konus.kasaEl(sinif(el.krupiye).anahtar));
       for (const [, i] of sigortalilar) konus.soyle(konus.oyuncu(i), 'sigortayi_kaybetti');
     } else {
-      konus.soyle('kasa_bos');
+      // Kimse oyunda değilse kasa ante ödemez: yalnız "Kasa boş" (Erman, 25 Kas 2026)
+      konus.soyle(el.oyuncular.some(p => p.katildi && p.durum === 'oynadi') ? 'kasa_bos' : 'kasa_bos_yalin');
       for (const [p, i] of sigortalilar) konus.soyle(konus.oyuncu(i), 'sigortadan', konus.sayi(p.sigorta), 'dolar_kazanir');
     }
     // Kasa boş açtı: sigorta yapanlar kazandı, bunu büyük söyle

@@ -11,6 +11,7 @@ import { sesAcikMi } from './ses.js'; // ses kapatma tuşu seslendirmeyi de sust
 
 export const PARCALAR = {
   kasa_bos: 'Kasa boş, ante ödeme.',
+  kasa_bos_yalin: 'Kasa boş.',
   kasa_kart_cekti: 'Kasa kart çekti,', oldu: 'oldu.', yine_bos: 'yine boş.',
   sigortadan: 'sigortadan', dolar_kazanir: 'dolar kazanır.', sigortayi_kaybetti: 'sigortayı kaybetti.',
   dolar_odeme: 'dolar ödeme.', kat_odeme: 'kat ödeme.', tebrikler: 'Tebrikler', ve: 've',
