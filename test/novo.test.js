@@ -876,3 +876,27 @@ test('komşulara express: 3 kişilik masada iki komşuya ayrı ayrı oynanır (E
   h = novoDagit(h, d);
   assert.deepEqual(h.el.oyuncular[2].yanKomsular.map(x => x.kime), [0, 1]);
 });
+
+test('masa yan express kuralı: kapalı tarafa kimse oynayamaz, yeni oyunda da değişmez (Erman 27 Kas)', () => {
+  const d = deste(['2C 5D 9H JS KD', '7C 7D 7H 2S 4D', '3C 6D TH QS 8D'], 'AH 9H 6H 4H 2H');
+  const kur = k => yeniNovo({ adlar: ['Erman', 'Fidan', 'Can'], kod: 'N1', ante: 10, yanKural: k });
+  assert.throws(() => yeniNovo({ adlar: ['A'], kod: 'N', yanKural: 'bazen' }));
+  assert.equal(yeniNovo({ adlar: ['A'], kod: 'N' }).yanKural, 'hepsi', 'varsayılan: hepsine açık');
+  // yalnız kasa
+  assert.throws(() => yanAyarla(kur('kasa'), 0, { komsu: true }), /komşulara express kapalı/);
+  let g = novoDagit(yanAyarla(kur('kasa'), 0, { kasa: true }), d);
+  assert.ok(g.el.oyuncular[0].yanKasa); assert.equal(g.el.oyuncular[0].yanKomsular, undefined);
+  // yalnız komşu
+  assert.throws(() => yanAyarla(kur('komsu'), 0, { kasa: true }), /kasaya express kapalı/);
+  g = novoDagit(yanAyarla(kur('komsu'), 0, { komsu: true }), d);
+  assert.equal(g.el.oyuncular[0].yanKasa, undefined); assert.equal(g.el.oyuncular[0].yanKomsular.length, 2);
+  // hepsine kapalı; eski seçim kaydı kalsa bile bahis alınmaz
+  const y = kur('yok'); y.oyuncular[0].yan = { kasa: true, komsu: true };
+  const once = y.oyuncular[0].fis;
+  g = novoDagit(y, d);
+  assert.equal(g.el.oyuncular[0].yanBahis, 0);
+  assert.equal(g.oyuncular[0].fis, once - 20, 'yalnız giriş (ante + express)');
+  // kapatmak her zaman serbest; yeni oyunda kural taşınır
+  assert.doesNotThrow(() => yanAyarla(kur('yok'), 0, { kasa: false, komsu: false }));
+  assert.equal(novoYenidenBaslat(kur('kasa')).yanKural, 'kasa');
+});

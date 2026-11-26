@@ -75,7 +75,7 @@ function masayiAc() {
   if (tur === 'novo') {
     if (temiz.length > NOVO_AZAMI_OYUNCU) { $('k-hata').textContent = 'Novo en çok 3 oyuncuyla oynanır.'; return; }
     try { localStorage.setItem('poker.rol', 'novo'); } catch (e) {}
-    novoAc({ adlar: temiz, baslangicFis: fis, ante: Number($('k-ante').value) });
+    novoAc({ adlar: temiz, baslangicFis: fis, ante: Number($('k-ante').value), yanKural: ($('k-yankural') && $('k-yankural').value) || 'hepsi' });
     return;
   }
   try { localStorage.setItem('poker.rol', 'masa'); } catch (e) {}

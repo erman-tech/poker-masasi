@@ -185,17 +185,28 @@ export function bonusOrani(kartlar) {
   return BONUS[bonusAnahtari(kartlar)] || 0;
 }
 
-export function yeniNovo({ adlar, kod, baslangicFis = 1000, ante = 25 }) {
+// Masanın yan express kuralı (Erman 27 Kas): masa kurulurken seçilir, o masa için değişmez.
+// hepsi: kasaya ve komşulara açık · kasa: yalnız kasaya · komsu: yalnız komşulara · yok: kapalı.
+export const YAN_KURALLARI = ['hepsi', 'kasa', 'komsu', 'yok'];
+export function yanIzinli(g, tur) {
+  const k = (g && g.yanKural) || 'hepsi';
+  if (tur === 'kasa') return k === 'hepsi' || k === 'kasa';
+  if (tur === 'komsu') return k === 'hepsi' || k === 'komsu';
+  return true;
+}
+
+export function yeniNovo({ adlar, kod, baslangicFis = 1000, ante = 25, yanKural = 'hepsi' }) {
   if (adlar.length < 1 || adlar.length > NOVO_AZAMI_OYUNCU) throw new Error('Novo 1-3 oyuncu');
+  if (!YAN_KURALLARI.includes(yanKural)) throw new Error('Geçersiz yan express kuralı');
   return {
-    tip: 'novo', kod, baslangicFis, ante, elNo: 0, oyunNo: 1, kasaNet: 0, kasaToplam: 0,
+    tip: 'novo', kod, baslangicFis, ante, yanKural, elNo: 0, oyunNo: 1, kasaNet: 0, kasaToplam: 0,
     oyuncular: adlar.map((ad, i) => ({ ad, koltuk: i, fis: baslangicFis })),
     el: null,
   };
 }
 
 export function novoYenidenBaslat(g) {
-  const y = yeniNovo({ adlar: g.oyuncular.map(o => o.ad), kod: g.kod, baslangicFis: g.baslangicFis, ante: g.ante });
+  const y = yeniNovo({ adlar: g.oyuncular.map(o => o.ad), kod: g.kod, baslangicFis: g.baslangicFis, ante: g.ante, yanKural: g.yanKural || 'hepsi' });
   y.elNo = g.elNo; y.oyunNo = (g.oyunNo || 1) + 1; y.kasaToplam = g.kasaToplam || 0;
   g.oyuncular.forEach((o, i) => { if (o.yan) y.oyuncular[i].yan = { ...o.yan }; });
   return y;
@@ -229,8 +240,8 @@ export function yanAyarla(g0, i, yan) {
   const g = klon(g0);
   if (!g.oyuncular[i]) throw new Error('Oyuncu yok');
   const y = { ...(g.oyuncular[i].yan || {}) };
-  if ('kasa' in yan) y.kasa = !!yan.kasa;
-  if ('komsu' in yan) y.komsu = !!yan.komsu;
+  if ('kasa' in yan) { if (yan.kasa && !yanIzinli(g, 'kasa')) throw new Error('Bu masada kasaya express kapalı'); y.kasa = !!yan.kasa; }
+  if ('komsu' in yan) { if (yan.komsu && !yanIzinli(g, 'komsu')) throw new Error('Bu masada komşulara express kapalı'); y.komsu = !!yan.komsu; }
   if ('cift' in yan) y.cift = !!yan.cift;
   g.oyuncular[i].yan = y;
   return g;
@@ -299,11 +310,12 @@ export function novoDagit(g0, desteVerilen = null) {
     if (!p.katildi) return;
     const o = g.oyuncular[i], y = o.yan || {};
     p.yanBahis = 0; p.yanOdeme = 0;
-    const komsular = y.komsu ? komsulari(katilanlar, i) : [];
-    const istenen = (y.kasa ? 1 : 0) + komsular.length;
+    const kasaya = !!y.kasa && yanIzinli(g, 'kasa');
+    const komsular = y.komsu && yanIzinli(g, 'komsu') ? komsulari(katilanlar, i) : [];
+    const istenen = (kasaya ? 1 : 0) + komsular.length;
     if (!istenen) return;
     if (o.fis - istenen * A < 2 * p.ante) { p.yanAtlandi = true; return; }
-    if (y.kasa) { o.fis -= A; p.yanBahis += A; p.yanKasa = { bahis: A, oran: 0, odeme: 0 }; }
+    if (kasaya) { o.fis -= A; p.yanBahis += A; p.yanKasa = { bahis: A, oran: 0, odeme: 0 }; }
     if (komsular.length) p.yanKomsular = [];
     for (const k of komsular) {
       const oran = bonusOrani(el.oyuncular[k].ilk);
